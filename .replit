@@ -1,7 +1,7 @@
 modules = ["nodejs-20", "web"]
 
 [env]
-PORT = "3000"
+PORT = "5173"
 
 [run]
 command = "npm install && npm run dev"
@@ -10,5 +10,5 @@ command = "npm install && npm run dev"
 channel = "stable-25_05"
 
 [[ports]]
-localPort = 3000
+localPort = 5173
 externalPort = 80
