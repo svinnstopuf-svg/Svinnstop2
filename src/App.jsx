@@ -16,6 +16,7 @@ export default function App() {
   const [form, setForm] = useState({ name: '', quantity: 1, purchasedAt: '', expiresAt: '' })
   const [filter, setFilter] = useState('all')
   const [theme, setTheme] = useState('dark')
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -71,10 +72,28 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const now = new Date()
-    if (filter === 'expiring') return sorted.filter(i => daysUntil(i.expiresAt) <= 3 && daysUntil(i.expiresAt) >= 0)
-    if (filter === 'expired') return sorted.filter(i => new Date(i.expiresAt) < now)
-    return sorted
-  }, [sorted, filter])
+    let result = sorted
+    
+    // Apply status filter
+    if (filter === 'expiring') {
+      result = result.filter(i => daysUntil(i.expiresAt) <= 3 && daysUntil(i.expiresAt) >= 0)
+    } else if (filter === 'expired') {
+      result = result.filter(i => new Date(i.expiresAt) < now)
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter(i => 
+        i.name.toLowerCase().includes(query) ||
+        i.quantity.toString().includes(query) ||
+        (i.purchasedAt && i.purchasedAt.includes(query)) ||
+        (i.expiresAt && i.expiresAt.includes(query))
+      )
+    }
+    
+    return result
+  }, [sorted, filter, searchQuery])
 
   const suggestions = useMemo(() => suggestRecipes(items), [items])
 
@@ -123,14 +142,29 @@ export default function App() {
       <section className="card">
         <div className="list-header">
           <h2>Items</h2>
-          <div className="filters">
-            <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> All</label>
-            <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> Expiring ≤ 3 days</label>
-            <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> Expired</label>
+          <div className="search-and-filters">
+            <input 
+              type="text" 
+              placeholder="Search items..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <div className="filters">
+              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> All</label>
+              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> Expiring ≤ 3 days</label>
+              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> Expired</label>
+            </div>
           </div>
         </div>
         {filtered.length === 0 ? (
-          <p>No items yet. Add your first item above.</p>
+          <p>
+            {items.length === 0 
+              ? "No items yet. Add your first item above." 
+              : searchQuery.trim() 
+                ? `No items found matching "${searchQuery}"` 
+                : "No items match the selected filter."}
+          </p>
         ) : (
           <ul className="items">
             {filtered.map(i => {
