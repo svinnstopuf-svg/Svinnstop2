@@ -17,6 +17,8 @@ export default function App() {
   const [filter, setFilter] = useState('all')
   const [theme, setTheme] = useState('dark')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedItems, setSelectedItems] = useState(new Set())
+  const [bulkMode, setBulkMode] = useState(false)
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -99,6 +101,44 @@ export default function App() {
     document.body.removeChild(link)
   }
 
+  // Bulk operations
+  const toggleBulkMode = () => {
+    setBulkMode(prev => !prev)
+    setSelectedItems(new Set())
+  }
+
+  const toggleSelectItem = (itemId) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
+  }
+
+  const selectAllVisible = () => {
+    const visibleIds = filtered.map(item => item.id)
+    setSelectedItems(new Set(visibleIds))
+  }
+
+  const deselectAll = () => {
+    setSelectedItems(new Set())
+  }
+
+  const bulkDelete = () => {
+    if (selectedItems.size === 0) return
+    
+    const confirmed = confirm(`Delete ${selectedItems.size} selected item${selectedItems.size === 1 ? '' : 's'}?`)
+    if (confirmed) {
+      setItems(prev => prev.filter(item => !selectedItems.has(item.id)))
+      setSelectedItems(new Set())
+      setBulkMode(false)
+    }
+  }
+
   const sorted = useMemo(() => {
     const copy = [...items]
     copy.sort((a, b) => new Date(a.expiresAt) - new Date(b.expiresAt))
@@ -178,14 +218,24 @@ export default function App() {
         <div className="list-header">
           <div className="section-title">
             <h2>Items</h2>
-            <button 
-              onClick={exportToCSV} 
-              className="export-btn"
-              disabled={items.length === 0}
-              title="Export all items to CSV"
-            >
-              📊 Export CSV
-            </button>
+            <div className="header-actions">
+              <button 
+                onClick={toggleBulkMode}
+                className={`bulk-toggle-btn ${bulkMode ? 'active' : ''}`}
+                disabled={items.length === 0}
+                title={bulkMode ? 'Exit bulk mode' : 'Select multiple items'}
+              >
+                {bulkMode ? '✕ Exit' : '☑️ Select'}
+              </button>
+              <button 
+                onClick={exportToCSV} 
+                className="export-btn"
+                disabled={items.length === 0}
+                title="Export all items to CSV"
+              >
+                📊 Export CSV
+              </button>
+            </div>
           </div>
           <div className="search-and-filters">
             <input 
@@ -200,6 +250,25 @@ export default function App() {
               <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> Expiring ≤ 3 days</label>
               <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> Expired</label>
             </div>
+            
+            {bulkMode && (
+              <div className="bulk-actions">
+                <div className="bulk-info">
+                  <span>{selectedItems.size} of {filtered.length} items selected</span>
+                </div>
+                <div className="bulk-buttons">
+                  <button onClick={selectAllVisible} className="bulk-btn secondary">Select All</button>
+                  <button onClick={deselectAll} className="bulk-btn secondary">Deselect All</button>
+                  <button 
+                    onClick={bulkDelete} 
+                    className="bulk-btn danger"
+                    disabled={selectedItems.size === 0}
+                  >
+                    Delete Selected ({selectedItems.size})
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {filtered.length === 0 ? (
@@ -216,7 +285,18 @@ export default function App() {
               const d = daysUntil(i.expiresAt)
               const status = d < 0 ? 'Expired' : d === 0 ? 'Expires today' : `${d} day${d === 1 ? '' : 's'} left`
               return (
-                <li key={i.id} className={d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''}>
+                <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkMode ? 'bulk-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
+                  {bulkMode && (
+                    <div className="item-checkbox">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedItems.has(i.id)}
+                        onChange={() => toggleSelectItem(i.id)}
+                        id={`item-${i.id}`}
+                      />
+                      <label htmlFor={`item-${i.id}`} className="checkbox-label"></label>
+                    </div>
+                  )}
                   <div className="item-main">
                     <strong>{i.name}</strong>
                     <span className="muted">Qty: {i.quantity}</span>
@@ -225,7 +305,9 @@ export default function App() {
                     <span>Expiry: {i.expiresAt || '—'}</span>
                     <span className="status">{status}</span>
                   </div>
-                  <button className="link" onClick={() => onRemove(i.id)}>Remove</button>
+                  {!bulkMode && (
+                    <button className="link" onClick={() => onRemove(i.id)}>Remove</button>
+                  )}
                 </li>
               )
             })}
