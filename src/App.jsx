@@ -377,17 +377,44 @@ export default function App() {
       <section className="card">
         <h2>Recipe suggestions</h2>
         {suggestions.length === 0 ? (
-          <p>Add items to see suggested recipes.</p>
+          <p>{items.length === 0 ? "Add items to see suggested recipes." : "No recipes found with your current ingredients. Try adding more items!"}</p>
         ) : (
-          <ul className="recipes">
+          <div className="recipes">
             {suggestions.map(r => (
-              <li key={r.id}>
-                <strong>{r.name}</strong>
-                <div className="muted">Ingredients: {r.ingredients.join(', ')}</div>
-                <div className="muted">{r.instructions}</div>
-              </li>
+              <div key={r.id} className="recipe-card">
+                <div className="recipe-header">
+                  <h3>{r.name}</h3>
+                  <div className="recipe-meta">
+                    <span className="servings">👥 {r.servings} serving{r.servings > 1 ? 's' : ''}</span>
+                    <span className="time">⏱️ {r.cookingTime}</span>
+                    <span className={`difficulty ${r.difficulty.toLowerCase()}`}>📶 {r.difficulty}</span>
+                  </div>
+                </div>
+                
+                <div className="recipe-ingredients">
+                  <h4>Ingredients needed:</h4>
+                  <ul>
+                    {r.usedIngredients.map((ingredient, idx) => (
+                      <li key={idx} className="ingredient-item">
+                        <span className="ingredient-amount">
+                          {ingredient.quantity} {ingredient.unit}
+                        </span>
+                        <span className="ingredient-name">{ingredient.name}</span>
+                        <span className="ingredient-available">
+                          (you have: {ingredient.availableQuantity} {ingredient.itemName})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="recipe-instructions">
+                  <h4>Instructions:</h4>
+                  <p>{r.instructions}</p>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
