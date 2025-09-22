@@ -9,22 +9,40 @@ function daysUntil(dateStr) {
 }
 
 const STORAGE_KEY = 'svinnstop_items'
+const THEME_KEY = 'svinnstop_theme'
 
 export default function App() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ name: '', quantity: 1, purchasedAt: '', expiresAt: '' })
   const [filter, setFilter] = useState('all')
+  const [theme, setTheme] = useState('dark')
 
+  // Initialize theme from localStorage or system preference
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try { setItems(JSON.parse(saved)) } catch {}
+    }
+    
+    const savedTheme = localStorage.getItem(THEME_KEY)
+    if (savedTheme) {
+      setTheme(savedTheme)
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setTheme(prefersDark ? 'dark' : 'light')
     }
   }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
   }, [items])
+
+  // Apply theme to document and save to localStorage
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
 
   const onChange = e => {
     const { name, value } = e.target
@@ -40,6 +58,10 @@ export default function App() {
   }
 
   const onRemove = id => setItems(prev => prev.filter(i => i.id !== id))
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+  }
 
   const sorted = useMemo(() => {
     const copy = [...items]
@@ -57,6 +79,16 @@ export default function App() {
   const suggestions = useMemo(() => suggestRecipes(items), [items])
 
   return (
+    <>
+      <button 
+        className="theme-toggle" 
+        onClick={toggleTheme}
+        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
+      
     <div className="container">
       <header>
         <h1>Svinnstop</h1>
@@ -141,5 +173,6 @@ export default function App() {
 
       <footer className="muted">Data is saved in your browser (localStorage).</footer>
     </div>
+    </>
   )
 }
