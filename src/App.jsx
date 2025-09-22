@@ -19,6 +19,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItems, setSelectedItems] = useState(new Set())
   const [bulkMode, setBulkMode] = useState(false)
+  const [actionHistory, setActionHistory] = useState([])
+  const [canUndo, setCanUndo] = useState(false)
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -60,10 +62,30 @@ export default function App() {
     setForm({ name: '', quantity: 1, purchasedAt: '', expiresAt: '' })
   }
 
-  const onRemove = id => setItems(prev => prev.filter(i => i.id !== id))
+  const onRemove = id => {
+    const itemToRemove = items.find(item => item.id === id)
+    if (itemToRemove) {
+      // Save action for undo
+      saveAction({
+        type: 'DELETE_SINGLE',
+        data: { item: itemToRemove },
+        timestamp: Date.now()
+      })
+    }
+    setItems(prev => prev.filter(i => i.id !== id))
+  }
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+  }
+
+  // Undo/Redo functionality
+  const saveAction = (action) => {
+    setActionHistory(prev => {
+      const newHistory = [...prev, action].slice(-10) // Keep last 10 actions
+      return newHistory
+    })
+    setCanUndo(true)
   }
 
   const exportToCSV = () => {
@@ -133,10 +155,37 @@ export default function App() {
     
     const confirmed = confirm(`Delete ${selectedItems.size} selected item${selectedItems.size === 1 ? '' : 's'}?`)
     if (confirmed) {
+      const itemsToDelete = items.filter(item => selectedItems.has(item.id))
+      
+      // Save action for undo
+      saveAction({
+        type: 'DELETE_BULK',
+        data: { items: itemsToDelete },
+        timestamp: Date.now()
+      })
+      
       setItems(prev => prev.filter(item => !selectedItems.has(item.id)))
       setSelectedItems(new Set())
       setBulkMode(false)
     }
+  }
+
+  const undoLastAction = () => {
+    if (actionHistory.length === 0) return
+    
+    const lastAction = actionHistory[actionHistory.length - 1]
+    
+    if (lastAction.type === 'DELETE_SINGLE') {
+      // Restore single deleted item
+      setItems(prev => [...prev, lastAction.data.item])
+    } else if (lastAction.type === 'DELETE_BULK') {
+      // Restore bulk deleted items
+      setItems(prev => [...prev, ...lastAction.data.items])
+    }
+    
+    // Remove the action from history
+    setActionHistory(prev => prev.slice(0, -1))
+    setCanUndo(actionHistory.length > 1)
   }
 
   const sorted = useMemo(() => {
@@ -181,6 +230,16 @@ export default function App() {
         aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       >
         {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
+      
+      <button 
+        className="undo-btn" 
+        onClick={undoLastAction}
+        disabled={!canUndo}
+        title="Undo last deletion"
+        aria-label="Undo last deletion"
+      >
+        ↶️ Undo
       </button>
       
     <div className="container">
