@@ -46,6 +46,24 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .expiring .status { color: var(--warn) }
 .expired .status { color: var(--danger) }
 .list-header { display: flex; flex-direction: column; gap: 16px }
+.section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.export-btn {
+  background: var(--muted);
+  color: var(--bg);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+.export-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--button-text);
+}
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .search-and-filters { display: flex; flex-direction: column; gap: 12px }
 .search-input { 
   padding: 10px 12px; 
@@ -99,4 +117,6 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   .theme-toggle { top: 10px; right: 10px; width: 35px; height: 35px; }
   .search-and-filters { gap: 10px; }
   .filters { justify-content: center; }
+  .section-title { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .export-btn { align-self: flex-end; }
 }

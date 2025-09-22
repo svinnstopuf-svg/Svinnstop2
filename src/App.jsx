@@ -64,6 +64,41 @@ export default function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark')
   }
 
+  const exportToCSV = () => {
+    if (items.length === 0) {
+      alert('No items to export!')
+      return
+    }
+
+    const headers = ['Name', 'Quantity', 'Purchase Date', 'Expiry Date', 'Days Until Expiry', 'Status']
+    const csvData = items.map(item => {
+      const days = daysUntil(item.expiresAt)
+      const status = days < 0 ? 'Expired' : days === 0 ? 'Expires today' : `${days} days left`
+      return [
+        item.name,
+        item.quantity,
+        item.purchasedAt || 'N/A',
+        item.expiresAt,
+        days,
+        status
+      ]
+    })
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `svinnstop-inventory-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const sorted = useMemo(() => {
     const copy = [...items]
     copy.sort((a, b) => new Date(a.expiresAt) - new Date(b.expiresAt))
@@ -141,7 +176,17 @@ export default function App() {
 
       <section className="card">
         <div className="list-header">
-          <h2>Items</h2>
+          <div className="section-title">
+            <h2>Items</h2>
+            <button 
+              onClick={exportToCSV} 
+              className="export-btn"
+              disabled={items.length === 0}
+              title="Export all items to CSV"
+            >
+              📊 Export CSV
+            </button>
+          </div>
           <div className="search-and-filters">
             <input 
               type="text" 
