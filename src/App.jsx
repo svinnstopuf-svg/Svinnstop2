@@ -149,7 +149,7 @@ export default function App() {
 
   const exportToCSV = () => {
     if (items.length === 0) {
-      alert('No items to export!')
+      alert(t('noItemsToExport', language))
       return
     }
 
@@ -212,7 +212,7 @@ export default function App() {
   const bulkDelete = () => {
     if (selectedItems.size === 0) return
     
-    const confirmed = confirm(`Delete ${selectedItems.size} selected item${selectedItems.size === 1 ? '' : 's'}?`)
+    const confirmed = confirm(t('bulkDeleteConfirm', language, { count: selectedItems.size, plural: plural(selectedItems.size) }))
     if (confirmed) {
       const itemsToDelete = items.filter(item => selectedItems.has(item.id))
       
@@ -299,10 +299,10 @@ export default function App() {
         className="undo-btn" 
         onClick={undoLastAction}
         disabled={!canUndo}
-        title="Undo last deletion"
-        aria-label="Undo last deletion"
+        title={t('undoTitle', language)}
+        aria-label={t('undoTitle', language)}
       >
-        ↶️ Undo
+        {t('undoButton', language)}
       </button>
       
     <div className="container">
@@ -348,54 +348,54 @@ export default function App() {
       <section className="card">
         <div className="list-header">
           <div className="section-title">
-            <h2>Items</h2>
+            <h2>{t('items', language)}</h2>
             <div className="header-actions">
               <button 
                 onClick={toggleBulkMode}
                 className={`bulk-toggle-btn ${bulkMode ? 'active' : ''}`}
                 disabled={items.length === 0}
-                title={bulkMode ? 'Exit bulk mode' : 'Select multiple items'}
+                title={bulkMode ? t('exitButton', language) : t('selectButton', language)}
               >
-                {bulkMode ? '✕ Exit' : '☑️ Select'}
+                {bulkMode ? t('exitButton', language) : t('selectButton', language)}
               </button>
               <button 
                 onClick={exportToCSV} 
                 className="export-btn"
                 disabled={items.length === 0}
-                title="Export all items to CSV"
+                title={t('exportCSV', language)}
               >
-                📊 Export CSV
+                {t('exportCSV', language)}
               </button>
             </div>
           </div>
           <div className="search-and-filters">
             <input 
               type="text" 
-              placeholder="Search items..." 
+              placeholder={t('searchPlaceholder', language)}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
             />
             <div className="filters">
-              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> All</label>
-              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> Expiring ≤ 3 days</label>
-              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> Expired</label>
+              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> {t('all', language)}</label>
+              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> {t('expiring', language)}</label>
+              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> {t('expired', language)}</label>
             </div>
             
             {bulkMode && (
               <div className="bulk-actions">
                 <div className="bulk-info">
-                  <span>{selectedItems.size} of {filtered.length} items selected</span>
+                  <span>{t('selectedCount', language, { selected: selectedItems.size, total: filtered.length })}</span>
                 </div>
                 <div className="bulk-buttons">
-                  <button onClick={selectAllVisible} className="bulk-btn secondary">Select All</button>
-                  <button onClick={deselectAll} className="bulk-btn secondary">Deselect All</button>
+                  <button onClick={selectAllVisible} className="bulk-btn secondary">{t('selectAll', language)}</button>
+                  <button onClick={deselectAll} className="bulk-btn secondary">{t('deselectAll', language)}</button>
                   <button 
                     onClick={bulkDelete} 
                     className="bulk-btn danger"
                     disabled={selectedItems.size === 0}
                   >
-                    Delete Selected ({selectedItems.size})
+                    {t('deleteSelected', language)} ({selectedItems.size})
                   </button>
                 </div>
               </div>
@@ -405,16 +405,16 @@ export default function App() {
         {filtered.length === 0 ? (
           <p>
             {items.length === 0 
-              ? "No items yet. Add your first item above." 
+              ? t('noItems', language)
               : searchQuery.trim() 
-                ? `No items found matching "${searchQuery}"` 
-                : "No items match the selected filter."}
+                ? t('noSearchResults', language, { query: searchQuery })
+                : t('noFilterResults', language)}
           </p>
         ) : (
           <ul className="items">
             {filtered.map(i => {
               const d = daysUntil(i.expiresAt)
-              const status = d < 0 ? 'Expired' : d === 0 ? 'Expires today' : `${d} day${d === 1 ? '' : 's'} left`
+              const status = d < 0 ? t('expired', language) : d === 0 ? t('expiresToday', language) : t('daysLeft', language, { days: d, plural: plural(d) })
               return (
                 <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkMode ? 'bulk-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
                   {bulkMode && (
@@ -433,7 +433,7 @@ export default function App() {
                     <span className="muted">{i.quantity} {i.unit}</span>
                   </div>
                   <div className="item-sub">
-                    <span>Expiry: {i.expiresAt || '—'}</span>
+                    <span>{t('expiry', language)}: {i.expiresAt || '—'}</span>
                     <span className="status">{status}</span>
                   </div>
                   {!bulkMode && (
@@ -490,7 +490,7 @@ export default function App() {
         )}
       </section>
 
-      <footer className="muted">Data is saved in your browser (localStorage).</footer>
+      <footer className="muted">{t('dataStorage', language)}</footer>
     </div>
     </>
   )
