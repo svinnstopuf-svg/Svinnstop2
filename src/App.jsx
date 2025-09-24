@@ -278,7 +278,7 @@ export default function App() {
     return result
   }, [sorted, filter, searchQuery])
 
-  const suggestions = useMemo(() => suggestRecipes(items), [items])
+  const suggestions = useMemo(() => suggestRecipes(items, language), [items, language])
   
   // Get suggested unit based on current item name
   const suggestedUnitKey = useMemo(() => getSuggestedUnitKey(form.name), [form.name])
@@ -447,9 +447,9 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2>Recipe suggestions</h2>
+        <h2>{t('recipeSuggestions', language)}</h2>
         {suggestions.length === 0 ? (
-          <p>{items.length === 0 ? "Add items to see suggested recipes." : "No recipes found with your current ingredients. Try adding more items!"}</p>
+          <p>{items.length === 0 ? t('noRecipesEmpty', language) : t('noRecipesFound', language)}</p>
         ) : (
           <div className="recipes">
             {suggestions.map(r => (
@@ -457,14 +457,14 @@ export default function App() {
                 <div className="recipe-header">
                   <h3>{r.name}</h3>
                   <div className="recipe-meta">
-                    <span className="servings">👥 {r.servings} serving{r.servings > 1 ? 's' : ''}</span>
+                    <span className="servings">👥 {r.servings} {t('servings', language, { plural: plural(r.servings) })}</span>
                     <span className="time">⏱️ {r.cookingTime}</span>
                     <span className={`difficulty ${r.difficulty.toLowerCase()}`}>📶 {r.difficulty}</span>
                   </div>
                 </div>
                 
                 <div className="recipe-ingredients">
-                  <h4>Ingredients needed:</h4>
+                  <h4>{t('ingredientsNeeded', language)}</h4>
                   <ul>
                     {r.usedIngredients.map((ingredient, idx) => (
                       <li key={idx} className="ingredient-item">
@@ -481,7 +481,7 @@ export default function App() {
                 </div>
                 
                 <div className="recipe-instructions">
-                  <h4>Instructions:</h4>
+                  <h4>{t('instructions', language)}</h4>
                   <p>{r.instructions}</p>
                 </div>
               </div>

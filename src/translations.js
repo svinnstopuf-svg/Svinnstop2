@@ -69,7 +69,12 @@ export const translations = {
     
     // Undo
     undoButton: '↶️ Undo',
-    undoTitle: 'Undo last deletion'
+    undoTitle: 'Undo last deletion',
+    
+    // Difficulty levels
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard'
   },
   
   sv: {
@@ -141,7 +146,12 @@ export const translations = {
     
     // Undo
     undoButton: '↶️ Ångra',
-    undoTitle: 'Ångra senaste borttagning'
+    undoTitle: 'Ångra senaste borttagning',
+    
+    // Difficulty levels
+    easy: 'Lätt',
+    medium: 'Medel',
+    hard: 'Svår'
   },
   
   de: {
@@ -213,7 +223,12 @@ export const translations = {
     
     // Undo
     undoButton: '↶️ Rückgängig',
-    undoTitle: 'Letzte Löschung rückgängig machen'
+    undoTitle: 'Letzte Löschung rückgängig machen',
+    
+    // Difficulty levels
+    easy: 'Einfach',
+    medium: 'Mittel',
+    hard: 'Schwer'
   }
 }
 
