@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
+import { getLanguage, t, plural } from './translations'
 
 function daysUntil(dateStr) {
   const today = new Date()
@@ -8,56 +9,51 @@ function daysUntil(dateStr) {
   return diff
 }
 
-// Get suggested unit for quantity label based on item name
-function getSuggestedUnit(itemName) {
+// Get suggested unit key for quantity label based on item name
+function getSuggestedUnitKey(itemName) {
   if (!itemName.trim()) return 'quantity'
   
   const name = itemName.toLowerCase()
   
-  // Liquids
-  if (name.includes('milk') || name.includes('juice') || name.includes('water') || 
-      name.includes('oil') || name.includes('cream') || name.includes('sauce') ||
-      name.includes('soup') || name.includes('broth') || name.includes('vinegar')) {
-    return 'liters'
-  }
+  // Support multiple languages for item detection
+  const isLiquid = name.includes('milk') || name.includes('mjölk') || name.includes('milch') ||
+                   name.includes('juice') || name.includes('saft') || name.includes('saft') ||
+                   name.includes('water') || name.includes('vatten') || name.includes('wasser') ||
+                   name.includes('oil') || name.includes('olja') || name.includes('öl') ||
+                   name.includes('cream') || name.includes('grädde') || name.includes('sahne') ||
+                   name.includes('soup') || name.includes('soppa') || name.includes('suppe')
   
-  // Bread/Baked goods
-  if (name.includes('bread') || name.includes('bun') || name.includes('roll') ||
-      name.includes('bagel') || name.includes('croissant')) {
-    return 'loaves'
-  }
+  const isBread = name.includes('bread') || name.includes('bröd') || name.includes('brot') ||
+                  name.includes('bun') || name.includes('bulle') || name.includes('brötchen')
   
-  // Meat/Fish
-  if (name.includes('chicken') || name.includes('beef') || name.includes('pork') ||
-      name.includes('fish') || name.includes('salmon') || name.includes('meat')) {
-    return 'kg'
-  }
+  const isMeat = name.includes('chicken') || name.includes('kyckling') || name.includes('hähnchen') ||
+                 name.includes('beef') || name.includes('nötkött') || name.includes('rindfleisch') ||
+                 name.includes('meat') || name.includes('kött') || name.includes('fleisch')
+  
+  const isEgg = name.includes('egg') || name.includes('ägg') || name.includes('ei')
+  
+  if (isLiquid) return 'liters'
+  if (isBread) return 'loaves'
+  if (isMeat) return 'kg'
+  if (isEgg) return 'pieces'
   
   // Dairy (solid)
-  if (name.includes('cheese') || name.includes('butter') || name.includes('yogurt')) {
+  if (name.includes('cheese') || name.includes('ost') || name.includes('käse') ||
+      name.includes('butter') || name.includes('smör') || name.includes('butter') ||
+      name.includes('yogurt') || name.includes('yoghurt') || name.includes('joghurt')) {
     return 'grams'
   }
   
-  // Eggs
-  if (name.includes('egg')) {
-    return 'pieces'
-  }
-  
-  // Fruits/Vegetables
-  if (name.includes('apple') || name.includes('banana') || name.includes('orange') ||
-      name.includes('tomato') || name.includes('potato') || name.includes('onion') ||
-      name.includes('carrot') || name.includes('pepper')) {
-    return 'pieces'
-  }
-  
   // Rice/Pasta/Grains
-  if (name.includes('rice') || name.includes('pasta') || name.includes('flour') ||
-      name.includes('oats') || name.includes('grain')) {
+  if (name.includes('rice') || name.includes('ris') || name.includes('reis') ||
+      name.includes('pasta') || name.includes('pasta') || name.includes('nudeln') ||
+      name.includes('flour') || name.includes('mjöl') || name.includes('mehl')) {
     return 'grams'
   }
   
   // Canned goods
-  if (name.includes('can') || name.includes('tin')) {
+  if (name.includes('can') || name.includes('burk') || name.includes('dose') ||
+      name.includes('tin') || name.includes('konserv') || name.includes('büchse')) {
     return 'cans'
   }
   
@@ -78,6 +74,7 @@ export default function App() {
   const [bulkMode, setBulkMode] = useState(false)
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
+  const [language, setLanguage] = useState('en')
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -94,6 +91,9 @@ export default function App() {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setTheme(prefersDark ? 'dark' : 'light')
     }
+    
+    // Initialize language from browser
+    setLanguage(getLanguage())
   }, [])
 
   useEffect(() => {
@@ -115,7 +115,8 @@ export default function App() {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-    const unit = getSuggestedUnit(form.name)
+    const unitKey = getSuggestedUnitKey(form.name)
+    const unit = t(`units.${unitKey}`, language)
     setItems(prev => [...prev, { id, ...form, unit }])
     setForm({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
   }
@@ -280,7 +281,8 @@ export default function App() {
   const suggestions = useMemo(() => suggestRecipes(items), [items])
   
   // Get suggested unit based on current item name
-  const suggestedUnit = useMemo(() => getSuggestedUnit(form.name), [form.name])
+  const suggestedUnitKey = useMemo(() => getSuggestedUnitKey(form.name), [form.name])
+  const suggestedUnit = useMemo(() => t(`units.${suggestedUnitKey}`, language), [suggestedUnitKey, language])
 
   return (
     <>
@@ -305,19 +307,19 @@ export default function App() {
       
     <div className="container">
       <header>
-        <h1>Svinnstop</h1>
-        <p>Track your purchased food, expiry dates, and see recipe ideas.</p>
+        <h1>{t('appName', language)}</h1>
+        <p>{t('appDescription', language)}</p>
       </header>
 
       <section className="card">
-        <h2>Add item</h2>
+        <h2>{t('addItem', language)}</h2>
         <form onSubmit={onAdd} className="grid">
           <label>
-            Name
-            <input name="name" value={form.name} onChange={onChange} placeholder="e.g. milk, bread, tomato" required />
+            {t('name', language)}
+            <input name="name" value={form.name} onChange={onChange} placeholder={t('namePlaceholder', language)} required />
           </label>
           <label>
-            Quantity ({suggestedUnit})
+            {t('quantity', language)} ({suggestedUnit})
             <input 
               type="number" 
               name="quantity" 
@@ -330,15 +332,15 @@ export default function App() {
             />
           </label>
           <label>
-            Purchase date
+            {t('purchaseDate', language)}
             <input type="date" name="purchasedAt" value={form.purchasedAt} onChange={onChange} />
           </label>
           <label>
-            Expiry date
+            {t('expiryDate', language)}
             <input type="date" name="expiresAt" value={form.expiresAt} onChange={onChange} required />
           </label>
           <div className="actions">
-            <button type="submit">Add</button>
+            <button type="submit">{t('addButton', language)}</button>
           </div>
         </form>
       </section>
