@@ -13,7 +13,7 @@ const THEME_KEY = 'svinnstop_theme'
 
 export default function App() {
   const [items, setItems] = useState([])
-  const [form, setForm] = useState({ name: '', quantity: 1, purchasedAt: '', expiresAt: '' })
+  const [form, setForm] = useState({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
   const [filter, setFilter] = useState('all')
   const [theme, setTheme] = useState('dark')
   const [searchQuery, setSearchQuery] = useState('')
@@ -59,7 +59,7 @@ export default function App() {
     if (!form.name || !form.expiresAt) return
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
     setItems(prev => [...prev, { id, ...form }])
-    setForm({ name: '', quantity: 1, purchasedAt: '', expiresAt: '' })
+    setForm({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
   }
 
   const onRemove = id => {
@@ -257,7 +257,14 @@ export default function App() {
           </label>
           <label>
             Quantity
-            <input type="number" name="quantity" min="1" value={form.quantity} onChange={onChange} />
+            <input 
+              type="number" 
+              name="quantity" 
+              min="0" 
+              value={form.quantity} 
+              onChange={onChange}
+              onFocus={(e) => e.target.select()}
+            />
           </label>
           <label>
             Purchase date
