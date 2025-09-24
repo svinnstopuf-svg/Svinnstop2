@@ -8,6 +8,63 @@ function daysUntil(dateStr) {
   return diff
 }
 
+// Get suggested unit for quantity label based on item name
+function getSuggestedUnit(itemName) {
+  if (!itemName.trim()) return 'quantity'
+  
+  const name = itemName.toLowerCase()
+  
+  // Liquids
+  if (name.includes('milk') || name.includes('juice') || name.includes('water') || 
+      name.includes('oil') || name.includes('cream') || name.includes('sauce') ||
+      name.includes('soup') || name.includes('broth') || name.includes('vinegar')) {
+    return 'liters'
+  }
+  
+  // Bread/Baked goods
+  if (name.includes('bread') || name.includes('bun') || name.includes('roll') ||
+      name.includes('bagel') || name.includes('croissant')) {
+    return 'loaves'
+  }
+  
+  // Meat/Fish
+  if (name.includes('chicken') || name.includes('beef') || name.includes('pork') ||
+      name.includes('fish') || name.includes('salmon') || name.includes('meat')) {
+    return 'kg'
+  }
+  
+  // Dairy (solid)
+  if (name.includes('cheese') || name.includes('butter') || name.includes('yogurt')) {
+    return 'grams'
+  }
+  
+  // Eggs
+  if (name.includes('egg')) {
+    return 'pieces'
+  }
+  
+  // Fruits/Vegetables
+  if (name.includes('apple') || name.includes('banana') || name.includes('orange') ||
+      name.includes('tomato') || name.includes('potato') || name.includes('onion') ||
+      name.includes('carrot') || name.includes('pepper')) {
+    return 'pieces'
+  }
+  
+  // Rice/Pasta/Grains
+  if (name.includes('rice') || name.includes('pasta') || name.includes('flour') ||
+      name.includes('oats') || name.includes('grain')) {
+    return 'grams'
+  }
+  
+  // Canned goods
+  if (name.includes('can') || name.includes('tin')) {
+    return 'cans'
+  }
+  
+  // Default
+  return 'pieces'
+}
+
 const STORAGE_KEY = 'svinnstop_items'
 const THEME_KEY = 'svinnstop_theme'
 
@@ -56,9 +113,10 @@ export default function App() {
 
   const onAdd = e => {
     e.preventDefault()
-    if (!form.name || !form.expiresAt) return
+    if (!form.name || !form.expiresAt || form.quantity <= 0) return
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-    setItems(prev => [...prev, { id, ...form }])
+    const unit = getSuggestedUnit(form.name)
+    setItems(prev => [...prev, { id, ...form, unit }])
     setForm({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
   }
 
@@ -100,7 +158,7 @@ export default function App() {
       const status = days < 0 ? 'Expired' : days === 0 ? 'Expires today' : `${days} days left`
       return [
         item.name,
-        item.quantity,
+        `${item.quantity} ${item.unit || ''}`.trim(),
         item.purchasedAt || 'N/A',
         item.expiresAt,
         days,
@@ -220,6 +278,9 @@ export default function App() {
   }, [sorted, filter, searchQuery])
 
   const suggestions = useMemo(() => suggestRecipes(items), [items])
+  
+  // Get suggested unit based on current item name
+  const suggestedUnit = useMemo(() => getSuggestedUnit(form.name), [form.name])
 
   return (
     <>
@@ -253,17 +314,19 @@ export default function App() {
         <form onSubmit={onAdd} className="grid">
           <label>
             Name
-            <input name="name" value={form.name} onChange={onChange} placeholder="e.g. tomato" required />
+            <input name="name" value={form.name} onChange={onChange} placeholder="e.g. milk, bread, tomato" required />
           </label>
           <label>
-            Quantity
+            Quantity ({suggestedUnit})
             <input 
               type="number" 
               name="quantity" 
               min="0" 
+              step="0.1"
               value={form.quantity} 
               onChange={onChange}
               onFocus={(e) => e.target.select()}
+              placeholder={`0 ${suggestedUnit}`}
             />
           </label>
           <label>
@@ -365,7 +428,7 @@ export default function App() {
                   )}
                   <div className="item-main">
                     <strong>{i.name}</strong>
-                    <span className="muted">Qty: {i.quantity}</span>
+                    <span className="muted">{i.quantity} {i.unit}</span>
                   </div>
                   <div className="item-sub">
                     <span>Expiry: {i.expiresAt || '—'}</span>
