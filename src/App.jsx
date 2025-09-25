@@ -7,6 +7,29 @@ function formatDaysLeft(days) {
   return days === 1 ? '1 dag kvar' : `${days} dag\u200Bar kvar`
 }
 
+function svDifficultyLabel(raw) {
+  const v = String(raw || '').toLowerCase()
+  if (v === 'easy' || v === 'lätt') return 'Lätt'
+  if (v === 'medium' || v === 'medel') return 'Medel'
+  if (v === 'hard' || v === 'svår') return 'Svår'
+  return raw || 'Medel'
+}
+function svDifficultyClass(raw) {
+  const v = String(raw || '').toLowerCase()
+  if (v === 'easy' || v === 'lätt') return 'lätt'
+  if (v === 'medium' || v === 'medel') return 'medel'
+  if (v === 'hard' || v === 'svår') return 'svår'
+  return 'medel'
+}
+function svTimeLabel(raw) {
+  const s = String(raw || '')
+  return s
+    .replace(/\bminutes\b/gi, 'minuter')
+    .replace(/\bminute\b/gi, 'minut')
+    .replace(/\bhours\b/gi, 'timmar')
+    .replace(/\bhour\b/gi, 'timme')
+}
+
 function daysUntil(dateStr) {
   const today = new Date()
   const date = new Date(dateStr)
@@ -497,15 +520,15 @@ export default function App() {
         {suggestions.length === 0 ? (
           <p>{items.length === 0 ? 'Lägg till varor för att se receptförslag.' : 'Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!'}</p>
         ) : (
-          <div className="recipes">
+          <div className="recipes notranslate" translate="no">
             {suggestions.map(r => (
-              <div key={r.id} className="recipe-card">
+              <div key={r.id} className="recipe-card notranslate" translate="no">
                 <div className="recipe-header">
                   <h3>{r.name}</h3>
                   <div className="recipe-meta">
                     <span className="servings">👥 {r.servings} {'portioner'}</span>
-                    <span className="time">⏱️ {r.cookingTime}</span>
-                    <span className={`difficulty ${r.difficulty.toLowerCase()}`}>📶 {r.difficulty}</span>
+                    <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
+                    <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
                   </div>
                 </div>
                 

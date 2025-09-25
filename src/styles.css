@@ -220,6 +220,16 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .recipe-meta .difficulty.hard {
   color: var(--danger);
 }
+/* Swedish difficulty classes */
+.recipe-meta .difficulty.lätt {
+  color: var(--accent);
+}
+.recipe-meta .difficulty.medel {
+  color: var(--warn);
+}
+.recipe-meta .difficulty.svår {
+  color: var(--danger);
+}
 
 .recipe-ingredients,
 .recipe-instructions {
