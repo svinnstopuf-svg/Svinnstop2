@@ -3,7 +3,8 @@ import { suggestRecipes } from './recipes'
 
 // Format Swedish-only "days left" string
 function formatDaysLeft(days) {
-  return days === 1 ? '1 dag kvar' : `${days} dagar kvar`
+  // Insert a zero-width space in "dagar" to discourage browser auto-translation
+  return days === 1 ? '1 dag kvar' : `${days} dag\u200Bar kvar`
 }
 
 function daysUntil(dateStr) {
@@ -479,7 +480,7 @@ export default function App() {
                   </div>
                   <div className="item-sub">
                     <span>{'Utgång'}: {i.expiresAt || '—'}</span>
-                    <span className="status">{status}</span>
+                    <span className="status notranslate" translate="no">{status}</span>
                   </div>
                   {!bulkMode && (
                     <button className="link" onClick={() => onRemove(i.id)}>×</button>
