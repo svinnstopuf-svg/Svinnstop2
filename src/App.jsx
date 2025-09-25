@@ -238,7 +238,7 @@ export default function App() {
   const bulkDelete = () => {
     if (selectedItems.size === 0) return
     
-    const confirmed = confirm(t('bulkDeleteConfirm', language, { count: selectedItems.size }))
+    const confirmed = confirm(`Ta bort ${selectedItems.size} valda varor?`)
     if (confirmed) {
       const itemsToDelete = items.filter(item => selectedItems.has(item.id))
       
