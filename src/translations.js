@@ -3,7 +3,7 @@ export const translations = {
   en: {
     // App title and header
     appName: 'Svinnstop',
-    appDescription: 'Track your purchased food, expiry dates, and see recipe ideas.',
+    appDescription: 'Track your food purchases, expiry dates, and get recipe ideas.',
     
     // Form labels
     addItem: 'Add item',
@@ -23,14 +23,14 @@ export const translations = {
     
     // Filters
     all: 'All',
-    expiring: 'Expiring ≤ 3 days',
+    expiring: 'Expiring in ≤ 3 days',
     expired: 'Expired',
     
     // Bulk actions
     selectAll: 'Select All',
     deselectAll: 'Deselect All',
     deleteSelected: 'Delete Selected',
-    bulkDeleteConfirm: 'Delete {count} selected item{plural}?',
+    bulkDeleteConfirm: 'Delete {count} selected items?',
     selectedCount: '{selected} of {total} items selected',
     
     // Item status
@@ -50,8 +50,9 @@ export const translations = {
     noRecipesEmpty: 'Add items to see suggested recipes.',
     noRecipesFound: 'No recipes found with your current ingredients. Try adding more items!',
     ingredientsNeeded: 'Ingredients needed:',
+    youHave: 'you have',
     instructions: 'Instructions:',
-    servings: 'serving{plural}',
+    servings: 'servings',
     
     // Units
     units: {
@@ -61,8 +62,31 @@ export const translations = {
       grams: 'grams',
       pieces: 'pieces',
       cans: 'cans',
-      quantity: 'quantity'
+      defaultUnit: 'pcs'
     },
+    
+    // CSV Export
+    csvHeaders: {
+      name: 'Name',
+      quantity: 'Quantity',
+      purchaseDate: 'Purchase Date',
+      expiryDate: 'Expiry Date',
+      daysUntilExpiry: 'Days Until Expiry',
+      status: 'Status'
+    },
+    csvStatus: {
+      expired: 'Expired',
+      expiresToday: 'Expires today',
+      daysLeft: 'days left'
+    },
+    notAvailable: 'N/A',
+    
+    // Theme toggle
+    switchToLight: 'Switch to light mode',
+    switchToDark: 'Switch to dark mode',
+    
+    // Language toggle
+    switchLanguage: 'Change language (EN → SV → DE)',
     
     // Footer
     dataStorage: 'Data is saved in your browser (localStorage).',
@@ -100,21 +124,21 @@ export const translations = {
     
     // Filters
     all: 'Alla',
-    expiring: 'Går ut ≤ 3 dagar',
+    expiring: 'Går ut inom ≤ 3 dagar',
     expired: 'Utgångna',
     
     // Bulk actions
     selectAll: 'Välj alla',
     deselectAll: 'Avmarkera alla',
     deleteSelected: 'Ta bort valda',
-    bulkDeleteConfirm: 'Ta bort {count} valda vara{plural}?',
+    bulkDeleteConfirm: 'Ta bort {count} valda varor?',
     selectedCount: '{selected} av {total} varor valda',
     
     // Item status
     expired: 'Utgången',
     expiresToday: 'Går ut idag',
     daysLeft: '{days} dag{plural} kvar',
-    expiry: 'Utgång',
+    expiry: 'Bäst före',
     
     // Messages
     noItems: 'Inga varor ännu. Lägg till din första vara ovan.',
@@ -127,8 +151,9 @@ export const translations = {
     noRecipesEmpty: 'Lägg till varor för att se receptförslag.',
     noRecipesFound: 'Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!',
     ingredientsNeeded: 'Ingredienser som behövs:',
+    youHave: 'du har',
     instructions: 'Instruktioner:',
-    servings: 'portion{plural}',
+    servings: 'portioner',
     
     // Units
     units: {
@@ -138,8 +163,31 @@ export const translations = {
       grams: 'gram',
       pieces: 'stycken',
       cans: 'burkar',
-      quantity: 'antal'
+      defaultUnit: 'st'
     },
+    
+    // CSV Export
+    csvHeaders: {
+      name: 'Namn',
+      quantity: 'Antal',
+      purchaseDate: 'Inköpsdatum',
+      expiryDate: 'Utgångsdatum',
+      daysUntilExpiry: 'Dagar till utgång',
+      status: 'Status'
+    },
+    csvStatus: {
+      expired: 'Utgången',
+      expiresToday: 'Går ut idag',
+      daysLeft: 'dagar kvar'
+    },
+    notAvailable: 'Ej tillgänglig',
+    
+    // Theme toggle
+    switchToLight: 'Växla till ljust läge',
+    switchToDark: 'Växla till mörkt läge',
+    
+    // Language toggle
+    switchLanguage: 'Byt språk (EN → SV → DE)',
     
     // Footer
     dataStorage: 'Data sparas i din webbläsare (localStorage).',
@@ -177,7 +225,7 @@ export const translations = {
     
     // Filters
     all: 'Alle',
-    expiring: 'Läuft ab ≤ 3 Tage',
+    expiring: 'Läuft in ≤ 3 Tagen ab',
     expired: 'Abgelaufen',
     
     // Bulk actions
@@ -185,13 +233,13 @@ export const translations = {
     deselectAll: 'Alle abwählen',
     deleteSelected: 'Ausgewählte löschen',
     bulkDeleteConfirm: '{count} ausgewählte Artikel löschen?',
-    selectedCount: '{selected} von {total} Artikel ausgewählt',
+    selectedCount: '{selected} von {total} Artikeln ausgewählt',
     
     // Item status
     expired: 'Abgelaufen',
     expiresToday: 'Läuft heute ab',
     daysLeft: '{days} Tag{plural} übrig',
-    expiry: 'Ablauf',
+    expiry: 'Ablaufdatum',
     
     // Messages
     noItems: 'Noch keine Artikel. Füge deinen ersten Artikel oben hinzu.',
@@ -204,8 +252,9 @@ export const translations = {
     noRecipesEmpty: 'Füge Artikel hinzu, um Rezeptvorschläge zu sehen.',
     noRecipesFound: 'Keine Rezepte mit deinen aktuellen Zutaten gefunden. Versuche mehr Artikel hinzuzufügen!',
     ingredientsNeeded: 'Benötigte Zutaten:',
+    youHave: 'du hast',
     instructions: 'Anweisungen:',
-    servings: 'Portion{plural}',
+    servings: 'Portionen',
     
     // Units
     units: {
@@ -215,8 +264,31 @@ export const translations = {
       grams: 'Gramm',
       pieces: 'Stück',
       cans: 'Dosen',
-      quantity: 'Menge'
+      defaultUnit: 'Stk'
     },
+    
+    // CSV Export
+    csvHeaders: {
+      name: 'Name',
+      quantity: 'Menge',
+      purchaseDate: 'Kaufdatum',
+      expiryDate: 'Ablaufdatum',
+      daysUntilExpiry: 'Tage bis Ablauf',
+      status: 'Status'
+    },
+    csvStatus: {
+      expired: 'Abgelaufen',
+      expiresToday: 'Läuft heute ab',
+      daysLeft: 'Tage übrig'
+    },
+    notAvailable: 'k. A.',
+    
+    // Theme toggle
+    switchToLight: 'Zu hellem Modus wechseln',
+    switchToDark: 'Zu dunklem Modus wechseln',
+    
+    // Language toggle
+    switchLanguage: 'Sprache wechseln (EN → SV → DE)',
     
     // Footer
     dataStorage: 'Daten werden in deinem Browser gespeichert (localStorage).',
@@ -284,6 +356,27 @@ export function t(key, language, replacements = {}) {
 }
 
 // Helper for pluralization
-export function plural(count) {
-  return count === 1 ? '' : 's'
+export function plural(count, language) {
+  console.log('plural() called with count:', count, 'language:', language)
+  // Handle edge cases
+  if (count === 1) {
+    console.log('Returning empty string for singular')
+    return ''
+  }
+  
+  // Swedish pluralization
+  if (language === 'sv') {
+    console.log('Returning ar for Swedish')
+    return 'ar'  // dag → dagar, vara → varor
+  }
+  
+  // German pluralization  
+  if (language === 'de') {
+    console.log('Returning e for German')
+    return 'e'   // Tag → Tage
+  }
+  
+  // English and default
+  console.log('Returning s for English/default')
+  return 's'
 }

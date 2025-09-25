@@ -292,11 +292,11 @@ export const recipes = {
   ]
 }
 
-export function suggestRecipes(items, language = 'en') {
+export function suggestRecipes(items) {
   if (items.length === 0) return []
   
-  // Get recipes for the current language, fallback to English
-  const languageRecipes = recipes[language] || recipes.en
+  // Always use Swedish recipes
+  const languageRecipes = recipes.sv
   
   // Create a map of available ingredients with their quantities
   const availableIngredients = new Map()

@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
-import { getLanguage, t, plural } from './translations'
+
+// Format Swedish-only "days left" string
+function formatDaysLeft(days) {
+  return days === 1 ? '1 dag kvar' : `${days} dagar kvar`
+}
 
 function daysUntil(dateStr) {
   const today = new Date()
@@ -11,7 +15,7 @@ function daysUntil(dateStr) {
 
 // Get suggested unit key for quantity label based on item name
 function getSuggestedUnitKey(itemName) {
-  if (!itemName.trim()) return 'quantity'
+  if (!itemName.trim()) return 'defaultUnit'
   
   const name = itemName.toLowerCase()
   
@@ -19,7 +23,7 @@ function getSuggestedUnitKey(itemName) {
   const isLiquid = name.includes('milk') || name.includes('mjölk') || name.includes('milch') ||
                    name.includes('juice') || name.includes('saft') || name.includes('saft') ||
                    name.includes('water') || name.includes('vatten') || name.includes('wasser') ||
-                   name.includes('oil') || name.includes('olja') || name.includes('öl') ||
+                   name.includes('oil') || name.includes('olja') ||
                    name.includes('cream') || name.includes('grädde') || name.includes('sahne') ||
                    name.includes('soup') || name.includes('soppa') || name.includes('suppe')
   
@@ -64,6 +68,17 @@ function getSuggestedUnitKey(itemName) {
 const STORAGE_KEY = 'svinnstop_items'
 const THEME_KEY = 'svinnstop_theme'
 
+// Swedish units map (used for UI hints and stored unit)
+const SV_UNITS = {
+  liters: 'liter',
+  loaves: 'limpor',
+  kg: 'kg',
+  grams: 'gram',
+  pieces: 'stycken',
+  cans: 'burkar',
+  defaultUnit: 'st'
+}
+
 export default function App() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
@@ -74,7 +89,6 @@ export default function App() {
   const [bulkMode, setBulkMode] = useState(false)
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
-  const [language, setLanguage] = useState('en')
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -91,9 +105,6 @@ export default function App() {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setTheme(prefersDark ? 'dark' : 'light')
     }
-    
-    // Initialize language from browser
-    setLanguage(getLanguage())
   }, [])
 
   useEffect(() => {
@@ -105,10 +116,16 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem(THEME_KEY, theme)
   }, [theme])
+  }
 
   const onChange = e => {
     const { name, value } = e.target
-    setForm(f => ({ ...f, [name]: name === 'quantity' ? Number(value) : value }))
+    if (name === 'quantity') {
+      const numValue = parseFloat(value)
+      setForm(f => ({ ...f, [name]: isNaN(numValue) ? 0 : Math.max(0, numValue) }))
+    } else {
+      setForm(f => ({ ...f, [name]: value }))
+    }
   }
 
   const onAdd = e => {
@@ -116,7 +133,7 @@ export default function App() {
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
     const unitKey = getSuggestedUnitKey(form.name)
-    const unit = t(`units.${unitKey}`, language)
+    const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     setItems(prev => [...prev, { id, ...form, unit }])
     setForm({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
   }
@@ -137,6 +154,7 @@ export default function App() {
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark')
   }
+  
 
   // Undo/Redo functionality
   const saveAction = (action) => {
@@ -149,18 +167,25 @@ export default function App() {
 
   const exportToCSV = () => {
     if (items.length === 0) {
-      alert(t('noItemsToExport', language))
+      alert('Inga varor att exportera!')
       return
     }
 
-    const headers = ['Name', 'Quantity', 'Purchase Date', 'Expiry Date', 'Days Until Expiry', 'Status']
+    const headers = [
+      'Namn',
+      'Antal',
+      'Inköpsdatum',
+      'Utgångsdatum',
+      'Dagar till utgång',
+      'Status'
+    ]
     const csvData = items.map(item => {
       const days = daysUntil(item.expiresAt)
-      const status = days < 0 ? 'Expired' : days === 0 ? 'Expires today' : `${days} days left`
+      const status = days < 0 ? 'Utgången' : days === 0 ? 'Går ut idag' : `${days} dagar kvar`
       return [
         item.name,
         `${item.quantity} ${item.unit || ''}`.trim(),
-        item.purchasedAt || 'N/A',
+        item.purchasedAt || 'Ej tillgänglig',
         item.expiresAt,
         days,
         status
@@ -212,7 +237,7 @@ export default function App() {
   const bulkDelete = () => {
     if (selectedItems.size === 0) return
     
-    const confirmed = confirm(t('bulkDeleteConfirm', language, { count: selectedItems.size, plural: plural(selectedItems.size) }))
+    const confirmed = confirm(t('bulkDeleteConfirm', language, { count: selectedItems.size }))
     if (confirmed) {
       const itemsToDelete = items.filter(item => selectedItems.has(item.id))
       
@@ -278,19 +303,27 @@ export default function App() {
     return result
   }, [sorted, filter, searchQuery])
 
-  const suggestions = useMemo(() => suggestRecipes(items, language), [items, language])
+  const suggestions = useMemo(() => suggestRecipes(items), [items])
   
   // Get suggested unit based on current item name
-  const suggestedUnitKey = useMemo(() => getSuggestedUnitKey(form.name), [form.name])
-  const suggestedUnit = useMemo(() => t(`units.${suggestedUnitKey}`, language), [suggestedUnitKey, language])
+  const suggestedUnitKey = useMemo(() => {
+    const key = getSuggestedUnitKey(form.name)
+    console.log('Suggested unit key:', key, 'for item:', form.name)
+    return key
+  }, [form.name])
+  const suggestedUnit = useMemo(() => {
+    const unit = SV_UNITS[suggestedUnitKey] || SV_UNITS.defaultUnit
+    console.log('Suggested unit (SV):', unit, 'for key:', suggestedUnitKey)
+    return unit
+  }, [suggestedUnitKey])
 
   return (
     <>
       <button 
         className="theme-toggle" 
         onClick={toggleTheme}
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        title={theme === 'dark' ? 'Växla till ljust läge' : 'Växla till mörkt läge'}
+        aria-label={theme === 'dark' ? 'Växla till ljust läge' : 'Växla till mörkt läge'}
       >
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
@@ -299,48 +332,60 @@ export default function App() {
         className="undo-btn" 
         onClick={undoLastAction}
         disabled={!canUndo}
-        title={t('undoTitle', language)}
-        aria-label={t('undoTitle', language)}
+        title={'Ångra senaste borttagning'}
+        aria-label={'Ångra senaste borttagning'}
       >
-        {t('undoButton', language)}
+        {'↶️ Ångra'}
       </button>
       
     <div className="container">
       <header>
-        <h1>{t('appName', language)}</h1>
-        <p>{t('appDescription', language)}</p>
+        <div className="header-content">
+          <div className="header-text">
+            <h1>Svinnstop</h1>
+            <p>{'Spåra din inköpta mat, utgångsdatum och se receptidéer.'}</p>
+          </div>
+        </div>
       </header>
 
       <section className="card">
-        <h2>{t('addItem', language)}</h2>
-        <form onSubmit={onAdd} className="grid">
-          <label>
-            {t('name', language)}
-            <input name="name" value={form.name} onChange={onChange} placeholder={t('namePlaceholder', language)} required />
-          </label>
-          <label>
-            {t('quantity', language)} ({suggestedUnit})
-            <input 
-              type="number" 
-              name="quantity" 
-              min="0" 
-              step="0.1"
-              value={form.quantity} 
-              onChange={onChange}
-              onFocus={(e) => e.target.select()}
-              placeholder={`0 ${suggestedUnit}`}
-            />
-          </label>
-          <label>
-            {t('purchaseDate', language)}
-            <input type="date" name="purchasedAt" value={form.purchasedAt} onChange={onChange} />
-          </label>
-          <label>
-            {t('expiryDate', language)}
-            <input type="date" name="expiresAt" value={form.expiresAt} onChange={onChange} required />
-          </label>
-          <div className="actions">
-            <button type="submit">{t('addButton', language)}</button>
+        <h2>{'Lägg till vara'}</h2>
+        <form onSubmit={onAdd}>
+          <div className="form-grid">
+            <div className="form-row">
+              <label>
+                {'Namn'}
+                <input name="name" value={form.name} onChange={onChange} placeholder={'t.ex. mjölk, bröd, tomat'} required />
+              </label>
+              <label>
+                <span className="label-title">
+                  {'Antal'} <span className="muted">({suggestedUnit})</span>
+                </span>
+                <input 
+                  type="number" 
+                  name="quantity" 
+                  min="0" 
+                  step="0.1"
+                  value={form.quantity} 
+                  onChange={onChange}
+                  onFocus={(e) => e.target.select()}
+                  placeholder={`0 ${suggestedUnit}`}
+                />
+              </label>
+            </div>
+            <div className="form-row">
+              <label>
+                {'Inköpsdatum'}
+                <input type="date" name="purchasedAt" value={form.purchasedAt} onChange={onChange} />
+              </label>
+              <label>
+                {'Utgångsdatum'}
+                <input type="date" name="expiresAt" value={form.expiresAt} onChange={onChange} required />
+              </label>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit">{'Lägg till'}</button>
           </div>
         </form>
       </section>
@@ -348,54 +393,54 @@ export default function App() {
       <section className="card">
         <div className="list-header">
           <div className="section-title">
-            <h2>{t('items', language)}</h2>
+            <h2>{'Varor'}</h2>
             <div className="header-actions">
               <button 
                 onClick={toggleBulkMode}
                 className={`bulk-toggle-btn ${bulkMode ? 'active' : ''}`}
                 disabled={items.length === 0}
-                title={bulkMode ? t('exitButton', language) : t('selectButton', language)}
+                title={bulkMode ? '✕ Avsluta' : '☑️ Välj'}
               >
-                {bulkMode ? t('exitButton', language) : t('selectButton', language)}
+                {bulkMode ? '✕ Avsluta' : '☑️ Välj'}
               </button>
               <button 
                 onClick={exportToCSV} 
                 className="export-btn"
                 disabled={items.length === 0}
-                title={t('exportCSV', language)}
+                title={'📊 Exportera CSV'}
               >
-                {t('exportCSV', language)}
+                {'📊 Exportera CSV'}
               </button>
             </div>
           </div>
           <div className="search-and-filters">
             <input 
               type="text" 
-              placeholder={t('searchPlaceholder', language)}
+              placeholder={'Sök varor...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
             />
             <div className="filters">
-              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> {t('all', language)}</label>
-              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> {t('expiring', language)}</label>
-              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> {t('expired', language)}</label>
+              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> {'Alla'}</label>
+              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> {'Går ut inom ≤ 3 dagar'}</label>
+              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> {'Utgångna'}</label>
             </div>
             
             {bulkMode && (
               <div className="bulk-actions">
                 <div className="bulk-info">
-                  <span>{t('selectedCount', language, { selected: selectedItems.size, total: filtered.length })}</span>
+                  <span>{`${selectedItems.size} av ${filtered.length} varor valda`}</span>
                 </div>
                 <div className="bulk-buttons">
-                  <button onClick={selectAllVisible} className="bulk-btn secondary">{t('selectAll', language)}</button>
-                  <button onClick={deselectAll} className="bulk-btn secondary">{t('deselectAll', language)}</button>
+                  <button onClick={selectAllVisible} className="bulk-btn secondary">{'Välj alla'}</button>
+                  <button onClick={deselectAll} className="bulk-btn secondary">{'Avmarkera alla'}</button>
                   <button 
                     onClick={bulkDelete} 
                     className="bulk-btn danger"
                     disabled={selectedItems.size === 0}
                   >
-                    {t('deleteSelected', language)} ({selectedItems.size})
+                    {`Ta bort valda (${selectedItems.size})`}
                   </button>
                 </div>
               </div>
@@ -405,16 +450,16 @@ export default function App() {
         {filtered.length === 0 ? (
           <p>
             {items.length === 0 
-              ? t('noItems', language)
+              ? 'Inga varor ännu. Lägg till din första vara ovan.'
               : searchQuery.trim() 
-                ? t('noSearchResults', language, { query: searchQuery })
-                : t('noFilterResults', language)}
+                ? `Inga varor hittades som matchar "${searchQuery}"`
+                : 'Inga varor matchar det valda filtret.'}
           </p>
         ) : (
           <ul className="items">
             {filtered.map(i => {
               const d = daysUntil(i.expiresAt)
-              const status = d < 0 ? t('expired', language) : d === 0 ? t('expiresToday', language) : t('daysLeft', language, { days: d, plural: plural(d) })
+              const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
               return (
                 <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkMode ? 'bulk-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
                   {bulkMode && (
@@ -433,11 +478,11 @@ export default function App() {
                     <span className="muted">{i.quantity} {i.unit}</span>
                   </div>
                   <div className="item-sub">
-                    <span>{t('expiry', language)}: {i.expiresAt || '—'}</span>
+                    <span>{'Utgång'}: {i.expiresAt || '—'}</span>
                     <span className="status">{status}</span>
                   </div>
                   {!bulkMode && (
-                    <button className="link" onClick={() => onRemove(i.id)}>Remove</button>
+                    <button className="link" onClick={() => onRemove(i.id)}>×</button>
                   )}
                 </li>
               )
@@ -447,9 +492,9 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2>{t('recipeSuggestions', language)}</h2>
+        <h2>{'Receptförslag'}</h2>
         {suggestions.length === 0 ? (
-          <p>{items.length === 0 ? t('noRecipesEmpty', language) : t('noRecipesFound', language)}</p>
+          <p>{items.length === 0 ? 'Lägg till varor för att se receptförslag.' : 'Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!'}</p>
         ) : (
           <div className="recipes">
             {suggestions.map(r => (
@@ -457,14 +502,14 @@ export default function App() {
                 <div className="recipe-header">
                   <h3>{r.name}</h3>
                   <div className="recipe-meta">
-                    <span className="servings">👥 {r.servings} {t('servings', language, { plural: plural(r.servings) })}</span>
+                    <span className="servings">👥 {r.servings} {'portioner'}</span>
                     <span className="time">⏱️ {r.cookingTime}</span>
                     <span className={`difficulty ${r.difficulty.toLowerCase()}`}>📶 {r.difficulty}</span>
                   </div>
                 </div>
                 
                 <div className="recipe-ingredients">
-                  <h4>{t('ingredientsNeeded', language)}</h4>
+                  <h4>{'Ingredienser som behövs:'}</h4>
                   <ul>
                     {r.usedIngredients.map((ingredient, idx) => (
                       <li key={idx} className="ingredient-item">
@@ -473,7 +518,7 @@ export default function App() {
                         </span>
                         <span className="ingredient-name">{ingredient.name}</span>
                         <span className="ingredient-available">
-                          (you have: {ingredient.availableQuantity} {ingredient.itemName})
+                          ({'du har'} {ingredient.availableQuantity} {ingredient.itemName})
                         </span>
                       </li>
                     ))}
@@ -481,7 +526,7 @@ export default function App() {
                 </div>
                 
                 <div className="recipe-instructions">
-                  <h4>{t('instructions', language)}</h4>
+                  <h4>{'Instruktioner:'}</h4>
                   <p>{r.instructions}</p>
                 </div>
               </div>
@@ -490,7 +535,7 @@ export default function App() {
         )}
       </section>
 
-      <footer className="muted">{t('dataStorage', language)}</footer>
+      <footer className="muted">{'Data sparas i din webbläsare (localStorage).'}</footer>
     </div>
     </>
   )

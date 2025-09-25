@@ -30,9 +30,21 @@
 body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
 .container { max-width: 900px; margin: 0 auto; padding: 24px; }
 header { margin-bottom: 16px }
+
+/* Header styling */
+.header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.header-text h1 { margin: 0; }
+.header-text p { margin: 8px 0 0 0; }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin: 16px 0 }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
-label { display: flex; flex-direction: column; gap: 6px; font-size: 14px }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 12px }
+
+/* Form styling */
+.form-grid { display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-actions { margin-top: 16px; display: flex; justify-content: flex-start; }
+
+label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; min-width: 0; }
+.label-title { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 input { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 8px }
 button { background: var(--accent); color: var(--button-text); border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 700 }
 button.link { background: transparent; color: var(--muted); text-decoration: underline; padding: 0 }
@@ -294,7 +306,8 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   z-index: 1000;
 }
 
-.undo-btn:hover:not(:disabled) {
+
+.language-toggle:hover {
   background: var(--accent);
   color: var(--button-text);
 }
@@ -312,9 +325,11 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 
 @media (max-width: 640px) { 
   .grid { grid-template-columns: 1fr } 
+  .form-row { grid-template-columns: 1fr; }
   .item-sub { justify-self: start } 
   .theme-toggle { top: 10px; right: 10px; width: 35px; height: 35px; }
   .undo-btn { top: 55px; right: 10px; padding: 6px 8px; font-size: 11px; }
+  .header-content { flex-direction: column; align-items: flex-start; }
   .search-and-filters { gap: 10px; }
   .filters { justify-content: center; }
   .section-title { flex-direction: column; align-items: flex-start; gap: 8px; }
