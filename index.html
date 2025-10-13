@@ -4,224 +4,91 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Svinnstop</title>
-    <!-- ANTI-TRANSLATE META TAGS -->
-    <meta name="google" content="notranslate" />
-    <meta name="google-translate-customization" content="" />
+    <!-- PRO-SVENSKA GOOGLE TRANSLATE SETUP -->
+    <meta name="google" content="translate" />
     <meta http-equiv="Content-Language" content="sv" />
     <!-- FORCE CACHE BUSTING -->
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="pragma" content="no-cache" />
     <meta http-equiv="expires" content="0" />
-    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, notranslate, noimageindex" />
     <style>
-      /* Block all Google services */
+      /* Style Google Translate widget to be invisible but functional */
+      .goog-te-gadget { display: none !important; }
+      .goog-te-banner-frame { display: none !important; }
+      .skiptranslate { display: inherit !important; }
+      /* Make sure Swedish text is always visible */
       * { font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important; }
-      iframe, script[src*="google"], link[href*="google"], 
-      *[class*="goog"], *[id*="goog"], *[class*="trans"], *[id*="trans"] {
-        display: none !important; visibility: hidden !important; opacity: 0 !important;
-      }
     </style>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Google Translate Widget (hidden) -->
+    <div id="google_translate_element" style="display: none;"></div>
+    
     <script>
-      // IMMEDIATE CACHE AND STATE RESET
-      (function() {
-        // FORCE CLEAR ALL GOOGLE COOKIES AND STORAGE
-        document.cookie.split(';').forEach(function(cookie) {
-          const eqPos = cookie.indexOf('=');
-          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          if (name.includes('goog') || name.includes('trans') || name.toLowerCase().includes('translate')) {
-            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.google.com';
-            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
-          }
-        });
+      // PRO-SVENSKA: Sätt upp Google Translate att alltid översätta till svenska
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'auto', // Detektera automatiskt
+          includedLanguages: 'sv,en,de,da,no,fi', // Tillåt några språk men svenska som prioritet
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false,
+          gaTrack: false,
+          gaId: null
+        }, 'google_translate_element');
         
-        // ULTRA AGGRESSIVE STORAGE CLEARING
-        try {
-          // Clear ALL known Google Translate storage keys
-          const translateKeys = [
-            'googtrans', 'google_translate_element', 'googtrans_element',
-            'google_translate_state', 'gtrans', 'gt_state', 'gt_element',
-            'translate_state', 'translate_element', 'goog_te_data',
-            'GoogleTranslateElementInit', 'google.translate.TranslateService'
-          ];
+        // Automatiskt översätt till svenska efter widget är laddad
+        setTimeout(function() {
+          // Sätt cookien för att alltid ha svenska som målspråk
+          document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000'; // 1 år
           
-          translateKeys.forEach(key => {
-            localStorage.removeItem(key);
-            sessionStorage.removeItem(key);
-            try { delete window[key]; } catch(e) {}
-          });
-          
-          // Clear anything with google/translate/goog in the key (more aggressive)
-          [...Object.keys(localStorage)].forEach(key => {
-            if (key.toLowerCase().includes('goog') || 
-                key.toLowerCase().includes('trans') ||
-                key.toLowerCase().includes('translate')) {
-              localStorage.removeItem(key);
-            }
-          });
-          [...Object.keys(sessionStorage)].forEach(key => {
-            if (key.toLowerCase().includes('goog') || 
-                key.toLowerCase().includes('trans') ||
-                key.toLowerCase().includes('translate')) {
-              sessionStorage.removeItem(key);
-            }
-          });
-          
-          // Clear IndexedDB Google data if it exists
-          if (window.indexedDB && window.indexedDB.databases) {
-            window.indexedDB.databases().then(databases => {
-              databases.forEach(db => {
-                if (db.name && (db.name.includes('google') || db.name.includes('trans'))) {
-                  window.indexedDB.deleteDatabase(db.name);
-                }
-              });
-            });
+          // Tvinga översättning till svenska om sidan inte redan är på svenska
+          if (!document.cookie.includes('googtrans=/auto/sv') && 
+              !document.documentElement.lang.includes('sv')) {
+            // Trigga översättning till svenska
+            const event = new CustomEvent('translateToSwedish');
+            document.dispatchEvent(event);
           }
-        } catch(e) {}
-        
-        // RESET URL HASH (Google uses hash for translation state)
-        if (window.location.hash.includes('googtrans') || window.location.hash.includes('translate')) {
-          window.location.hash = '';
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-        // Block ALL Google domains at DNS level
-        const blockedHosts = [
-          'translate.google.com', 'translate.googleapis.com', 'www.google.com',
-          'google.com', 'googleapis.com', 'gstatic.com', 'doubleclick.net',
-          'googlesyndication.com', 'googletagmanager.com', 'googleanalytics.com'
-        ];
-        
-        // Override ALL network requests
-        if (window.fetch) {
-          const originalFetch = window.fetch;
-          window.fetch = function(...args) {
-            const url = args[0];
-            if (typeof url === 'string' && blockedHosts.some(host => url.includes(host))) {
-              return Promise.reject(new Error('Google blocked'));
-            }
-            return originalFetch.apply(this, args);
-          };
-        }
-        
-        // Override XMLHttpRequest
-        const originalOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function(method, url) {
-          if (typeof url === 'string' && blockedHosts.some(host => url.includes(host))) {
-            throw new Error('Google request blocked');
-          }
-          return originalOpen.apply(this, arguments);
-        };
-        
-        // Block script loading
-        const originalCreateElement = document.createElement;
-        document.createElement = function(tag) {
-          const element = originalCreateElement.call(this, tag);
-          if (tag.toLowerCase() === 'script') {
-            const originalSrcSetter = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src').set;
-            Object.defineProperty(element, 'src', {
-              set: function(value) {
-                if (typeof value === 'string' && blockedHosts.some(host => value.includes(host))) {
-                  return; // Block Google scripts
-                }
-                return originalSrcSetter.call(this, value);
+        }, 1000);
+      }
+      
+      // Kontinuerlig övervakning för att säkerställa att allt är på svenska
+      function ensureSwedish() {
+        // Kontrollera om Google Translate finns och fungerar
+        if (typeof google !== 'undefined' && google.translate) {
+          // Sätt alltid svenska som målspråk
+          document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000';
+          
+          // Om sidan inte är märkt som översatt till svenska, försök översätt
+          if (!document.body.classList.contains('translated-ltr') || 
+              !document.cookie.includes('/auto/sv')) {
+            try {
+              // Tvinga en ny översättning till svenska
+              const selectElem = document.querySelector('.goog-te-combo');
+              if (selectElem) {
+                selectElem.value = 'sv';
+                selectElem.dispatchEvent(new Event('change'));
               }
-            });
+            } catch(e) {}
           }
-          return element;
-        };
-        
-        // Destroy all Google objects
-        window.google = undefined;
-        window.gapi = undefined;
-        window.gtag = undefined;
-        window.ga = undefined;
-        window.__google_translate = undefined;
-        
-        // FORCE REFRESH IF GOOGLE TRANSLATE IS DETECTED
-        let googleDetected = false;
-        
-        // Check if page has been translated
-        if (document.body && (
-          document.body.classList.contains('translated-ltr') ||
-          document.body.classList.contains('translated-rtl') ||
-          document.querySelector('.skiptranslate') ||
-          document.querySelector('[class*="goog"]') ||
-          document.querySelector('[id*="goog"]')
-        )) {
-          googleDetected = true;
         }
+      }
+      
+      // Kör svenska-kontroll var 2:a sekund
+      setInterval(ensureSwedish, 2000);
+      
+      // Ladda Google Translate direkt
+      window.onload = function() {
+        const script = document.createElement('script');
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        document.head.appendChild(script);
         
-        // Check for Google translate in URL or cookies
-        if (window.location.href.includes('translate') || 
-            document.cookie.includes('googtrans') ||
-            window.location.hash.includes('googtrans')) {
-          googleDetected = true;
-        }
-        
-        // If Google detected, force immediate reload with cache clear
-        if (googleDetected) {
-          // Clear everything and reload
-          if ('caches' in window) {
-            caches.keys().then(function(names) {
-              names.forEach(function(name) {
-                caches.delete(name);
-              });
-            });
-          }
-          
-          // Force hard reload
-          setTimeout(function() {
-            window.location.reload(true);
-          }, 100);
-          return; // Stop execution
-        }
-        
-        // SIMPLE: Block any Google interference
-        const destroyer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(mutation) {
-            mutation.addedNodes.forEach(function(node) {
-              if (node.nodeType === 1) {
-                // Destroy any Google elements immediately
-                if (node.className && (
-                  node.className.includes('goog') || 
-                  node.className.includes('trans') ||
-                  node.className.includes('translate')
-                )) {
-                  node.remove();
-                }
-                if (node.id && (
-                  node.id.includes('goog') || 
-                  node.id.includes('trans') ||
-                  node.id.includes('translate')
-                )) {
-                  node.remove();
-                }
-              }
-            });
-          });
-        });
-        
-        if (document.body) {
-          destroyer.observe(document.body, { childList: true, subtree: true });
-        } else {
-          document.addEventListener('DOMContentLoaded', function() {
-            destroyer.observe(document.body, { childList: true, subtree: true });
-          });
-        }
-      })();
+        // Sätt även dokumentspråk till svenska
+        document.documentElement.lang = 'sv';
+      };
     </script>
     <script type="module" src="/src/main.jsx?v=<?php echo time(); ?>"></script>
-    <script>
-      // FORCE BROWSER TO RECOGNIZE CHANGES
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-    </script>
   </body>
 </html>

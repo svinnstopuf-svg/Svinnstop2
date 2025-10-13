@@ -1,178 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 
-// Swedish text protection system - ULTRA AGGRESSIVE MODE
-const SWEDISH_TRANSLATIONS = {
-  // Common mistranslations
-  'days left': 'dagar kvar',
-  'day left': 'dag kvar',
-  'items': 'varor',
-  'item': 'vara',
-  'quantity': 'antal',
-  'pieces': 'stycken',
-  'expired': 'utgången',
-  'expires today': 'går ut idag',
-  'add item': 'lägg till vara',
-  'name': 'namn',
-  'purchase date': 'inköpsdatum',
-  'expiry date': 'utgångsdatum',
-  'expiry': 'utgång',
-  'recipe suggestions': 'receptförslag',
-  'ingredients needed': 'ingredienser som behövs',
-  'instructions': 'instruktioner',
-  'servings': 'portioner',
-  'you have': 'du har',
-  'minutes': 'minuter',
-  'easy': 'lätt',
-  'medium': 'medel',
-  'hard': 'svår',
-  'all': 'alla',
-  'search': 'sök',
-  'select': 'välj',
-  'exit': 'avsluta',
-  'export': 'exportera',
-  'delete': 'ta bort',
-  'undo': 'ångra',
-  'remove': 'ta bort',
-  'Remove': 'Ta bort',
-  'REMOVE': 'TA BORT',
-  'Delete': 'Ta bort',
-  'DELETE': 'TA BORT',
-  'bulk': 'massa',
-  'toggle': 'växla',
-  'button': 'knapp',
-  'click': 'klicka',
-  'selected': 'vald',
-  'count': 'antal',
-  'total': 'totalt',
-  'confirm': 'bekräfta',
-  'cancel': 'avbryt',
-  'loading': 'laddar',
-  'error': 'fel',
-  'success': 'lyckades',
-  'warning': 'varning',
-  'info': 'information'
+// Pro-svenska med Google Translate samarbete
+// Låt Google göra jobbet åt oss!
+
+// Enkel funktion - ingen aggressiv textmanipulering
+function justText(text) {
+  return text || ''
 }
-
-// ULTRA AGGRESSIVE text protection with zero-width characters
-function antiTranslate(text) {
-  if (!text) return text
-  return String(text)
-    // Grundläggande ord
-    .replace(/dagar/gi, 'dag\u200Bar')
-    .replace(/kvar/gi, 'kv\u200Bar')
-    .replace(/utgången/gi, 'utg\u200Bången')
-    .replace(/varor/gi, 'var\u200Bor')
-    .replace(/antal/gi, 'ant\u200Bal')
-    .replace(/stycken/gi, 'styck\u200Ben')
-    .replace(/portioner/gi, 'port\u200Bioner')
-    .replace(/minuter/gi, 'min\u200Buter')
-    .replace(/ingredienser/gi, 'ingred\u200Bienser')
-    .replace(/instruktioner/gi, 'instru\u200Bktioner')
-    .replace(/receptförslag/gi, 'recept\u200Bförslag')
-    .replace(/lägg till/gi, 'lägg\u200B till')
-    .replace(/inköpsdatum/gi, 'ink\u200Böpsdatum')
-    .replace(/utgångsdatum/gi, 'utg\u200Bångsdatum')
-    // Fler ord som kan översättas
-    .replace(/ta bort/gi, 'ta\u200B bort')
-    .replace(/radera/gi, 'rad\u200Bera')
-    .replace(/välj/gi, 'vä\u200Blj')
-    .replace(/avsluta/gi, 'avs\u200Bluta')
-    .replace(/exportera/gi, 'export\u200Bera')
-    .replace(/ångra/gi, 'ång\u200Bra')
-    .replace(/alla/gi, 'al\u200Bla')
-    .replace(/sök/gi, 's\u200Bök')
-    .replace(/namn/gi, 'na\u200Bmn')
-    .replace(/lätt/gi, 'l\u200Bätt')
-    .replace(/medel/gi, 'med\u200Bel')
-    .replace(/svår/gi, 'sv\u200Bår')
-    .replace(/utgång/gi, 'utg\u200Bång')
-    .replace(/knapp/gi, 'kna\u200Bpp')
-    .replace(/växla/gi, 'väx\u200Bla')
-    .replace(/bekräfta/gi, 'bekr\u200Bäfta')
-    .replace(/avbryt/gi, 'avb\u200Bryt')
-
-// Store original Swedish text for restoration
-const originalTexts = new Map()
-
-function protectElement(element, originalText) {
-  if (!element || !originalText) return
-  originalTexts.set(element, originalText)
-  element.setAttribute('data-original-sv', originalText)
-}
-
-// ULTRA AGGRESSIVE Swedish text restoration
-function restoreSwedishText() {
-  // First, restore all elements with original Swedish text
-  document.querySelectorAll('[data-original-sv]').forEach(element => {
-    const original = element.getAttribute('data-original-sv')
-    if (element.textContent !== original && !element.textContent.includes('\u200B')) {
-      element.textContent = original
-    }
-  })
-  
-  // ULTRA AGGRESSIVE: Scan ALL text nodes and fix translations
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_TEXT,
-    null,
-    false
-  )
-  
-  const textNodesToFix = []
-  let node
-  while (node = walker.nextNode()) {
-    if (node.textContent && node.textContent.trim()) {
-      textNodesToFix.push(node)
-    }
-  }
-  
-  // Fix each text node
-  textNodesToFix.forEach(textNode => {
-    let content = textNode.textContent
-    let wasChanged = false
-    
-    // Replace ALL English words with Swedish
-    Object.entries(SWEDISH_TRANSLATIONS).forEach(([english, swedish]) => {
-      const regex = new RegExp('\\b' + english.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi')
-      if (regex.test(content)) {
-        content = content.replace(regex, swedish)
-        wasChanged = true
-      }
-    })
-    
-    if (wasChanged) {
-      textNode.textContent = content
-    }
-  })
-  
-  // Remove any Google Translate UI elements immediately
-  const googleElements = document.querySelectorAll(
-    '.skiptranslate, [class*="goog"], [id*="goog"], [class*="trans"], [id*="trans"], .translated-ltr, .translated-rtl'
-  )
-  googleElements.forEach(el => el.remove())
-  
-  // Force all elements to have Swedish lang attribute
-  document.querySelectorAll('*').forEach(el => {
-    if (el.hasAttribute('lang') && el.getAttribute('lang') !== 'sv') {
-      el.setAttribute('lang', 'sv')
-    }
-  })
-}
-
-// Format Swedish-only "days left" string with anti-translation
+// Enkla svenska funktioner utan textmanipulering
 function formatDaysLeft(days) {
-  const text = days === 1 ? '1 dag kvar' : `${days} dagar kvar`
-  return antiTranslate(text)
+  return days === 1 ? '1 dag kvar' : `${days} dagar kvar`
 }
 
 function svDifficultyLabel(raw) {
   const v = String(raw || '').toLowerCase()
-  if (v === 'easy' || v === 'lätt') return antiTranslate('Lätt')
-  if (v === 'medium' || v === 'medel') return antiTranslate('Medel')
-  if (v === 'hard' || v === 'svår') return antiTranslate('Svår')
-  return antiTranslate(raw || 'Medel')
+  if (v === 'easy' || v === 'lätt') return 'Lätt'
+  if (v === 'medium' || v === 'medel') return 'Medel'
+  if (v === 'hard' || v === 'svår') return 'Svår'
+  return 'Medel'
 }
+
 function svDifficultyClass(raw) {
   const v = String(raw || '').toLowerCase()
   if (v === 'easy' || v === 'lätt') return 'lätt'
@@ -180,14 +28,14 @@ function svDifficultyClass(raw) {
   if (v === 'hard' || v === 'svår') return 'svår'
   return 'medel'
 }
+
 function svTimeLabel(raw) {
   const s = String(raw || '')
-  const translated = s
+  return s
     .replace(/\bminutes\b/gi, 'minuter')
     .replace(/\bminute\b/gi, 'minut')
     .replace(/\bhours\b/gi, 'timmar')
     .replace(/\bhour\b/gi, 'timme')
-  return antiTranslate(translated)
 }
 
 function daysUntil(dateStr) {
@@ -274,71 +122,24 @@ export default function App() {
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
 
-  // Starta svenskt textskyddssystem
+  // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
-    // ULTRA AGGRESSIVE: Övervaka översättningsändringar var 100:e ms
-    const textProtectionInterval = setInterval(restoreSwedishText, 100)
+    // Sätt dokumentspråk till svenska
+    document.documentElement.lang = 'sv'
     
-    // ULTRA AGGRESSIVE DOM-övervakning för översättningsförsök
-    const textObserver = new MutationObserver((mutations) => {
-      let shouldRestore = false
-      mutations.forEach(mutation => {
-        // Reagera på ALLA DOM-ändringar
-        if (mutation.type === 'childList' || mutation.type === 'characterData') {
-          shouldRestore = true
-        }
-        if (mutation.type === 'attributes') {
-          const target = mutation.target
-          // Reagera på ALLA attributändringar som kan indikera översättning
-          if (target.className && (
-            target.className.includes('translated') ||
-            target.className.includes('goog') ||
-            target.className.includes('trans')
-          )) {
-            shouldRestore = true
-          }
-          // Reagera på språkändringar
-          if (mutation.attributeName === 'lang' && target.getAttribute('lang') !== 'sv') {
-            target.setAttribute('lang', 'sv')
-            shouldRestore = true
-          }
-        }
-        
-        // Kontrollera nya noder för Google Translate-element
-        if (mutation.addedNodes) {
-          mutation.addedNodes.forEach(node => {
-            if (node.nodeType === 1) { // Element node
-              if (node.className && (
-                node.className.includes('goog') ||
-                node.className.includes('trans') ||
-                node.className.includes('skiptranslate')
-              )) {
-                node.remove()
-                shouldRestore = true
-              }
-            }
-          })
-        }
-      })
-      if (shouldRestore) {
-        // Kör omedelbart och sedan efter kort fördröjning
-        restoreSwedishText()
-        setTimeout(restoreSwedishText, 10)
-        setTimeout(restoreSwedishText, 50)
+    // Kontrollera att Google Translate cookie är satt till svenska
+    const ensureSwedishCookie = () => {
+      if (!document.cookie.includes('googtrans=/auto/sv')) {
+        document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000'
       }
-    })
+    }
     
-    textObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['class', 'style']
-    })
+    ensureSwedishCookie()
+    // Kontrollera var 5:e sekund
+    const cookieInterval = setInterval(ensureSwedishCookie, 5000)
     
     return () => {
-      clearInterval(textProtectionInterval)
-      textObserver.disconnect()
+      clearInterval(cookieInterval)
     }
   }, [])
 
@@ -368,7 +169,6 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem(THEME_KEY, theme)
   }, [theme])
-  }
 
   const onChange = e => {
     const { name, value } = e.target
@@ -601,17 +401,17 @@ export default function App() {
       </header>
 
       <section className="card">
-        <h2 className="notranslate" translate="no">{antiTranslate('Lägg till vara')}</h2>
+        <h2>Lägg till vara</h2>
         <form onSubmit={onAdd}>
           <div className="form-grid">
             <div className="form-row">
               <label>
-                <span className="notranslate" translate="no">{antiTranslate('Namn')}</span>
+                <span>Namn</span>
                 <input name="name" value={form.name} onChange={onChange} placeholder={'t.ex. mjölk, bröd, tomat'} required />
               </label>
               <label>
                 <span className="label-title">
-                  <span className="notranslate" translate="no">{antiTranslate('Antal')}</span> <span className="muted notranslate" translate="no">({antiTranslate(suggestedUnit)})</span>
+                  <span>Antal</span> <span className="muted">({suggestedUnit})</span>
                 </span>
                 <input 
                   type="number" 
@@ -627,17 +427,17 @@ export default function App() {
             </div>
             <div className="form-row">
               <label>
-                <span className="notranslate" translate="no">{antiTranslate('Inköpsdatum')}</span>
+                <span>Inköpsdatum</span>
                 <input type="date" name="purchasedAt" value={form.purchasedAt} onChange={onChange} />
               </label>
               <label>
-                <span className="notranslate" translate="no">{antiTranslate('Utgångsdatum')}</span>
+                <span>Utgångsdatum</span>
                 <input type="date" name="expiresAt" value={form.expiresAt} onChange={onChange} required />
               </label>
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit" className="notranslate" translate="no">{antiTranslate('Lägg till')}</button>
+            <button type="submit">Lägg till</button>
           </div>
         </form>
       </section>
@@ -645,7 +445,7 @@ export default function App() {
       <section className="card">
         <div className="list-header">
           <div className="section-title">
-            <h2 className="notranslate" translate="no">{antiTranslate('Varor')}</h2>
+            <h2>Varor</h2>
             <div className="header-actions">
               <button 
                 onClick={toggleBulkMode}
@@ -674,25 +474,25 @@ export default function App() {
               className="search-input"
             />
             <div className="filters">
-              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span className="notranslate" translate="no">{antiTranslate('Alla')}</span></label>
-              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span className="notranslate" translate="no">{antiTranslate('Går ut inom ≤ 3 dagar')}</span></label>
-              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span className="notranslate" translate="no">{antiTranslate('Utgångna')}</span></label>
+              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span>Alla</span></label>
+              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span>Går ut inom ≤ 3 dagar</span></label>
+              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>Utgångna</span></label>
             </div>
             
             {bulkMode && (
               <div className="bulk-actions">
                 <div className="bulk-info">
-                  <span className="notranslate" translate="no">{antiTranslate(`${selectedItems.size} av ${filtered.length} varor valda`)}</span>
+                  <span>{`${selectedItems.size} av ${filtered.length} varor valda`}</span>
                 </div>
                 <div className="bulk-buttons">
-                  <button onClick={selectAllVisible} className="bulk-btn secondary notranslate" translate="no">{antiTranslate('Välj alla')}</button>
-                  <button onClick={deselectAll} className="bulk-btn secondary notranslate" translate="no">{antiTranslate('Avmarkera alla')}</button>
+                  <button onClick={selectAllVisible} className="bulk-btn secondary">Välj alla</button>
+                  <button onClick={deselectAll} className="bulk-btn secondary">Avmarkera alla</button>
                   <button 
                     onClick={bulkDelete} 
                     className="bulk-btn danger"
                     disabled={selectedItems.size === 0}
                   >
-                    <span className="notranslate" translate="no">{antiTranslate(`Ta bort valda (${selectedItems.size})`)}</span>
+                    <span>{`Ta bort valda (${selectedItems.size})`}</span>
                   </button>
                 </div>
               </div>
@@ -701,17 +501,17 @@ export default function App() {
         </div>
         {filtered.length === 0 ? (
           <p>
-            <span className="notranslate" translate="no">{items.length === 0 
-              ? antiTranslate('Inga varor ännu. Lägg till din första vara ovan.')
+            <span>{items.length === 0 
+              ? 'Inga varor ännu. Lägg till din första vara ovan.'
               : searchQuery.trim() 
-                ? antiTranslate(`Inga varor hittades som matchar "${searchQuery}"`)
-                : antiTranslate('Inga varor matchar det valda filtret.')}</span>
+                ? `Inga varor hittades som matchar "${searchQuery}"`
+                : 'Inga varor matchar det valda filtret.'}</span>
           </p>
         ) : (
           <ul className="items">
             {filtered.map(i => {
               const d = daysUntil(i.expiresAt)
-              const status = d < 0 ? antiTranslate('Utgången') : d === 0 ? antiTranslate('Går ut idag') : formatDaysLeft(d)
+              const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
               return (
                 <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkMode ? 'bulk-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
                   {bulkMode && (
@@ -730,8 +530,8 @@ export default function App() {
                     <span className="muted">{i.quantity} {i.unit}</span>
                   </div>
                   <div className="item-sub">
-                    <span className="notranslate" translate="no">{antiTranslate('Utgång')}: {i.expiresAt || '—'}</span>
-                    <span className="status notranslate" translate="no">{status}</span>
+                    <span>Utgång: {i.expiresAt || '—'}</span>
+                    <span className="status">{status}</span>
                   </div>
                   {!bulkMode && (
                     <button className="link" onClick={() => onRemove(i.id)}>×</button>
@@ -744,24 +544,24 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2 className="notranslate" translate="no">{antiTranslate('Receptförslag')}</h2>
+        <h2>Receptförslag</h2>
         {suggestions.length === 0 ? (
-          <p className="notranslate" translate="no">{items.length === 0 ? antiTranslate('Lägg till varor för att se receptförslag.') : antiTranslate('Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!')}</p>
+          <p>{items.length === 0 ? 'Lägg till varor för att se receptförslag.' : 'Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!'}</p>
         ) : (
-          <div className="recipes notranslate" translate="no">
+          <div className="recipes">
             {suggestions.map(r => (
-              <div key={r.id} className="recipe-card notranslate" translate="no">
+              <div key={r.id} className="recipe-card">
                 <div className="recipe-header">
                   <h3>{r.name}</h3>
                   <div className="recipe-meta">
-                    <span className="servings notranslate" translate="no">👥 {r.servings} {antiTranslate('portioner')}</span>
+                    <span className="servings">👥 {r.servings} portioner</span>
                     <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
                     <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
                   </div>
                 </div>
                 
                 <div className="recipe-ingredients">
-                  <h4 className="notranslate" translate="no">{antiTranslate('Ingredienser som behövs:')}</h4>
+                  <h4>Ingredienser som behövs:</h4>
                   <ul>
                     {r.usedIngredients.map((ingredient, idx) => (
                       <li key={idx} className="ingredient-item">
@@ -770,7 +570,7 @@ export default function App() {
                         </span>
                         <span className="ingredient-name">{ingredient.name}</span>
                         <span className="ingredient-available">
-                          <span className="notranslate" translate="no">({antiTranslate('du har')} {ingredient.availableQuantity} {ingredient.itemName})</span>
+                          <span>(du har {ingredient.availableQuantity} {ingredient.itemName})</span>
                         </span>
                       </li>
                     ))}
@@ -778,7 +578,7 @@ export default function App() {
                 </div>
                 
                 <div className="recipe-instructions">
-                  <h4 className="notranslate" translate="no">{antiTranslate('Instruktioner:')}</h4>
+                  <h4>Instruktioner:</h4>
                   <p>{r.instructions}</p>
                 </div>
               </div>
@@ -787,7 +587,7 @@ export default function App() {
         )}
       </section>
 
-      <footer className="muted notranslate" translate="no">{antiTranslate('Data sparas i din webbläsare (localStorage).')}</footer>
+      <footer className="muted">Data sparas i din webbläsare (localStorage).</footer>
     </div>
     </>
   )
