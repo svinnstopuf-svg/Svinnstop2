@@ -1,18 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 
-// Format Swedish-only "days left" string
+// Anti-translation Swedish text helpers
+function antiTranslate(text) {
+  // Insert zero-width spaces and use CSS to hide/show parts
+  return text
+    .replace(/dagar/g, 'dag\u200Bar')
+    .replace(/kvar/g, 'kv\u200Bar')
+    .replace(/utgången/gi, 'utg\u200Bången')
+    .replace(/varor/g, 'var\u200Bor')
+    .replace(/antal/gi, 'ant\u200Bal')
+    .replace(/stycken/g, 'styck\u200Ben')
+    .replace(/portioner/g, 'port\u200Bioner')
+    .replace(/minuter/g, 'min\u200Buter')
+    .replace(/ingredienser/g, 'ingred\u200Bienser')
+    .replace(/instruktioner/g, 'instru\u200Bktioner')
+}
+
+// Format Swedish-only "days left" string with anti-translation
 function formatDaysLeft(days) {
-  // Insert a zero-width space in "dagar" to discourage browser auto-translation
-  return days === 1 ? '1 dag kvar' : `${days} dag\u200Bar kvar`
+  const text = days === 1 ? '1 dag kvar' : `${days} dagar kvar`
+  return antiTranslate(text)
 }
 
 function svDifficultyLabel(raw) {
   const v = String(raw || '').toLowerCase()
-  if (v === 'easy' || v === 'lätt') return 'Lätt'
-  if (v === 'medium' || v === 'medel') return 'Medel'
-  if (v === 'hard' || v === 'svår') return 'Svår'
-  return raw || 'Medel'
+  if (v === 'easy' || v === 'lätt') return antiTranslate('Lätt')
+  if (v === 'medium' || v === 'medel') return antiTranslate('Medel')
+  if (v === 'hard' || v === 'svår') return antiTranslate('Svår')
+  return antiTranslate(raw || 'Medel')
 }
 function svDifficultyClass(raw) {
   const v = String(raw || '').toLowerCase()
@@ -23,11 +39,12 @@ function svDifficultyClass(raw) {
 }
 function svTimeLabel(raw) {
   const s = String(raw || '')
-  return s
+  const translated = s
     .replace(/\bminutes\b/gi, 'minuter')
     .replace(/\bminute\b/gi, 'minut')
     .replace(/\bhours\b/gi, 'timmar')
     .replace(/\bhour\b/gi, 'timme')
+  return antiTranslate(translated)
 }
 
 function daysUntil(dateStr) {
@@ -373,17 +390,17 @@ export default function App() {
       </header>
 
       <section className="card">
-        <h2>{'Lägg till vara'}</h2>
+        <h2 className="notranslate" translate="no">{antiTranslate('Lägg till vara')}</h2>
         <form onSubmit={onAdd}>
           <div className="form-grid">
             <div className="form-row">
               <label>
-                {'Namn'}
+                <span className="notranslate" translate="no">{antiTranslate('Namn')}</span>
                 <input name="name" value={form.name} onChange={onChange} placeholder={'t.ex. mjölk, bröd, tomat'} required />
               </label>
               <label>
                 <span className="label-title">
-                  {'Antal'} <span className="muted">({suggestedUnit})</span>
+                  <span className="notranslate" translate="no">{antiTranslate('Antal')}</span> <span className="muted notranslate" translate="no">({antiTranslate(suggestedUnit)})</span>
                 </span>
                 <input 
                   type="number" 
@@ -399,17 +416,17 @@ export default function App() {
             </div>
             <div className="form-row">
               <label>
-                {'Inköpsdatum'}
+                <span className="notranslate" translate="no">{antiTranslate('Inköpsdatum')}</span>
                 <input type="date" name="purchasedAt" value={form.purchasedAt} onChange={onChange} />
               </label>
               <label>
-                {'Utgångsdatum'}
+                <span className="notranslate" translate="no">{antiTranslate('Utgångsdatum')}</span>
                 <input type="date" name="expiresAt" value={form.expiresAt} onChange={onChange} required />
               </label>
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit">{'Lägg till'}</button>
+            <button type="submit" className="notranslate" translate="no">{antiTranslate('Lägg till')}</button>
           </div>
         </form>
       </section>
@@ -417,7 +434,7 @@ export default function App() {
       <section className="card">
         <div className="list-header">
           <div className="section-title">
-            <h2>{'Varor'}</h2>
+            <h2 className="notranslate" translate="no">{antiTranslate('Varor')}</h2>
             <div className="header-actions">
               <button 
                 onClick={toggleBulkMode}
@@ -446,25 +463,25 @@ export default function App() {
               className="search-input"
             />
             <div className="filters">
-              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> {'Alla'}</label>
-              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> {'Går ut inom ≤ 3 dagar'}</label>
-              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> {'Utgångna'}</label>
+              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span className="notranslate" translate="no">{antiTranslate('Alla')}</span></label>
+              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span className="notranslate" translate="no">{antiTranslate('Går ut inom ≤ 3 dagar')}</span></label>
+              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span className="notranslate" translate="no">{antiTranslate('Utgångna')}</span></label>
             </div>
             
             {bulkMode && (
               <div className="bulk-actions">
                 <div className="bulk-info">
-                  <span>{`${selectedItems.size} av ${filtered.length} varor valda`}</span>
+                  <span className="notranslate" translate="no">{antiTranslate(`${selectedItems.size} av ${filtered.length} varor valda`)}</span>
                 </div>
                 <div className="bulk-buttons">
-                  <button onClick={selectAllVisible} className="bulk-btn secondary">{'Välj alla'}</button>
-                  <button onClick={deselectAll} className="bulk-btn secondary">{'Avmarkera alla'}</button>
+                  <button onClick={selectAllVisible} className="bulk-btn secondary notranslate" translate="no">{antiTranslate('Välj alla')}</button>
+                  <button onClick={deselectAll} className="bulk-btn secondary notranslate" translate="no">{antiTranslate('Avmarkera alla')}</button>
                   <button 
                     onClick={bulkDelete} 
                     className="bulk-btn danger"
                     disabled={selectedItems.size === 0}
                   >
-                    {`Ta bort valda (${selectedItems.size})`}
+                    <span className="notranslate" translate="no">{antiTranslate(`Ta bort valda (${selectedItems.size})`)}</span>
                   </button>
                 </div>
               </div>
@@ -473,17 +490,17 @@ export default function App() {
         </div>
         {filtered.length === 0 ? (
           <p>
-            {items.length === 0 
-              ? 'Inga varor ännu. Lägg till din första vara ovan.'
+            <span className="notranslate" translate="no">{items.length === 0 
+              ? antiTranslate('Inga varor ännu. Lägg till din första vara ovan.')
               : searchQuery.trim() 
-                ? `Inga varor hittades som matchar "${searchQuery}"`
-                : 'Inga varor matchar det valda filtret.'}
+                ? antiTranslate(`Inga varor hittades som matchar "${searchQuery}"`)
+                : antiTranslate('Inga varor matchar det valda filtret.')}</span>
           </p>
         ) : (
           <ul className="items">
             {filtered.map(i => {
               const d = daysUntil(i.expiresAt)
-              const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
+              const status = d < 0 ? antiTranslate('Utgången') : d === 0 ? antiTranslate('Går ut idag') : formatDaysLeft(d)
               return (
                 <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkMode ? 'bulk-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
                   {bulkMode && (
@@ -502,7 +519,7 @@ export default function App() {
                     <span className="muted">{i.quantity} {i.unit}</span>
                   </div>
                   <div className="item-sub">
-                    <span>{'Utgång'}: {i.expiresAt || '—'}</span>
+                    <span className="notranslate" translate="no">{antiTranslate('Utgång')}: {i.expiresAt || '—'}</span>
                     <span className="status notranslate" translate="no">{status}</span>
                   </div>
                   {!bulkMode && (
@@ -516,9 +533,9 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2>{'Receptförslag'}</h2>
+        <h2 className="notranslate" translate="no">{antiTranslate('Receptförslag')}</h2>
         {suggestions.length === 0 ? (
-          <p>{items.length === 0 ? 'Lägg till varor för att se receptförslag.' : 'Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!'}</p>
+          <p className="notranslate" translate="no">{items.length === 0 ? antiTranslate('Lägg till varor för att se receptförslag.') : antiTranslate('Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!')}</p>
         ) : (
           <div className="recipes notranslate" translate="no">
             {suggestions.map(r => (
@@ -526,14 +543,14 @@ export default function App() {
                 <div className="recipe-header">
                   <h3>{r.name}</h3>
                   <div className="recipe-meta">
-                    <span className="servings">👥 {r.servings} {'portioner'}</span>
+                    <span className="servings notranslate" translate="no">👥 {r.servings} {antiTranslate('portioner')}</span>
                     <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
                     <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
                   </div>
                 </div>
                 
                 <div className="recipe-ingredients">
-                  <h4>{'Ingredienser som behövs:'}</h4>
+                  <h4 className="notranslate" translate="no">{antiTranslate('Ingredienser som behövs:')}</h4>
                   <ul>
                     {r.usedIngredients.map((ingredient, idx) => (
                       <li key={idx} className="ingredient-item">
@@ -542,7 +559,7 @@ export default function App() {
                         </span>
                         <span className="ingredient-name">{ingredient.name}</span>
                         <span className="ingredient-available">
-                          ({'du har'} {ingredient.availableQuantity} {ingredient.itemName})
+                          <span className="notranslate" translate="no">({antiTranslate('du har')} {ingredient.availableQuantity} {ingredient.itemName})</span>
                         </span>
                       </li>
                     ))}
@@ -550,7 +567,7 @@ export default function App() {
                 </div>
                 
                 <div className="recipe-instructions">
-                  <h4>{'Instruktioner:'}</h4>
+                  <h4 className="notranslate" translate="no">{antiTranslate('Instruktioner:')}</h4>
                   <p>{r.instructions}</p>
                 </div>
               </div>
@@ -559,7 +576,7 @@ export default function App() {
         )}
       </section>
 
-      <footer className="muted">{'Data sparas i din webbläsare (localStorage).'}</footer>
+      <footer className="muted notranslate" translate="no">{antiTranslate('Data sparas i din webbläsare (localStorage).')}</footer>
     </div>
     </>
   )

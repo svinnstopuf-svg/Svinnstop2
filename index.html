@@ -5,10 +5,140 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Language" content="sv" />
     <meta name="google" content="notranslate" />
+    <meta name="googlebot" content="notranslate" />
+    <meta name="robots" content="notranslate" />
+    <meta property="google" content="notranslate" />
     <title>Svinnstop</title>
+    <style>
+      /* Additional anti-translation CSS */
+      .notranslate { -webkit-transform: translateZ(0); }
+      [translate="no"] { -webkit-transform: translateZ(0); }
+      
+      /* Hide Google Translate button and widget completely */
+      .goog-te-banner-frame,
+      .goog-te-menu-frame,
+      .skiptranslate,
+      .goog-te-gadget,
+      .goog-te-combo,
+      .VIpgJd-ZVi9od-ORHb-OEVmcd,
+      .VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+      .gt-bbar-button,
+      .gt-bbar,
+      .gt-c-gap,
+      iframe[src*="translate.google"],
+      iframe[src*="translate.googleapis"],
+      .translate-tooltip,
+      .translate-suggestion-container,
+      [id*="google_translate"],
+      [class*="google_translate"],
+      [id*="goog-gt"],
+      [class*="goog-gt"],
+      body > .skiptranslate,
+      body > div[style*="translate"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        pointer-events: none !important;
+      }
+      
+      /* Remove Google Translate top bar */
+      body.translated-ltr,
+      body.translated-rtl {
+        margin-top: 0 !important;
+      }
+      
+      /* Hide any floating translate elements */
+      body > div:not([id]):not([class]) {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root" class="notranslate"></div>
+    <script>
+      // Aggressively disable Google Translate
+      (function() {
+        // Disable Google Translate initialization
+        window.googleTranslateElementInit = function() {};
+        
+        // Block Google Translate scripts
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+              if (node.nodeType === 1) {
+                // Remove Google Translate elements
+                if (node.classList && (
+                  node.classList.contains('skiptranslate') ||
+                  node.classList.contains('goog-te-banner-frame') ||
+                  node.id && node.id.includes('google_translate')
+                )) {
+                  node.remove();
+                }
+                
+                // Remove any iframe from translate domains
+                if (node.tagName === 'IFRAME' && node.src && (
+                  node.src.includes('translate.google') ||
+                  node.src.includes('translate.googleapis')
+                )) {
+                  node.remove();
+                }
+                
+                // Remove scripts from translate domains
+                if (node.tagName === 'SCRIPT' && node.src && (
+                  node.src.includes('translate.google') ||
+                  node.src.includes('translate.googleapis')
+                )) {
+                  node.remove();
+                }
+              }
+            });
+          });
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        
+        // Remove translate elements on page load
+        document.addEventListener('DOMContentLoaded', function() {
+          const elementsToRemove = document.querySelectorAll(`
+            .skiptranslate,
+            .goog-te-banner-frame,
+            .goog-te-menu-frame,
+            .goog-te-gadget,
+            .gt-bbar,
+            iframe[src*="translate.google"],
+            [id*="google_translate"],
+            [class*="goog-gt"]
+          `);
+          elementsToRemove.forEach(el => el.remove());
+        });
+        
+        // Override Google Translate functions
+        window.google = window.google || {};
+        window.google.translate = window.google.translate || {};
+        window.google.translate.TranslateElement = function() {};
+        
+        // Block translate cookie
+        Object.defineProperty(document, 'cookie', {
+          get: function() {
+            return document.cookie.replace(/googtrans=[^;]+;?/g, '');
+          },
+          set: function(value) {
+            if (!value.includes('googtrans')) {
+              document.cookie = value;
+            }
+          }
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
