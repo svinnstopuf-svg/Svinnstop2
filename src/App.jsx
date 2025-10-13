@@ -1,20 +1,87 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 
-// Anti-translation Swedish text helpers
+// Swedish text protection system
+const SWEDISH_TRANSLATIONS = {
+  // Common mistranslations
+  'days left': 'dagar kvar',
+  'day left': 'dag kvar',
+  'items': 'varor',
+  'item': 'vara',
+  'quantity': 'antal',
+  'pieces': 'stycken',
+  'expired': 'utgången',
+  'expires today': 'går ut idag',
+  'add item': 'lägg till vara',
+  'name': 'namn',
+  'purchase date': 'inköpsdatum',
+  'expiry date': 'utgångsdatum',
+  'expiry': 'utgång',
+  'recipe suggestions': 'receptförslag',
+  'ingredients needed': 'ingredienser som behövs',
+  'instructions': 'instruktioner',
+  'servings': 'portioner',
+  'you have': 'du har',
+  'minutes': 'minuter',
+  'easy': 'lätt',
+  'medium': 'medel',
+  'hard': 'svår',
+  'all': 'alla',
+  'search': 'sök',
+  'select': 'välj',
+  'exit': 'avsluta',
+  'export': 'exportera',
+  'delete': 'ta bort',
+  'undo': 'ångra'
+}
+
+// Text protection with zero-width characters
 function antiTranslate(text) {
-  // Insert zero-width spaces and use CSS to hide/show parts
-  return text
-    .replace(/dagar/g, 'dag\u200Bar')
-    .replace(/kvar/g, 'kv\u200Bar')
+  if (!text) return text
+  return String(text)
+    .replace(/dagar/gi, 'dag\u200Bar')
+    .replace(/kvar/gi, 'kv\u200Bar')
     .replace(/utgången/gi, 'utg\u200Bången')
-    .replace(/varor/g, 'var\u200Bor')
+    .replace(/varor/gi, 'var\u200Bor')
     .replace(/antal/gi, 'ant\u200Bal')
-    .replace(/stycken/g, 'styck\u200Ben')
-    .replace(/portioner/g, 'port\u200Bioner')
-    .replace(/minuter/g, 'min\u200Buter')
-    .replace(/ingredienser/g, 'ingred\u200Bienser')
-    .replace(/instruktioner/g, 'instru\u200Bktioner')
+    .replace(/stycken/gi, 'styck\u200Ben')
+    .replace(/portioner/gi, 'port\u200Bioner')
+    .replace(/minuter/gi, 'min\u200Buter')
+    .replace(/ingredienser/gi, 'ingred\u200Bienser')
+    .replace(/instruktioner/gi, 'instru\u200Bktioner')
+    .replace(/receptförslag/gi, 'recept\u200Bförslag')
+    .replace(/lägg till/gi, 'lägg\u200B till')
+    .replace(/inköpsdatum/gi, 'ink\u200Böpsdatum')
+    .replace(/utgångsdatum/gi, 'utg\u200Bångsdatum')
+}
+
+// Store original Swedish text for restoration
+const originalTexts = new Map()
+
+function protectElement(element, originalText) {
+  if (!element || !originalText) return
+  originalTexts.set(element, originalText)
+  element.setAttribute('data-original-sv', originalText)
+}
+
+// Restore Swedish text if it gets translated
+function restoreSwedishText() {
+  document.querySelectorAll('[data-original-sv]').forEach(element => {
+    const original = element.getAttribute('data-original-sv')
+    if (element.textContent !== original && !element.textContent.includes('\u200B')) {
+      element.textContent = original
+    }
+  })
+  
+  // Check for common English translations and replace them
+  Object.entries(SWEDISH_TRANSLATIONS).forEach(([english, swedish]) => {
+    const elements = document.querySelectorAll('*')
+    elements.forEach(el => {
+      if (el.textContent && el.textContent.toLowerCase().includes(english.toLowerCase())) {
+        el.textContent = el.textContent.replace(new RegExp(english, 'gi'), swedish)
+      }
+    })
+  })
 }
 
 // Format Swedish-only "days left" string with anti-translation
@@ -130,6 +197,46 @@ export default function App() {
   const [bulkMode, setBulkMode] = useState(false)
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
+
+  // Start Swedish text protection system
+  useEffect(() => {
+    // Monitor for translation changes every 500ms
+    const textProtectionInterval = setInterval(restoreSwedishText, 500)
+    
+    // Monitor DOM changes for translation attempts
+    const textObserver = new MutationObserver((mutations) => {
+      let shouldRestore = false
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+          // Check if any text nodes were modified
+          shouldRestore = true
+        }
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          // Check if Google Translate added classes
+          const target = mutation.target
+          if (target.className && target.className.includes('translated')) {
+            shouldRestore = true
+          }
+        }
+      })
+      if (shouldRestore) {
+        setTimeout(restoreSwedishText, 100)
+      }
+    })
+    
+    textObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    })
+    
+    return () => {
+      clearInterval(textProtectionInterval)
+      textObserver.disconnect()
+    }
+  }, [])
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {

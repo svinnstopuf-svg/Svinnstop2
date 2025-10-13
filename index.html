@@ -137,6 +137,46 @@
             }
           }
         });
+        
+        // Force Swedish language detection
+        Object.defineProperty(document, 'documentElement', {
+          get: function() {
+            const element = document.querySelector('html');
+            if (element) {
+              element.lang = 'sv';
+              element.setAttribute('lang', 'sv');
+            }
+            return element;
+          }
+        });
+        
+        // Override navigator language
+        Object.defineProperty(navigator, 'language', {
+          get: function() { return 'sv-SE'; }
+        });
+        Object.defineProperty(navigator, 'languages', {
+          get: function() { return ['sv-SE', 'sv']; }
+        });
+        
+        // Monitor and restore body classes
+        const classObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+              const body = document.body;
+              if (body.classList.contains('translated-ltr') || body.classList.contains('translated-rtl')) {
+                body.classList.remove('translated-ltr', 'translated-rtl');
+                body.style.marginTop = '0';
+              }
+            }
+          });
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+          classObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class', 'style']
+          });
+        });
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
