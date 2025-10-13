@@ -121,13 +121,13 @@ function daysUntil(dateStr) {
   return diff
 }
 
-// Get suggested unit key for quantity label based on item name
+// Hämta föreslagen enhetsnyckel för antal-etikett baserat på varans namn
 function getSuggestedUnitKey(itemName) {
   if (!itemName.trim()) return 'defaultUnit'
   
   const name = itemName.toLowerCase()
   
-  // Support multiple languages for item detection
+  // Stöd för flerspråkig vardetektering
   const isLiquid = name.includes('milk') || name.includes('mjölk') || name.includes('milch') ||
                    name.includes('juice') || name.includes('saft') || name.includes('saft') ||
                    name.includes('water') || name.includes('vatten') || name.includes('wasser') ||
@@ -149,34 +149,34 @@ function getSuggestedUnitKey(itemName) {
   if (isMeat) return 'kg'
   if (isEgg) return 'pieces'
   
-  // Dairy (solid)
+  // Mejeri (fast)
   if (name.includes('cheese') || name.includes('ost') || name.includes('käse') ||
       name.includes('butter') || name.includes('smör') || name.includes('butter') ||
       name.includes('yogurt') || name.includes('yoghurt') || name.includes('joghurt')) {
     return 'grams'
   }
   
-  // Rice/Pasta/Grains
+  // Ris/Pasta/Sädesslag
   if (name.includes('rice') || name.includes('ris') || name.includes('reis') ||
       name.includes('pasta') || name.includes('pasta') || name.includes('nudeln') ||
       name.includes('flour') || name.includes('mjöl') || name.includes('mehl')) {
     return 'grams'
   }
   
-  // Canned goods
+  // Konserver
   if (name.includes('can') || name.includes('burk') || name.includes('dose') ||
       name.includes('tin') || name.includes('konserv') || name.includes('büchse')) {
     return 'cans'
   }
   
-  // Default
+  // Standard
   return 'pieces'
 }
 
 const STORAGE_KEY = 'svinnstop_items'
 const THEME_KEY = 'svinnstop_theme'
 
-// Swedish units map (used for UI hints and stored unit)
+// Svensk enhets-karta (används för UI-tips och lagrad enhet)
 const SV_UNITS = {
   liters: 'liter',
   loaves: 'limpor',
@@ -198,21 +198,21 @@ export default function App() {
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
 
-  // Start Swedish text protection system
+  // Starta svenskt textskyddssystem
   useEffect(() => {
-    // Monitor for translation changes every 500ms
+    // Övervaka översättningsändringar var 500:e ms
     const textProtectionInterval = setInterval(restoreSwedishText, 500)
     
-    // Monitor DOM changes for translation attempts
+    // Övervaka DOM-ändringar för översättningsförsök
     const textObserver = new MutationObserver((mutations) => {
       let shouldRestore = false
       mutations.forEach(mutation => {
         if (mutation.type === 'childList' || mutation.type === 'characterData') {
-          // Check if any text nodes were modified
+          // Kontrollera om några textnoder ändrats
           shouldRestore = true
         }
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          // Check if Google Translate added classes
+          // Kontrollera om Google Translate lade till klasser
           const target = mutation.target
           if (target.className && target.className.includes('translated')) {
             shouldRestore = true
@@ -238,7 +238,7 @@ export default function App() {
     }
   }, [])
 
-  // Initialize theme from localStorage or system preference
+  // Initiera tema från localStorage eller systempreferens
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -249,7 +249,7 @@ export default function App() {
     if (savedTheme) {
       setTheme(savedTheme)
     } else {
-      // Check system preference
+      // Kolla systempreferens
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setTheme(prefersDark ? 'dark' : 'light')
     }
@@ -259,7 +259,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
   }, [items])
 
-  // Apply theme to document and save to localStorage
+  // Tillämpa tema på dokument och spara till localStorage
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem(THEME_KEY, theme)
@@ -289,7 +289,7 @@ export default function App() {
   const onRemove = id => {
     const itemToRemove = items.find(item => item.id === id)
     if (itemToRemove) {
-      // Save action for undo
+      // Spara åtgärd för att ångra
       saveAction({
         type: 'DELETE_SINGLE',
         data: { item: itemToRemove },
@@ -304,10 +304,10 @@ export default function App() {
   }
   
 
-  // Undo/Redo functionality
+  // Ångra/Gör om funktionalitet
   const saveAction = (action) => {
     setActionHistory(prev => {
-      const newHistory = [...prev, action].slice(-10) // Keep last 10 actions
+      const newHistory = [...prev, action].slice(-10) // Behåll senaste 10 åtgärderna
       return newHistory
     })
     setCanUndo(true)
@@ -355,7 +355,7 @@ export default function App() {
     document.body.removeChild(link)
   }
 
-  // Bulk operations
+  // Massoperationer
   const toggleBulkMode = () => {
     setBulkMode(prev => !prev)
     setSelectedItems(new Set())
@@ -389,7 +389,7 @@ export default function App() {
     if (confirmed) {
       const itemsToDelete = items.filter(item => selectedItems.has(item.id))
       
-      // Save action for undo
+      // Spara åtgärd för att ångra
       saveAction({
         type: 'DELETE_BULK',
         data: { items: itemsToDelete },
@@ -408,14 +408,14 @@ export default function App() {
     const lastAction = actionHistory[actionHistory.length - 1]
     
     if (lastAction.type === 'DELETE_SINGLE') {
-      // Restore single deleted item
+      // Återställ enskild raderad vara
       setItems(prev => [...prev, lastAction.data.item])
     } else if (lastAction.type === 'DELETE_BULK') {
-      // Restore bulk deleted items
+      // Återställ massraderade varor
       setItems(prev => [...prev, ...lastAction.data.items])
     }
     
-    // Remove the action from history
+    // Ta bort åtgärden från historiken
     setActionHistory(prev => prev.slice(0, -1))
     setCanUndo(actionHistory.length > 1)
   }
@@ -430,14 +430,14 @@ export default function App() {
     const now = new Date()
     let result = sorted
     
-    // Apply status filter
+    // Tillämpa statusfilter
     if (filter === 'expiring') {
       result = result.filter(i => daysUntil(i.expiresAt) <= 3 && daysUntil(i.expiresAt) >= 0)
     } else if (filter === 'expired') {
       result = result.filter(i => new Date(i.expiresAt) < now)
     }
     
-    // Apply search filter
+    // Tillämpa sökfilter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
       result = result.filter(i => 
@@ -453,15 +453,15 @@ export default function App() {
 
   const suggestions = useMemo(() => suggestRecipes(items), [items])
   
-  // Get suggested unit based on current item name
+  // Hämta föreslagen enhet baserat på nuvarande varans namn
   const suggestedUnitKey = useMemo(() => {
     const key = getSuggestedUnitKey(form.name)
-    console.log('Suggested unit key:', key, 'for item:', form.name)
+    console.log('Föreslagen enhetsnyckel:', key, 'för vara:', form.name)
     return key
   }, [form.name])
   const suggestedUnit = useMemo(() => {
     const unit = SV_UNITS[suggestedUnitKey] || SV_UNITS.defaultUnit
-    console.log('Suggested unit (SV):', unit, 'for key:', suggestedUnitKey)
+    console.log('Föreslagen enhet (SV):', unit, 'för nyckel:', suggestedUnitKey)
     return unit
   }, [suggestedUnitKey])
 

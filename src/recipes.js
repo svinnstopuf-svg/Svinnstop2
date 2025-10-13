@@ -295,22 +295,22 @@ export const recipes = {
 export function suggestRecipes(items) {
   if (items.length === 0) return []
   
-  // Always use Swedish recipes
+  // Använd alltid svenska recept
   const languageRecipes = recipes.sv
   
-  // Create a map of available ingredients with their quantities
+  // Skapa en karta över tillgängliga ingredienser med deras mängder
   const availableIngredients = new Map()
   items.forEach(item => {
     const name = item.name.toLowerCase().trim()
     availableIngredients.set(name, item.quantity)
   })
   
-  // Filter recipes where we have ALL required ingredients
+  // Filtrera recept där vi har ALLA nödvändiga ingredienser
   const viableRecipes = languageRecipes.filter(recipe => {
     return recipe.ingredients.every(ingredient => {
       const ingredientName = ingredient.name.toLowerCase()
       
-      // Check if we have this ingredient (exact match or partial match)
+      // Kontrollera om vi har denna ingrediens (exakt matchning eller delvis matchning)
       for (const [availableName] of availableIngredients) {
         if (availableName.includes(ingredientName) || ingredientName.includes(availableName)) {
           return true
@@ -320,13 +320,13 @@ export function suggestRecipes(items) {
     })
   })
   
-  // Sort by number of servings (smaller recipes first) and return top 3
+  // Sortera efter antal portioner (mindre recept först) och returnera topp 3
   return viableRecipes
     .sort((a, b) => a.servings - b.servings)
     .slice(0, 3)
     .map(recipe => ({
       ...recipe,
-      // Add info about which of your items will be used
+      // Lägg till info om vilka av dina varor som kommer användas
       usedIngredients: recipe.ingredients.map(ingredient => {
         const matchingItem = items.find(item => {
           const itemName = item.name.toLowerCase()
