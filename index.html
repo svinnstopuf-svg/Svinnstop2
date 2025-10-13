@@ -1,9 +1,13 @@
 <!doctype html>
-<html>
+<html lang="sv">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Svinnstop</title>
+    <!-- ANTI-TRANSLATE META TAGS -->
+    <meta name="google" content="notranslate" />
+    <meta name="google-translate-customization" content="" />
+    <meta http-equiv="Content-Language" content="sv" />
     <!-- FORCE CACHE BUSTING -->
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="pragma" content="no-cache" />
@@ -33,24 +37,48 @@
           }
         });
         
-        // CLEAR ALL STORAGE
+        // ULTRA AGGRESSIVE STORAGE CLEARING
         try {
-          localStorage.removeItem('googtrans');
-          localStorage.removeItem('google_translate_element');
-          sessionStorage.removeItem('googtrans');
-          sessionStorage.removeItem('google_translate_element');
+          // Clear ALL known Google Translate storage keys
+          const translateKeys = [
+            'googtrans', 'google_translate_element', 'googtrans_element',
+            'google_translate_state', 'gtrans', 'gt_state', 'gt_element',
+            'translate_state', 'translate_element', 'goog_te_data',
+            'GoogleTranslateElementInit', 'google.translate.TranslateService'
+          ];
           
-          // Clear anything with google/translate in the key
-          Object.keys(localStorage).forEach(key => {
-            if (key.includes('goog') || key.includes('trans')) {
+          translateKeys.forEach(key => {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+            try { delete window[key]; } catch(e) {}
+          });
+          
+          // Clear anything with google/translate/goog in the key (more aggressive)
+          [...Object.keys(localStorage)].forEach(key => {
+            if (key.toLowerCase().includes('goog') || 
+                key.toLowerCase().includes('trans') ||
+                key.toLowerCase().includes('translate')) {
               localStorage.removeItem(key);
             }
           });
-          Object.keys(sessionStorage).forEach(key => {
-            if (key.includes('goog') || key.includes('trans')) {
+          [...Object.keys(sessionStorage)].forEach(key => {
+            if (key.toLowerCase().includes('goog') || 
+                key.toLowerCase().includes('trans') ||
+                key.toLowerCase().includes('translate')) {
               sessionStorage.removeItem(key);
             }
           });
+          
+          // Clear IndexedDB Google data if it exists
+          if (window.indexedDB && window.indexedDB.databases) {
+            window.indexedDB.databases().then(databases => {
+              databases.forEach(db => {
+                if (db.name && (db.name.includes('google') || db.name.includes('trans'))) {
+                  window.indexedDB.deleteDatabase(db.name);
+                }
+              });
+            });
+          }
         } catch(e) {}
         
         // RESET URL HASH (Google uses hash for translation state)

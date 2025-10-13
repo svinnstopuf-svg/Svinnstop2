@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 
-// Swedish text protection system
+// Swedish text protection system - ULTRA AGGRESSIVE MODE
 const SWEDISH_TRANSLATIONS = {
   // Common mistranslations
   'days left': 'dagar kvar',
@@ -32,13 +32,33 @@ const SWEDISH_TRANSLATIONS = {
   'exit': 'avsluta',
   'export': 'exportera',
   'delete': 'ta bort',
-  'undo': 'ångra'
+  'undo': 'ångra',
+  'remove': 'ta bort',
+  'Remove': 'Ta bort',
+  'REMOVE': 'TA BORT',
+  'Delete': 'Ta bort',
+  'DELETE': 'TA BORT',
+  'bulk': 'massa',
+  'toggle': 'växla',
+  'button': 'knapp',
+  'click': 'klicka',
+  'selected': 'vald',
+  'count': 'antal',
+  'total': 'totalt',
+  'confirm': 'bekräfta',
+  'cancel': 'avbryt',
+  'loading': 'laddar',
+  'error': 'fel',
+  'success': 'lyckades',
+  'warning': 'varning',
+  'info': 'information'
 }
 
-// Text protection with zero-width characters
+// ULTRA AGGRESSIVE text protection with zero-width characters
 function antiTranslate(text) {
   if (!text) return text
   return String(text)
+    // Grundläggande ord
     .replace(/dagar/gi, 'dag\u200Bar')
     .replace(/kvar/gi, 'kv\u200Bar')
     .replace(/utgången/gi, 'utg\u200Bången')
@@ -53,7 +73,24 @@ function antiTranslate(text) {
     .replace(/lägg till/gi, 'lägg\u200B till')
     .replace(/inköpsdatum/gi, 'ink\u200Böpsdatum')
     .replace(/utgångsdatum/gi, 'utg\u200Bångsdatum')
-}
+    // Fler ord som kan översättas
+    .replace(/ta bort/gi, 'ta\u200B bort')
+    .replace(/radera/gi, 'rad\u200Bera')
+    .replace(/välj/gi, 'vä\u200Blj')
+    .replace(/avsluta/gi, 'avs\u200Bluta')
+    .replace(/exportera/gi, 'export\u200Bera')
+    .replace(/ångra/gi, 'ång\u200Bra')
+    .replace(/alla/gi, 'al\u200Bla')
+    .replace(/sök/gi, 's\u200Bök')
+    .replace(/namn/gi, 'na\u200Bmn')
+    .replace(/lätt/gi, 'l\u200Bätt')
+    .replace(/medel/gi, 'med\u200Bel')
+    .replace(/svår/gi, 'sv\u200Bår')
+    .replace(/utgång/gi, 'utg\u200Bång')
+    .replace(/knapp/gi, 'kna\u200Bpp')
+    .replace(/växla/gi, 'väx\u200Bla')
+    .replace(/bekräfta/gi, 'bekr\u200Bäfta')
+    .replace(/avbryt/gi, 'avb\u200Bryt')
 
 // Store original Swedish text for restoration
 const originalTexts = new Map()
@@ -64,8 +101,9 @@ function protectElement(element, originalText) {
   element.setAttribute('data-original-sv', originalText)
 }
 
-// Restore Swedish text if it gets translated
+// ULTRA AGGRESSIVE Swedish text restoration
 function restoreSwedishText() {
+  // First, restore all elements with original Swedish text
   document.querySelectorAll('[data-original-sv]').forEach(element => {
     const original = element.getAttribute('data-original-sv')
     if (element.textContent !== original && !element.textContent.includes('\u200B')) {
@@ -73,14 +111,52 @@ function restoreSwedishText() {
     }
   })
   
-  // Check for common English translations and replace them
-  Object.entries(SWEDISH_TRANSLATIONS).forEach(([english, swedish]) => {
-    const elements = document.querySelectorAll('*')
-    elements.forEach(el => {
-      if (el.textContent && el.textContent.toLowerCase().includes(english.toLowerCase())) {
-        el.textContent = el.textContent.replace(new RegExp(english, 'gi'), swedish)
+  // ULTRA AGGRESSIVE: Scan ALL text nodes and fix translations
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  )
+  
+  const textNodesToFix = []
+  let node
+  while (node = walker.nextNode()) {
+    if (node.textContent && node.textContent.trim()) {
+      textNodesToFix.push(node)
+    }
+  }
+  
+  // Fix each text node
+  textNodesToFix.forEach(textNode => {
+    let content = textNode.textContent
+    let wasChanged = false
+    
+    // Replace ALL English words with Swedish
+    Object.entries(SWEDISH_TRANSLATIONS).forEach(([english, swedish]) => {
+      const regex = new RegExp('\\b' + english.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi')
+      if (regex.test(content)) {
+        content = content.replace(regex, swedish)
+        wasChanged = true
       }
     })
+    
+    if (wasChanged) {
+      textNode.textContent = content
+    }
+  })
+  
+  // Remove any Google Translate UI elements immediately
+  const googleElements = document.querySelectorAll(
+    '.skiptranslate, [class*="goog"], [id*="goog"], [class*="trans"], [id*="trans"], .translated-ltr, .translated-rtl'
+  )
+  googleElements.forEach(el => el.remove())
+  
+  // Force all elements to have Swedish lang attribute
+  document.querySelectorAll('*').forEach(el => {
+    if (el.hasAttribute('lang') && el.getAttribute('lang') !== 'sv') {
+      el.setAttribute('lang', 'sv')
+    }
   })
 }
 
@@ -200,27 +276,55 @@ export default function App() {
 
   // Starta svenskt textskyddssystem
   useEffect(() => {
-    // Övervaka översättningsändringar var 500:e ms
-    const textProtectionInterval = setInterval(restoreSwedishText, 500)
+    // ULTRA AGGRESSIVE: Övervaka översättningsändringar var 100:e ms
+    const textProtectionInterval = setInterval(restoreSwedishText, 100)
     
-    // Övervaka DOM-ändringar för översättningsförsök
+    // ULTRA AGGRESSIVE DOM-övervakning för översättningsförsök
     const textObserver = new MutationObserver((mutations) => {
       let shouldRestore = false
       mutations.forEach(mutation => {
+        // Reagera på ALLA DOM-ändringar
         if (mutation.type === 'childList' || mutation.type === 'characterData') {
-          // Kontrollera om några textnoder ändrats
           shouldRestore = true
         }
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          // Kontrollera om Google Translate lade till klasser
+        if (mutation.type === 'attributes') {
           const target = mutation.target
-          if (target.className && target.className.includes('translated')) {
+          // Reagera på ALLA attributändringar som kan indikera översättning
+          if (target.className && (
+            target.className.includes('translated') ||
+            target.className.includes('goog') ||
+            target.className.includes('trans')
+          )) {
+            shouldRestore = true
+          }
+          // Reagera på språkändringar
+          if (mutation.attributeName === 'lang' && target.getAttribute('lang') !== 'sv') {
+            target.setAttribute('lang', 'sv')
             shouldRestore = true
           }
         }
+        
+        // Kontrollera nya noder för Google Translate-element
+        if (mutation.addedNodes) {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1) { // Element node
+              if (node.className && (
+                node.className.includes('goog') ||
+                node.className.includes('trans') ||
+                node.className.includes('skiptranslate')
+              )) {
+                node.remove()
+                shouldRestore = true
+              }
+            }
+          })
+        }
       })
       if (shouldRestore) {
-        setTimeout(restoreSwedishText, 100)
+        // Kör omedelbart och sedan efter kort fördröjning
+        restoreSwedishText()
+        setTimeout(restoreSwedishText, 10)
+        setTimeout(restoreSwedishText, 50)
       }
     })
     
