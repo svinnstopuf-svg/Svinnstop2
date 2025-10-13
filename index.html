@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Svinnstop</title>
-    <!-- COMPLETE GOOGLE BLOCK -->
+    <!-- FORCE CACHE BUSTING -->
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, notranslate, noimageindex" />
     <style>
       /* Block all Google services */
@@ -18,8 +21,43 @@
   <body>
     <div id="root"></div>
     <script>
-      // TOTAL GOOGLE ANNIHILATION
+      // IMMEDIATE CACHE AND STATE RESET
       (function() {
+        // FORCE CLEAR ALL GOOGLE COOKIES AND STORAGE
+        document.cookie.split(';').forEach(function(cookie) {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          if (name.includes('goog') || name.includes('trans') || name.toLowerCase().includes('translate')) {
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.google.com';
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+          }
+        });
+        
+        // CLEAR ALL STORAGE
+        try {
+          localStorage.removeItem('googtrans');
+          localStorage.removeItem('google_translate_element');
+          sessionStorage.removeItem('googtrans');
+          sessionStorage.removeItem('google_translate_element');
+          
+          // Clear anything with google/translate in the key
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes('goog') || key.includes('trans')) {
+              localStorage.removeItem(key);
+            }
+          });
+          Object.keys(sessionStorage).forEach(key => {
+            if (key.includes('goog') || key.includes('trans')) {
+              sessionStorage.removeItem(key);
+            }
+          });
+        } catch(e) {}
+        
+        // RESET URL HASH (Google uses hash for translation state)
+        if (window.location.hash.includes('googtrans') || window.location.hash.includes('translate')) {
+          window.location.hash = '';
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
         // Block ALL Google domains at DNS level
         const blockedHosts = [
           'translate.google.com', 'translate.googleapis.com', 'www.google.com',
@@ -73,6 +111,45 @@
         window.ga = undefined;
         window.__google_translate = undefined;
         
+        // FORCE REFRESH IF GOOGLE TRANSLATE IS DETECTED
+        let googleDetected = false;
+        
+        // Check if page has been translated
+        if (document.body && (
+          document.body.classList.contains('translated-ltr') ||
+          document.body.classList.contains('translated-rtl') ||
+          document.querySelector('.skiptranslate') ||
+          document.querySelector('[class*="goog"]') ||
+          document.querySelector('[id*="goog"]')
+        )) {
+          googleDetected = true;
+        }
+        
+        // Check for Google translate in URL or cookies
+        if (window.location.href.includes('translate') || 
+            document.cookie.includes('googtrans') ||
+            window.location.hash.includes('googtrans')) {
+          googleDetected = true;
+        }
+        
+        // If Google detected, force immediate reload with cache clear
+        if (googleDetected) {
+          // Clear everything and reload
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              names.forEach(function(name) {
+                caches.delete(name);
+              });
+            });
+          }
+          
+          // Force hard reload
+          setTimeout(function() {
+            window.location.reload(true);
+          }, 100);
+          return; // Stop execution
+        }
+        
         // SIMPLE: Block any Google interference
         const destroyer = new MutationObserver(function(mutations) {
           mutations.forEach(function(mutation) {
@@ -107,6 +184,16 @@
         }
       })();
     </script>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx?v=<?php echo time(); ?>"></script>
+    <script>
+      // FORCE BROWSER TO RECOGNIZE CHANGES
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+    </script>
   </body>
 </html>
