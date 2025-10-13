@@ -12,12 +12,45 @@
     <meta http-equiv="pragma" content="no-cache" />
     <meta http-equiv="expires" content="0" />
     <style>
-      /* Style Google Translate widget to be invisible but functional */
-      .goog-te-gadget { display: none !important; }
-      .goog-te-banner-frame { display: none !important; }
-      .skiptranslate { display: inherit !important; }
-      /* Make sure Swedish text is always visible */
-      * { font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important; }
+      /* COMPLETELY HIDE Google Translate UI elements */
+      .goog-te-gadget,
+      .goog-te-banner-frame,
+      .goog-te-banner,
+      .goog-te-balloon-frame,
+      .goog-te-combo,
+      .goog-te-menu-frame,
+      .goog-te-menu2,
+      .goog-te-ftab,
+      #goog-gt-tt,
+      #google_translate_element .goog-te-gadget,
+      body > .skiptranslate:first-child {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+      
+      /* Ensure app name is NEVER translated */
+      .app-title,
+      .app-name {
+        font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      }
+      
+      /* Remove any Google Translate styling that might interfere */
+      .translated-ltr,
+      .translated-rtl {
+        font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      }
+      
+      /* Override any unwanted Google Translate styles */
+      * {
+        font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      }
     </style>
   </head>
   <body>
@@ -43,6 +76,9 @@
           // Sätt cookien för att alltid ha svenska som målspråk
           document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000'; // 1 år
           
+          // Skydda appnamnet från översättning
+          protectAppName();
+          
           // Tvinga översättning till svenska om sidan inte redan är på svenska
           if (!document.cookie.includes('googtrans=/auto/sv') && 
               !document.documentElement.lang.includes('sv')) {
@@ -53,12 +89,37 @@
         }, 1000);
       }
       
+      // Skydda appnamnet från att översättas
+      function protectAppName() {
+        const appTitleElements = document.querySelectorAll('h1, .app-title, .app-name, title');
+        appTitleElements.forEach(function(element) {
+          if (element.textContent && element.textContent.includes('Svinnstop')) {
+            element.innerHTML = element.innerHTML.replace(/Svinnstop/g, '<span class="notranslate">Svinnstop</span>');
+          }
+        });
+        
+        // Ändra också page title
+        if (document.title !== 'Svinnstop') {
+          document.title = 'Svinnstop';
+        }
+      }
+      
       // Kontinuerlig övervakning för att säkerställa att allt är på svenska
       function ensureSwedish() {
         // Kontrollera om Google Translate finns och fungerar
         if (typeof google !== 'undefined' && google.translate) {
           // Sätt alltid svenska som målspråk
           document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000';
+          
+          // Skydda appnamnet kontinuerligt
+          protectAppName();
+          
+          // Dold alla synliga Google Translate-element
+          const googleElements = document.querySelectorAll('.goog-te-gadget, .goog-te-banner-frame, .goog-te-banner, .skiptranslate');
+          googleElements.forEach(function(element) {
+            element.style.display = 'none';
+            element.style.visibility = 'hidden';
+          });
           
           // Om sidan inte är märkt som översatt till svenska, försök översätt
           if (!document.body.classList.contains('translated-ltr') || 

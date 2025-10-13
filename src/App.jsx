@@ -394,7 +394,7 @@ export default function App() {
       <header>
         <div className="header-content">
           <div className="header-text">
-            <h1>Svinnstop</h1>
+            <h1 className="app-title"><span className="notranslate">Svinnstop</span></h1>
             <p>{'Spåra din inköpta mat, utgångsdatum och se receptidéer.'}</p>
           </div>
         </div>
@@ -525,16 +525,27 @@ export default function App() {
                       <label htmlFor={`item-${i.id}`} className="checkbox-label"></label>
                     </div>
                   )}
-                  <div className="item-main">
-                    <strong>{i.name}</strong>
-                    <span className="muted">{i.quantity} {i.unit}</span>
-                  </div>
-                  <div className="item-sub">
-                    <span>Utgång: {i.expiresAt || '—'}</span>
-                    <span className="status">{status}</span>
+                  <div className="item-content">
+                    <div className="item-main">
+                      <strong>{i.name}</strong>
+                      <span className="muted">{i.quantity} {i.unit}</span>
+                    </div>
+                    <div className="item-sub">
+                      <span>Utgång: {i.expiresAt || '—'}</span>
+                      <span className="status">{status}</span>
+                    </div>
                   </div>
                   {!bulkMode && (
-                    <button className="link" onClick={() => onRemove(i.id)}>×</button>
+                    <div className="item-actions">
+                      <button 
+                        className="remove-btn" 
+                        onClick={() => onRemove(i.id)}
+                        title="Ta bort denna vara"
+                        aria-label="Ta bort denna vara"
+                      >
+                        ×
+                      </button>
+                    </div>
                   )}
                 </li>
               )

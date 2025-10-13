@@ -48,11 +48,67 @@ label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; min-wi
 input { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 8px }
 button { background: var(--accent); color: var(--button-text); border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 700 }
 button.link { background: transparent; color: var(--muted); text-decoration: underline; padding: 0 }
+
+/* Enhanced remove button styling */
+.item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+.remove-btn {
+  background: var(--danger);
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+}
+.remove-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+.remove-btn:active {
+  transform: scale(0.95);
+}
+
+/* App title protection from translation */
+.app-title {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
+}
+.app-title .notranslate {
+  background: linear-gradient(135deg, var(--accent), var(--warn));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
 .actions { display: flex; align-items: end }
 .items { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px }
-.items li { display: grid; grid-template-columns: 1fr auto; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; transition: all 0.2s ease; }
+.items li { display: grid; grid-template-columns: 1fr auto; gap: 12px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; transition: all 0.2s ease; align-items: center; }
 .items li.bulk-mode { grid-template-columns: auto 1fr auto; }
 .items li.selected { background: rgba(34, 197, 94, 0.1); border-color: var(--accent); }
+
+/* Item content styling */
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
 
 /* Checkbox styling */
 .item-checkbox {
@@ -70,8 +126,8 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .checkbox-label {
   cursor: pointer;
 }
-.item-main { display: flex; gap: 12px; align-items: center }
-.item-sub { display: flex; gap: 16px; align-items: center; justify-self: end }
+.item-main { display: flex; gap: 12px; align-items: center; }
+.item-sub { display: flex; gap: 12px; align-items: center; font-size: 13px; color: var(--muted); }
 .muted { color: var(--muted) }
 .status { font-weight: 700 }
 .expiring .status { color: var(--warn) }
