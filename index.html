@@ -8,43 +8,33 @@
     <meta name="googlebot" content="notranslate" />
     <meta name="robots" content="notranslate" />
     <meta property="google" content="notranslate" />
+    <meta name="google-translate-customization" content="" />
+    <meta name="google-site-verification" content="" />
+    <meta name="translation" content="no" />
+    <meta name="no-translate" content="true" />
+    <meta http-equiv="X-Translate" content="no" />
     <title>Svinnstop</title>
     <style>
       /* Additional anti-translation CSS */
       .notranslate { -webkit-transform: translateZ(0); }
       [translate="no"] { -webkit-transform: translateZ(0); }
       
-      /* Hide Google Translate button and widget completely */
-      .goog-te-banner-frame,
-      .goog-te-menu-frame,
-      .skiptranslate,
-      .goog-te-gadget,
-      .goog-te-combo,
-      .VIpgJd-ZVi9od-ORHb-OEVmcd,
-      .VIpgJd-ZVi9od-xl07Ob-OEVmcd,
-      .gt-bbar-button,
-      .gt-bbar,
-      .gt-c-gap,
-      iframe[src*="translate.google"],
-      iframe[src*="translate.googleapis"],
-      .translate-tooltip,
-      .translate-suggestion-container,
-      [id*="google_translate"],
-      [class*="google_translate"],
-      [id*="goog-gt"],
-      [class*="goog-gt"],
-      body > .skiptranslate,
-      body > div[style*="translate"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
-        position: absolute !important;
-        left: -9999px !important;
-        top: -9999px !important;
-        pointer-events: none !important;
+      /* NUCLEAR LEVEL: Hide ALL Google Translate elements */
+      .goog-te-banner-frame, .goog-te-menu-frame, .skiptranslate, .goog-te-gadget, .goog-te-combo,
+      .VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-ZVi9od-xl07Ob-OEVmcd, .gt-bbar-button, .gt-bbar, .gt-c-gap,
+      iframe[src*="translate.google"], iframe[src*="translate.googleapis"], iframe[src*="translate"],
+      .translate-tooltip, .translate-suggestion-container, [id*="google_translate"], [class*="google_translate"],
+      [id*="goog-gt"], [class*="goog-gt"], [id*="translate"], [class*="translate"],
+      body > .skiptranslate, body > div[style*="translate"], div[id^="goog-"], div[class^="goog-"],
+      script[src*="translate"], link[href*="translate"], style[id*="translate"],
+      .goog-tooltip, .goog-menu, .goog-menuitem, .goog-option, .goog-te-spinner,
+      [lang]:not([lang="sv"]):not([lang="sv-SE"]), font[style*="background"],
+      span[style*="background-color: rgb(255, 255, 0)"], span[style*="background: yellow"],
+      *[class*="trans"], *[id*="trans"], *[data-translate], *[translate]:not([translate="no"]) {
+        display: none !important; visibility: hidden !important; opacity: 0 !important;
+        height: 0 !important; width: 0 !important; overflow: hidden !important;
+        position: absolute !important; left: -9999px !important; top: -9999px !important;
+        pointer-events: none !important; z-index: -9999 !important; transform: scale(0) !important;
       }
       
       /* Remove Google Translate top bar */
@@ -150,13 +140,39 @@
           }
         });
         
-        // Override navigator language
+        // NUCLEAR: Override ALL language detection
         Object.defineProperty(navigator, 'language', {
-          get: function() { return 'sv-SE'; }
+          get: function() { return 'sv-SE'; },
+          set: function() { return 'sv-SE'; }
         });
         Object.defineProperty(navigator, 'languages', {
-          get: function() { return ['sv-SE', 'sv']; }
+          get: function() { return ['sv-SE', 'sv']; },
+          set: function() { return ['sv-SE', 'sv']; }
         });
+        
+        // Block ALL translation networks
+        const blockedDomains = [
+          'translate.google.com', 'translate.googleapis.com', 'translate-pa.googleapis.com',
+          'clients5.google.com', 'clients6.google.com', 'www.gstatic.com',
+          'ssl.gstatic.com', 'csi.gstatic.com', 'fonts.gstatic.com'
+        ];
+        
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+          if (typeof url === 'string' && blockedDomains.some(domain => url.includes(domain))) {
+            return Promise.reject(new Error('Translation blocked'));
+          }
+          return originalFetch.apply(this, arguments);
+        };
+        
+        // Block XMLHttpRequest to translation services
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+          if (typeof url === 'string' && blockedDomains.some(domain => url.includes(domain))) {
+            throw new Error('Translation request blocked');
+          }
+          return originalXHROpen.apply(this, arguments);
+        };
         
         // Monitor and restore body classes
         const classObserver = new MutationObserver(function(mutations) {
@@ -171,12 +187,95 @@
           });
         });
         
+        // NUCLEAR: Text replacement monitor
+        let lastCheck = '';
+        const swedishReplacements = {
+          'days left': 'dagar kvar',
+          'day left': 'dag kvar', 
+          'items': 'varor',
+          'quantity': 'antal',
+          'expired': 'utgången',
+          'expires today': 'går ut idag',
+          'add item': 'lägg till vara',
+          'recipe suggestions': 'receptförslag',
+          'ingredients needed': 'ingredienser som behövs',
+          'instructions': 'instruktioner',
+          'servings': 'portioner',
+          'minutes': 'minuter',
+          'easy': 'lätt',
+          'medium': 'medel', 
+          'hard': 'svår',
+          'search': 'sök',
+          'all': 'alla',
+          'name': 'namn'
+        };
+        
+        function aggressiveSwedishRestore() {
+          const currentHTML = document.body.innerHTML;
+          if (currentHTML !== lastCheck) {
+            let newHTML = currentHTML;
+            Object.entries(swedishReplacements).forEach(([eng, swe]) => {
+              const regex = new RegExp(eng, 'gi');
+              newHTML = newHTML.replace(regex, swe);
+            });
+            
+            if (newHTML !== currentHTML) {
+              document.body.innerHTML = newHTML;
+            }
+            lastCheck = newHTML;
+          }
+        }
+        
+        // Run every 100ms
+        setInterval(aggressiveSwedishRestore, 100);
+        
         document.addEventListener('DOMContentLoaded', function() {
           classObserver.observe(document.body, {
             attributes: true,
-            attributeFilter: ['class', 'style']
+            attributeFilter: ['class', 'style', 'lang', 'translate']
           });
+          
+          // Immediate cleanup
+          aggressiveSwedishRestore();
         });
+        // NUCLEAR: Block script injections and dynamic loading
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+          const element = originalCreateElement.call(this, tagName);
+          if (tagName.toLowerCase() === 'script') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if (name === 'src' && typeof value === 'string' && 
+                  (value.includes('translate') || value.includes('google'))) {
+                return; // Block translate scripts
+              }
+              return originalSetAttribute.call(this, name, value);
+            };
+          }
+          return element;
+        };
+        
+        // Force Swedish content at all times
+        Object.defineProperty(document, 'textContent', {
+          set: function(value) {
+            if (typeof value === 'string') {
+              Object.entries(swedishReplacements).forEach(([eng, swe]) => {
+                value = value.replace(new RegExp(eng, 'gi'), swe);
+              });
+            }
+            return value;
+          }
+        });
+        
+        // Block window.postMessage to translation services
+        const originalPostMessage = window.postMessage;
+        window.postMessage = function(message, targetOrigin) {
+          if (typeof targetOrigin === 'string' && 
+              (targetOrigin.includes('translate') || targetOrigin.includes('google'))) {
+            return; // Block translation messages
+          }
+          return originalPostMessage.apply(this, arguments);
+        };
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
