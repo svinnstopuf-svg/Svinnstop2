@@ -189,33 +189,130 @@
         
         // NUCLEAR: Text replacement monitor
         let lastCheck = '';
+        // THE ULTIMATE REPLACEMENT DICTIONARY - NUCLEAR OPTION
         const swedishReplacements = {
+          // Status and time expressions
           'days left': 'dagar kvar',
-          'day left': 'dag kvar', 
-          'items': 'varor',
-          'quantity': 'antal',
-          'expired': 'utgången',
+          'day left': 'dag kvar',
+          'days': 'dagar',
+          'day': 'dag',
+          'left': 'kvar',
           'expires today': 'går ut idag',
+          'expires': 'går ut',
+          'expired': 'utgången',
+          'expiry': 'utgång',
+          'minutes': 'minuter',
+          'minute': 'minut',
+          'seconds': 'sekunder',
+          'second': 'sekund',
+          
+          // Form fields
+          'items': 'varor',
+          'item': 'vara',
+          'quantity': 'antal',
+          'name': 'namn',
+          'date': 'datum',
           'add item': 'lägg till vara',
+          'add': 'lägg till',
+          'purchase date': 'inköpsdatum',
+          'purchase': 'inköp',
+          'expiry date': 'utgångsdatum',
+          'all': 'alla',
+          
+          // UI elements
+          'search': 'sök',
+          'select': 'välj',
+          'delete': 'ta bort',
+          'exit': 'avsluta',
+          'export': 'exportera',
+          'undo': 'ångra',
+          'submit': 'skicka',
+          'cancel': 'avbryt',
+          'ok': 'ok',
+          
+          // Recipe related
           'recipe suggestions': 'receptförslag',
+          'recipe': 'recept',
+          'suggestions': 'förslag',
           'ingredients needed': 'ingredienser som behövs',
+          'ingredients': 'ingredienser',
+          'needed': 'behövs',
           'instructions': 'instruktioner',
           'servings': 'portioner',
-          'minutes': 'minuter',
+          'serving': 'portion',
+          'you have': 'du har',
+          'you': 'du',
+          'have': 'har',
+          
+          // Difficulty
           'easy': 'lätt',
-          'medium': 'medel', 
+          'medium': 'medel',
           'hard': 'svår',
-          'search': 'sök',
-          'all': 'alla',
-          'name': 'namn'
+          
+          // Misc
+          'of': 'av',
+          'for': 'för',
+          'to': 'till',
+          'with': 'med',
+          'from': 'från',
+          'and': 'och',
+          'or': 'eller'
         };
         
+        // COMPLETE TEXT NODE SCANNER - MOST AGGRESSIVE METHOD POSSIBLE
+        function replaceTextInNode(node) {
+          if (node.nodeType === 3) { // Text node
+            let content = node.textContent;
+            let originalContent = content;
+            
+            // Apply all replacements
+            Object.entries(swedishReplacements).forEach(([eng, swe]) => {
+              // Only replace whole words, not parts of words
+              const regex = new RegExp('\\b' + eng + '\\b', 'gi');
+              content = content.replace(regex, swe);
+            });
+            
+            if (content !== originalContent) {
+              node.textContent = content;
+            }
+          }
+          else if (node.nodeType === 1) { // Element node
+            // Check attributes that might contain text
+            ['title', 'alt', 'placeholder', 'aria-label'].forEach(attr => {
+              if (node.hasAttribute(attr)) {
+                let content = node.getAttribute(attr);
+                let originalContent = content;
+                
+                Object.entries(swedishReplacements).forEach(([eng, swe]) => {
+                  const regex = new RegExp('\\b' + eng + '\\b', 'gi');
+                  content = content.replace(regex, swe);
+                });
+                
+                if (content !== originalContent) {
+                  node.setAttribute(attr, content);
+                }
+              }
+            });
+            
+            // Process children recursively
+            Array.from(node.childNodes).forEach(child => {
+              replaceTextInNode(child);
+            });
+          }
+        }
+        
         function aggressiveSwedishRestore() {
+          // First process all text nodes individually for maximum precision
+          if (document.body) {
+            replaceTextInNode(document.body);
+          }
+          
+          // Then do a full HTML check as backup
           const currentHTML = document.body.innerHTML;
           if (currentHTML !== lastCheck) {
             let newHTML = currentHTML;
             Object.entries(swedishReplacements).forEach(([eng, swe]) => {
-              const regex = new RegExp(eng, 'gi');
+              const regex = new RegExp('\\b' + eng + '\\b', 'gi');
               newHTML = newHTML.replace(regex, swe);
             });
             
@@ -226,8 +323,47 @@
           }
         }
         
-        // Run every 100ms
-        setInterval(aggressiveSwedishRestore, 100);
+        // ULTRA FAST: Run every 50ms + on every possible event
+        setInterval(aggressiveSwedishRestore, 50);
+        
+        // Monitor EVERY possible DOM change
+        const superObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+              // Process new nodes immediately
+              Array.from(mutation.addedNodes).forEach(node => {
+                if (node.nodeType === 1 || node.nodeType === 3) {
+                  replaceTextInNode(node);
+                }
+              });
+            }
+            if (mutation.type === 'characterData') {
+              // Text content changed, fix it immediately
+              replaceTextInNode(mutation.target);
+            }
+          });
+        });
+        
+        // Start monitoring immediately when DOM is ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            superObserver.observe(document.documentElement, {
+              childList: true,
+              subtree: true,
+              characterData: true,
+              attributes: true
+            });
+            aggressiveSwedishRestore();
+          });
+        } else {
+          superObserver.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+            attributes: true
+          });
+          aggressiveSwedishRestore();
+        }
         
         document.addEventListener('DOMContentLoaded', function() {
           classObserver.observe(document.body, {
