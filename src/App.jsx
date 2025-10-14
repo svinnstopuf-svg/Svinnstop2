@@ -171,6 +171,7 @@ export default function App() {
   const [canUndo, setCanUndo] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [scanningProduct, setScanningProduct] = useState(false)
+  const [forceRefresh, setForceRefresh] = useState(0)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -442,7 +443,7 @@ export default function App() {
         {'↶️ Ångra'}
       </button>
       
-    <div className="container">
+    <div className="container" key={`app-${forceRefresh}`}>
       <header>
         <div className="header-content">
           <div className="header-text">
@@ -674,7 +675,23 @@ export default function App() {
     
     <BarcodeScanner 
       isOpen={showScanner}
-      onClose={() => setShowScanner(false)}
+      onClose={() => {
+        console.log('Scanner stängs, återställer appen...')
+        setShowScanner(false)
+        
+        // Tvinga en fullständig re-render av appen
+        setTimeout(() => {
+          setForceRefresh(prev => prev + 1)
+          console.log('Appen är tvungen att ladda om efter scanner')
+          
+          // Säkerställ att DOM:en uppdateras
+          document.documentElement.style.display = 'none'
+          requestAnimationFrame(() => {
+            document.documentElement.style.display = ''
+            console.log('DOM tvingad att uppdatera')
+          })
+        }, 50)
+      }}
       onScan={handleScanBarcode}
     />
     </>
