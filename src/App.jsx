@@ -591,7 +591,7 @@ export default function App() {
                         </span>
                         <span className="ingredient-name">{ingredient.name}</span>
                         <span className="ingredient-available">
-                          <span>(Du har: {formatIngredientAmount(ingredient.itemName, ingredient.availableQuantity)})</span>
+                          <span>(Du har: {ingredient.availableQuantity} {ingredient.availableUnit || ingredient.unit})</span>
                         </span>
                       </li>
                     ))}

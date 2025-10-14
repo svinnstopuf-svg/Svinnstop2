@@ -142,6 +142,7 @@ export function suggestRecipes(items) {
         return {
           ...ingredient,
           availableQuantity: matchingItem ? matchingItem.quantity : 0,
+          availableUnit: matchingItem ? matchingItem.unit : ingredient.unit,
           itemName: matchingItem ? matchingItem.name : ingredient.name
         }
       })
