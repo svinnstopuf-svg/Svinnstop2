@@ -78,7 +78,11 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
             const barcode = result.getText()
             console.log('Streckkod scannad:', barcode)
             onScan(barcode)
-            handleClose()
+            
+            // Vänta lite så att App.jsx hinner processa onScan först
+            setTimeout(() => {
+              handleClose()
+            }, 200)
           }
           
           if (error && !(error.name === 'NotFoundException')) {
