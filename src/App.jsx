@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
+import BarcodeScanner from './BarcodeScanner'
+import { lookupProduct } from './productAPI'
 import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
@@ -167,6 +169,8 @@ export default function App() {
   const [bulkMode, setBulkMode] = useState(false)
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanningProduct, setScanningProduct] = useState(false)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -339,6 +343,42 @@ export default function App() {
     setCanUndo(actionHistory.length > 1)
   }
 
+  // Streckkodsscanning
+  const handleScanBarcode = async (barcode) => {
+    try {
+      setScanningProduct(true)
+      console.log('Skannad streckkod:', barcode)
+      
+      // Hämta produktinformation
+      const productInfo = await lookupProduct(barcode)
+      
+      if (productInfo) {
+        // Fyll i formuläret med produktinformation
+        setForm(prev => ({
+          ...prev,
+          name: productInfo.name,
+          quantity: productInfo.quantity || 1
+        }))
+        
+        // Fokusera på utgångsdatum-fältet
+        setTimeout(() => {
+          const expiresInput = document.querySelector('input[name="expiresAt"]')
+          if (expiresInput) expiresInput.focus()
+        }, 100)
+        
+        console.log('Produkt scannad och formulär ifyllt:', productInfo.name)
+      } else {
+        alert('Produkten kunde inte hittas. Du kan fylla i namn manuellt.')
+      }
+      
+    } catch (error) {
+      console.error('Fel vid produktsökning:', error)
+      alert('Något gick fel vid produktsökning. Försök igen.')
+    } finally {
+      setScanningProduct(false)
+    }
+  }
+
   const sorted = useMemo(() => {
     const copy = [...items]
     copy.sort((a, b) => new Date(a.expiresAt) - new Date(b.expiresAt))
@@ -419,14 +459,25 @@ export default function App() {
             <div className="form-row">
               <label>
                 <span>Namn</span>
-                <input 
-                  name="name" 
-                  value={form.name} 
-                  onChange={onChange} 
-                  placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
-                  autoFocus
-                  required 
-                />
+                <div className="name-input-container">
+                  <input 
+                    name="name" 
+                    value={form.name} 
+                    onChange={onChange} 
+                    placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
+                    autoFocus
+                    required 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    className="scan-button"
+                    title="Scanna streckkod"
+                    disabled={scanningProduct}
+                  >
+                    {scanningProduct ? '⌛' : '📱'}
+                  </button>
+                </div>
               </label>
               <label>
                 <span>Antal</span>
@@ -620,6 +671,12 @@ export default function App() {
 
       <footer className="muted">Data sparas i din webbläsare (localStorage).</footer>
     </div>
+    
+    <BarcodeScanner 
+      isOpen={showScanner}
+      onClose={() => setShowScanner(false)}
+      onScan={handleScanBarcode}
+    />
     </>
   )
 }
