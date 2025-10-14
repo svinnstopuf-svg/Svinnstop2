@@ -158,7 +158,6 @@ export default function App() {
   const [form, setForm] = useState({ 
     name: '', 
     quantity: 0, 
-    purchasedAt: new Date().toISOString().split('T')[0], // Dagens datum som standard
     expiresAt: '' 
   })
   const [filter, setFilter] = useState('all')
@@ -237,7 +236,6 @@ export default function App() {
     setForm({ 
       name: '', 
       quantity: 0, 
-      purchasedAt: new Date().toISOString().split('T')[0], // Behåll dagens datum
       expiresAt: '' 
     })
     
@@ -284,7 +282,6 @@ export default function App() {
     const headers = [
       'Namn',
       'Antal',
-      'Inköpsdatum',
       'Utgångsdatum',
       'Dagar till utgång',
       'Status'
@@ -295,7 +292,6 @@ export default function App() {
       return [
         item.name,
         `${item.quantity} ${item.unit || ''}`.trim(),
-        item.purchasedAt || 'Ej tillgänglig',
         item.expiresAt,
         days,
         status
@@ -405,7 +401,6 @@ export default function App() {
       result = result.filter(i => 
         i.name.toLowerCase().includes(query) ||
         i.quantity.toString().includes(query) ||
-        (i.purchasedAt && i.purchasedAt.includes(query)) ||
         (i.expiresAt && i.expiresAt.includes(query))
       )
     }
@@ -490,16 +485,6 @@ export default function App() {
               </label>
             </div>
             <div className="form-row">
-              <label>
-                <span>Inköpsdatum</span>
-                <input 
-                  type="date" 
-                  name="purchasedAt" 
-                  value={form.purchasedAt} 
-                  onChange={onChange}
-                  max={new Date().toISOString().split('T')[0]}
-                />
-              </label>
               <label>
                 <span>Utgångsdatum *</span>
                 <input 
