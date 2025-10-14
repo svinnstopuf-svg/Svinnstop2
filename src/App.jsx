@@ -429,9 +429,7 @@ export default function App() {
                 />
               </label>
               <label>
-                <span className="label-title">
-                  <span>Antal</span> <span className="muted">({suggestedUnit})</span>
-                </span>
+                <span>Antal</span>
                 <input 
                   type="number" 
                   name="quantity" 
