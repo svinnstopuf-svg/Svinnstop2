@@ -45,6 +45,16 @@ function daysUntil(dateStr) {
   return diff
 }
 
+// Formatera antal och vara på ett naturligt sätt som Google Translate kan hantera
+function formatIngredientAmount(word, count) {
+  // Använd naturlig svenska som Google förstår bättre
+  if (count === 1) {
+    return `1 ${word}`
+  }
+  // För flera, låt Google Translate hantera grammatiken naturligt
+  return `${count} ${word}`
+}
+
 // Hämta föreslagen enhetsnyckel för antal-etikett baserat på varans namn
 function getSuggestedUnitKey(itemName) {
   if (!itemName.trim()) return 'defaultUnit'
@@ -581,7 +591,7 @@ export default function App() {
                         </span>
                         <span className="ingredient-name">{ingredient.name}</span>
                         <span className="ingredient-available">
-                          <span>(du har {ingredient.availableQuantity} {ingredient.itemName})</span>
+                          <span>(Du har: {formatIngredientAmount(ingredient.itemName, ingredient.availableQuantity)})</span>
                         </span>
                       </li>
                     ))}
