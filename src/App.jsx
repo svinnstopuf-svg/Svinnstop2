@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
+import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
 // Låt Google göra jobbet åt oss!
@@ -480,6 +481,7 @@ export default function App() {
                   name="quantity" 
                   min="0" 
                   step="0.1"
+                  inputMode="decimal"
                   value={form.quantity} 
                   onChange={onChange}
                   onFocus={(e) => e.target.select()}
@@ -490,11 +492,24 @@ export default function App() {
             <div className="form-row">
               <label>
                 <span>Inköpsdatum</span>
-                <input type="date" name="purchasedAt" value={form.purchasedAt} onChange={onChange} />
+                <input 
+                  type="date" 
+                  name="purchasedAt" 
+                  value={form.purchasedAt} 
+                  onChange={onChange}
+                  max={new Date().toISOString().split('T')[0]}
+                />
               </label>
               <label>
-                <span>Utgångsdatum</span>
-                <input type="date" name="expiresAt" value={form.expiresAt} onChange={onChange} required />
+                <span>Utgångsdatum *</span>
+                <input 
+                  type="date" 
+                  name="expiresAt" 
+                  value={form.expiresAt} 
+                  onChange={onChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  required 
+                />
               </label>
             </div>
           </div>
