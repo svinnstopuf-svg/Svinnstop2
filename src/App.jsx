@@ -154,7 +154,12 @@ function abbreviateUnit(unit) {
 
 export default function App() {
   const [items, setItems] = useState([])
-  const [form, setForm] = useState({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
+  const [form, setForm] = useState({ 
+    name: '', 
+    quantity: 0, 
+    purchasedAt: new Date().toISOString().split('T')[0], // Dagens datum som standard
+    expiresAt: '' 
+  })
   const [filter, setFilter] = useState('all')
   const [theme, setTheme] = useState('dark')
   const [searchQuery, setSearchQuery] = useState('')
@@ -228,7 +233,18 @@ export default function App() {
     const unitKey = getSuggestedUnitKey(form.name)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     setItems(prev => [...prev, { id, ...form, unit }])
-    setForm({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
+    setForm({ 
+      name: '', 
+      quantity: 0, 
+      purchasedAt: new Date().toISOString().split('T')[0], // Behåll dagens datum
+      expiresAt: '' 
+    })
+    
+    // Fokusera tillbaka till namn-fältet för snabbare inmatning
+    setTimeout(() => {
+      const nameInput = document.querySelector('input[name="name"]')
+      if (nameInput) nameInput.focus()
+    }, 100)
   }
 
   const onRemove = id => {
@@ -401,12 +417,10 @@ export default function App() {
   // Hämta föreslagen enhet baserat på nuvarande varans namn
   const suggestedUnitKey = useMemo(() => {
     const key = getSuggestedUnitKey(form.name)
-    console.log('Föreslagen enhetsnyckel:', key, 'för vara:', form.name)
     return key
   }, [form.name])
   const suggestedUnit = useMemo(() => {
     const unit = SV_UNITS[suggestedUnitKey] || SV_UNITS.defaultUnit
-    console.log('Föreslagen enhet (SV):', unit, 'för nyckel:', suggestedUnitKey)
     return unit
   }, [suggestedUnitKey])
 
@@ -448,7 +462,14 @@ export default function App() {
             <div className="form-row">
               <label>
                 <span>Namn</span>
-                <input name="name" value={form.name} onChange={onChange} placeholder={'t.ex. mjölk, bröd, tomat'} required />
+                <input 
+                  name="name" 
+                  value={form.name} 
+                  onChange={onChange} 
+                  placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
+                  autoFocus
+                  required 
+                />
               </label>
               <label>
                 <span className="label-title">
@@ -478,7 +499,7 @@ export default function App() {
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit">Lägg till</button>
+            <button type="submit">➕ Lägg till vara</button>
           </div>
         </form>
       </section>
@@ -492,9 +513,9 @@ export default function App() {
                 onClick={toggleBulkMode}
                 className={`bulk-toggle-btn ${bulkMode ? 'active' : ''}`}
                 disabled={items.length === 0}
-                title={bulkMode ? '✕ Avsluta' : '☑️ Välj'}
+                title={bulkMode ? '✕ Avsluta markering' : '☑️ Markera flera'}
               >
-                {bulkMode ? '✕ Avsluta' : '☑️ Välj'}
+                {bulkMode ? '✕ Klar' : '☑️ Markera flera'}
               </button>
               <button 
                 onClick={exportToCSV} 
@@ -509,31 +530,31 @@ export default function App() {
           <div className="search-and-filters">
             <input 
               type="text" 
-              placeholder={'Sök varor...'}
+              placeholder="Sök bland dina varor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
             />
             <div className="filters">
-              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span>Alla</span></label>
-              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span>Går ut inom ≤ 3 dagar</span></label>
-              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>Utgångna</span></label>
+              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span>📦 Alla varor</span></label>
+              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span>⚠️ Går ut snart (3 dagar)</span></label>
+              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>❌ Utgångna</span></label>
             </div>
             
             {bulkMode && (
-              <div className="bulk-actions">
+            <div className="bulk-actions">
                 <div className="bulk-info">
-                  <span>{`${selectedItems.size} av ${filtered.length} varor valda`}</span>
+                  <span>📋 {selectedItems.size} av {filtered.length} varor valda</span>
                 </div>
                 <div className="bulk-buttons">
-                  <button onClick={selectAllVisible} className="bulk-btn secondary">Välj alla</button>
-                  <button onClick={deselectAll} className="bulk-btn secondary">Avmarkera alla</button>
+                  <button onClick={selectAllVisible} className="bulk-btn secondary">✓ Välj alla synliga</button>
+                  <button onClick={deselectAll} className="bulk-btn secondary">✕ Rensa urval</button>
                   <button 
                     onClick={bulkDelete} 
                     className="bulk-btn danger"
                     disabled={selectedItems.size === 0}
                   >
-                    <span>{`Ta bort valda (${selectedItems.size})`}</span>
+                    <span>🗑️ Ta bort ({selectedItems.size})</span>
                   </button>
                 </div>
               </div>
@@ -541,13 +562,15 @@ export default function App() {
           </div>
         </div>
         {filtered.length === 0 ? (
-          <p>
-            <span>{items.length === 0 
-              ? 'Inga varor ännu. Lägg till din första vara ovan.'
-              : searchQuery.trim() 
-                ? `Inga varor hittades som matchar "${searchQuery}"`
-                : 'Inga varor matchar det valda filtret.'}</span>
-          </p>
+          <div className="empty-state">
+            <p>
+              <span>{items.length === 0 
+                ? '🍽️ Inga varor ännu. Börja genom att lägga till din första vara ovan!'
+                : searchQuery.trim() 
+                  ? `🔍 Inga varor hittades för "${searchQuery}". Försök med andra sökord.`
+                  : '📋 Inga varor matchar det valda filtret. Försök med ett annat filter.'}</span>
+            </p>
+          </div>
         ) : (
           <ul className="items">
             {filtered.map(i => {
@@ -596,9 +619,14 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2>Receptförslag</h2>
+        <h2>🍳 Receptförslag</h2>
         {suggestions.length === 0 ? (
-          <p>{items.length === 0 ? 'Lägg till varor för att se receptförslag.' : 'Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler varor!'}</p>
+          <div className="empty-recipes">
+            <p>{items.length === 0 
+              ? '📦 Lägg till varor i ditt kölskåp för att få skräddarsydda receptförslag!' 
+              : '🔍 Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
+            </p>
+          </div>
         ) : (
           <div className="recipes">
             {suggestions.map(r => (
