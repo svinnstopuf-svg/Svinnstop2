@@ -273,45 +273,6 @@ export default function App() {
     setCanUndo(true)
   }
 
-  const exportToCSV = () => {
-    if (items.length === 0) {
-      alert('Inga varor att exportera!')
-      return
-    }
-
-    const headers = [
-      'Namn',
-      'Antal',
-      'Utgångsdatum',
-      'Dagar till utgång',
-      'Status'
-    ]
-    const csvData = items.map(item => {
-      const days = daysUntil(item.expiresAt)
-      const status = days < 0 ? 'Utgången' : days === 0 ? 'Går ut idag' : `${days} dagar kvar`
-      return [
-        item.name,
-        `${item.quantity} ${item.unit || ''}`.trim(),
-        item.expiresAt,
-        days,
-        status
-      ]
-    })
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field}"`).join(','))
-      .join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `svinnstop-inventering-${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
 
   // Massoperationer
   const toggleBulkMode = () => {
@@ -516,14 +477,6 @@ export default function App() {
                 title={bulkMode ? '✕ Avsluta markering' : '☑️ Markera flera'}
               >
                 {bulkMode ? '✕ Klar' : '☑️ Markera flera'}
-              </button>
-              <button 
-                onClick={exportToCSV} 
-                className="export-btn"
-                disabled={items.length === 0}
-                title={'📊 Exportera CSV'}
-              >
-                {'📊 Exportera CSV'}
               </button>
             </div>
           </div>

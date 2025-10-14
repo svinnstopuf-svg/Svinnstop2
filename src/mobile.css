@@ -297,8 +297,7 @@ button[type="submit"]:hover,
   flex-wrap: wrap;
 }
 
-.bulk-toggle-btn,
-.export-btn {
+.bulk-toggle-btn {
   padding: 8px 12px;
   font-size: 14px;
   min-height: 40px;
