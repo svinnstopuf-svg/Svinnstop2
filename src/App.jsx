@@ -172,7 +172,6 @@ export default function App() {
   const [showScanner, setShowScanner] = useState(false)
   const [scanningProduct, setScanningProduct] = useState(false)
   const [scanSuccessful, setScanSuccessful] = useState(false)
-  const [debugMessage, setDebugMessage] = useState('')
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -349,11 +348,10 @@ export default function App() {
   const handleScanBarcode = async (barcode) => {
     try {
       setScanningProduct(true)
-      setDebugMessage('🔍 SCANNING: ' + barcode)
+      console.log('Skannad streckkod:', barcode)
       
       // Hämta produktinformation
       const productInfo = await lookupProduct(barcode)
-      setDebugMessage('📺 API: ' + (productInfo ? productInfo.name : 'Ingen produkt'))
       
       if (productInfo) {
         // Skapa ett standarddatum (7 dagar från idag)
@@ -370,25 +368,19 @@ export default function App() {
           unit: SV_UNITS[getSuggestedUnitKey(productInfo.name)] || SV_UNITS.defaultUnit
         }
         
-        setDebugMessage('🎁 ITEM: ' + newItem.name + ' (' + items.length + ' → ' + (items.length + 1) + ')')
-        
         // Lägg till varan direkt i listan
-        setItems(prev => {
-          const newList = [...prev, newItem]
-          setDebugMessage('✅ ADDED: ' + newItem.name + ' - Total: ' + newList.length)
-          return newList
-        })
+        setItems(prev => [...prev, newItem])
         
         // Markera att scanning var lyckad
         setScanSuccessful(true)
         
+        console.log('Produkt automatiskt tillagd:', productInfo.name)
       } else {
-        setDebugMessage('❌ Produkten kunde inte hittas')
         alert('Produkten kunde inte hittas. Du kan fylla i namn manuellt.')
       }
       
     } catch (error) {
-      setDebugMessage('🔥 ERROR: ' + error.message)
+      console.error('Fel vid produktsökning:', error)
       alert('Något gick fel vid produktsökning. Försök igen.')
     } finally {
       setScanningProduct(false)
@@ -459,24 +451,6 @@ export default function App() {
       </button>
       
     <div className="container">
-      {debugMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '60px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#333',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '8px',
-          zIndex: 1000,
-          fontSize: '14px',
-          textAlign: 'center',
-          maxWidth: '90vw'
-        }}>
-          {debugMessage}
-        </div>
-      )}
       <header>
         <div className="header-content">
           <div className="header-text">
@@ -709,21 +683,14 @@ export default function App() {
     <BarcodeScanner 
       isOpen={showScanner}
       onClose={() => {
-        setDebugMessage('🚪 CLOSE: Successful=' + scanSuccessful + ', Items=' + items.length)
+        console.log('Scanner stängs...', 'scanSuccessful:', scanSuccessful)
         setShowScanner(false)
         
         if (scanSuccessful) {
           setScanSuccessful(false) // Rensa flaggan
-          
-          // Visa en bekräftelse i 3 sekunder
-          setTimeout(() => {
-            setDebugMessage('🎉 DONE: Items=' + items.length)
-          }, 500)
-          setTimeout(() => {
-            setDebugMessage('') // Rensa debug-meddelandet
-          }, 3000)
+          console.log('Scanner stängs efter lyckad scanning')
         } else {
-          setDebugMessage('🔄 RELOAD: Manual close')
+          console.log('Scanner stängs manuellt - laddar om sidan')
           // Bara ladda om vid manuell stängning
           setTimeout(() => {
             window.location.reload()
