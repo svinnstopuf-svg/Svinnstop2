@@ -121,6 +121,37 @@ const SV_UNITS = {
   defaultUnit: 'st'
 }
 
+// Förkortningar för enheter
+function abbreviateUnit(unit) {
+  if (!unit) return ''
+  
+  const unitLower = unit.toLowerCase()
+  const abbreviations = {
+    'stycken': 'st',
+    'stycke': 'st',
+    'liter': 'L',
+    'limpor': 'st',
+    'limpa': 'st',
+    'kilogram': 'kg',
+    'gram': 'g',
+    'burkar': 'st',
+    'burk': 'st',
+    'milliliter': 'ml',
+    'centiliter': 'cl',
+    'deciliter': 'dl',
+    'skivor': 'st',
+    'skiva': 'st',
+    'klyftor': 'st',
+    'klyfta': 'st',
+    'matskedar': 'msk',
+    'matsked': 'msk',
+    'teskedar': 'tsk',
+    'tesked': 'tsk'
+  }
+  
+  return abbreviations[unitLower] || unit
+}
+
 export default function App() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ name: '', quantity: 0, purchasedAt: '', expiresAt: '' })
@@ -591,7 +622,7 @@ export default function App() {
                         </span>
                         <span className="ingredient-name">{ingredient.name}</span>
                         <span className="ingredient-available">
-                          <span>(Du har: {ingredient.availableQuantity} {ingredient.availableUnit || ingredient.unit} {ingredient.itemName})</span>
+                          <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
                         </span>
                       </li>
                     ))}
