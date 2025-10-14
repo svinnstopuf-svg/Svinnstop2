@@ -34,6 +34,24 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
     }
   }, [isOpen, codeReader])
 
+  // Escape-tangent för att stänga scanner
+  useEffect(() => {
+    if (!isOpen) return
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        console.log('Escape-tangent tryckt, stänger scanner')
+        handleClose()
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
   const startScanning = async () => {
     try {
       setError(null)
@@ -84,18 +102,41 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
   }
 
   const handleClose = () => {
-    if (codeReader) {
-      codeReader.reset()
+    console.log('Stänger scanner...')
+    
+    try {
+      // Stoppa CodeReader
+      if (codeReader) {
+        codeReader.reset()
+        console.log('CodeReader stoppad')
+      }
+    } catch (err) {
+      console.log('Fel vid CodeReader stop:', err)
     }
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks()
-      tracks.forEach(track => track.stop())
-      videoRef.current.srcObject = null
+    
+    try {
+      // Stoppa kamera
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks()
+        tracks.forEach(track => {
+          track.stop()
+          console.log('Kamera track stoppad:', track.kind)
+        })
+        videoRef.current.srcObject = null
+        console.log(`Stoppade ${tracks.length} kamera-tracks`)
+      }
+    } catch (err) {
+      console.log('Fel vid kamera stop:', err)
     }
+    
+    // Rensa state
     setScanning(false)
     setError(null)
     setHasPermission(null)
+    
+    // Stäng modal
     onClose()
+    console.log('Scanner stängd')
   }
 
   if (!isOpen) return null
@@ -105,7 +146,14 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
       <div className="scanner-modal">
         <div className="scanner-header">
           <h3>📱 Scanna streckkod</h3>
-          <button onClick={handleClose} className="scanner-close">✕</button>
+          <button 
+            onClick={handleClose} 
+            className="scanner-close"
+            title="Stäng scanner"
+            aria-label="Stäng scanner"
+          >
+            ✕
+          </button>
         </div>
         
         <div className="scanner-content">
@@ -147,12 +195,6 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
               </div>
             </>
           )}
-        </div>
-        
-        <div className="scanner-actions">
-          <button onClick={handleClose} className="scanner-cancel">
-            Avbryt
-          </button>
         </div>
       </div>
     </div>
