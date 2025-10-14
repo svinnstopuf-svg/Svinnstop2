@@ -552,19 +552,26 @@ button[type="submit"]:hover,
 }
 
 .difficulty {
-  color: white;
+  color: var(--text-color);
+  background: var(--border-color);
 }
 
 .difficulty.lätt {
-  background: var(--success-color);
+  color: var(--success-color);
+  background: var(--border-color);
+  font-weight: 700;
 }
 
 .difficulty.medel {
-  background: var(--warning-color);
+  color: var(--warning-color);
+  background: var(--border-color);
+  font-weight: 700;
 }
 
 .difficulty.svår {
-  background: var(--danger-color);
+  color: var(--danger-color);
+  background: var(--border-color);
+  font-weight: 700;
 }
 
 .recipe-ingredients,
