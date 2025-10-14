@@ -445,7 +445,7 @@ export default function App() {
             </div>
             <div className="form-row">
               <label>
-                <span>Utgångsdatum *</span>
+                <span>Utgångsdatum</span>
                 <input 
                   type="date" 
                   name="expiresAt" 
