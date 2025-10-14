@@ -171,6 +171,7 @@ export default function App() {
   const [canUndo, setCanUndo] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [scanningProduct, setScanningProduct] = useState(false)
+  const [scanSuccessful, setScanSuccessful] = useState(false)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -353,20 +354,27 @@ export default function App() {
       const productInfo = await lookupProduct(barcode)
       
       if (productInfo) {
-        // Fyll i formuläret med produktinformation
-        setForm(prev => ({
-          ...prev,
+        // Skapa ett standarddatum (7 dagar från idag)
+        const defaultDate = new Date()
+        defaultDate.setDate(defaultDate.getDate() + 7)
+        const defaultExpiryDate = defaultDate.toISOString().split('T')[0]
+        
+        // Skapa det nya objektet
+        const newItem = {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
           name: productInfo.name,
-          quantity: productInfo.quantity || 1
-        }))
+          quantity: productInfo.quantity || 1,
+          expiresAt: defaultExpiryDate,
+          unit: SV_UNITS[getSuggestedUnitKey(productInfo.name)] || SV_UNITS.defaultUnit
+        }
         
-        // Fokusera på utgångsdatum-fältet
-        setTimeout(() => {
-          const expiresInput = document.querySelector('input[name="expiresAt"]')
-          if (expiresInput) expiresInput.focus()
-        }, 100)
+        // Lägg till varan direkt i listan
+        setItems(prev => [...prev, newItem])
         
-        console.log('Produkt scannad och formulär ifyllt:', productInfo.name)
+        // Markera att scanning var lyckad
+        setScanSuccessful(true)
+        
+        console.log('Produkt automatiskt tillagd:', productInfo.name, 'Utgår:', defaultExpiryDate)
       } else {
         alert('Produkten kunde inte hittas. Du kan fylla i namn manuellt.')
       }
@@ -675,14 +683,22 @@ export default function App() {
     <BarcodeScanner 
       isOpen={showScanner}
       onClose={() => {
-        console.log('Scanner stängs, laddar om sidan...')
+        console.log('Scanner stängs...')
         setShowScanner(false)
         
-        // Direkt siduppdatering för att säkerställa att appen laddas korrekt
-        setTimeout(() => {
-          console.log('Utför siduppdatering...')
-          window.location.reload()
-        }, 100)
+        if (scanSuccessful) {
+          console.log('Scanner stängs efter lyckad scanning - vara har lagts till automatiskt')
+          setScanSuccessful(false) // Rensa flaggan
+          
+          // Visa en kort bekräftelse (valfritt)
+          // alert('✅ Vara tillagd! Standardutgångsdatum: 7 dagar')
+        } else {
+          console.log('Scanner stängs manuellt - laddar om sidan för säkerhet')
+          // Bara ladda om vid manuell stängning
+          setTimeout(() => {
+            window.location.reload()
+          }, 100)
+        }
       }}
       onScan={handleScanBarcode}
     />
