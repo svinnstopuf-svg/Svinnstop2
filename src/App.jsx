@@ -172,6 +172,7 @@ export default function App() {
   const [showScanner, setShowScanner] = useState(false)
   const [scanningProduct, setScanningProduct] = useState(false)
   const [scanSuccessful, setScanSuccessful] = useState(false)
+  const [debugMessage, setDebugMessage] = useState('')
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -348,11 +349,11 @@ export default function App() {
   const handleScanBarcode = async (barcode) => {
     try {
       setScanningProduct(true)
-      console.log('🔍 SCANNING: Skannad streckkod:', barcode)
+      setDebugMessage('🔍 SCANNING: ' + barcode)
       
       // Hämta produktinformation
       const productInfo = await lookupProduct(barcode)
-      console.log('📺 API RESPONSE:', productInfo)
+      setDebugMessage('📺 API: ' + (productInfo ? productInfo.name : 'Ingen produkt'))
       
       if (productInfo) {
         // Skapa ett standarddatum (7 dagar från idag)
@@ -369,31 +370,28 @@ export default function App() {
           unit: SV_UNITS[getSuggestedUnitKey(productInfo.name)] || SV_UNITS.defaultUnit
         }
         
-        console.log('🎁 NEW ITEM:', newItem)
-        console.log('📋 CURRENT ITEMS BEFORE:', items.length)
+        setDebugMessage('🎁 ITEM: ' + newItem.name + ' (' + items.length + ' → ' + (items.length + 1) + ')')
         
         // Lägg till varan direkt i listan
         setItems(prev => {
           const newList = [...prev, newItem]
-          console.log('📋 NEW ITEMS LIST:', newList.length, newList)
+          setDebugMessage('✅ ADDED: ' + newItem.name + ' - Total: ' + newList.length)
           return newList
         })
         
         // Markera att scanning var lyckad
         setScanSuccessful(true)
         
-        console.log('✅ SUCCESS: Produkt automatiskt tillagd:', productInfo.name, 'Utgår:', defaultExpiryDate)
       } else {
-        console.log('❌ NO PRODUCT: Produkten kunde inte hittas')
+        setDebugMessage('❌ Produkten kunde inte hittas')
         alert('Produkten kunde inte hittas. Du kan fylla i namn manuellt.')
       }
       
     } catch (error) {
-      console.error('🔥 ERROR: Fel vid produktsökning:', error)
+      setDebugMessage('🔥 ERROR: ' + error.message)
       alert('Något gick fel vid produktsökning. Försök igen.')
     } finally {
       setScanningProduct(false)
-      console.log('🏁 SCANNING FINISHED')
     }
   }
 
@@ -461,6 +459,24 @@ export default function App() {
       </button>
       
     <div className="container">
+      {debugMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '60px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#333',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '8px',
+          zIndex: 1000,
+          fontSize: '14px',
+          textAlign: 'center',
+          maxWidth: '90vw'
+        }}>
+          {debugMessage}
+        </div>
+      )}
       <header>
         <div className="header-content">
           <div className="header-text">
@@ -693,20 +709,21 @@ export default function App() {
     <BarcodeScanner 
       isOpen={showScanner}
       onClose={() => {
-        console.log('🚪 CLOSE: Scanner stängs...', 'scanSuccessful:', scanSuccessful)
-        console.log('📋 ITEMS COUNT BEFORE CLOSE:', items.length)
+        setDebugMessage('🚪 CLOSE: Successful=' + scanSuccessful + ', Items=' + items.length)
         setShowScanner(false)
         
         if (scanSuccessful) {
-          console.log('✅ CLOSE SUCCESS: Scanner stängs efter lyckad scanning - vara har lagts till automatiskt')
           setScanSuccessful(false) // Rensa flaggan
           
-          // Visa en kort bekräftelse
+          // Visa en bekräftelse i 3 sekunder
           setTimeout(() => {
-            console.log('📋 FINAL ITEMS COUNT:', items.length)
-          }, 200)
+            setDebugMessage('🎉 DONE: Items=' + items.length)
+          }, 500)
+          setTimeout(() => {
+            setDebugMessage('') // Rensa debug-meddelandet
+          }, 3000)
         } else {
-          console.log('🔄 CLOSE MANUAL: Scanner stängs manuellt - laddar om sidan för säkerhet')
+          setDebugMessage('🔄 RELOAD: Manual close')
           // Bara ladda om vid manuell stängning
           setTimeout(() => {
             window.location.reload()
