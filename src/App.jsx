@@ -688,16 +688,10 @@ export default function App() {
                     <div className="item-main">
                       <strong>{i.name}</strong>
                       <span className="muted">{i.quantity} {i.unit}</span>
-                      {i.category && <span className="category-badge">{i.category}</span>}
                     </div>
                     <div className="item-sub">
                       <span>Utgång: {i.expiresAt || '—'}</span>
                       <span className="status">{status}</span>
-                      {i.confidence && (
-                        <span className="ai-info" title={`AI-metod: ${i.aiMethod}\nKonfidenz: ${i.confidence}%\nJusteringar: ${i.adjustments || 0}`}>
-                          🤖 {i.confidence}%
-                        </span>
-                      )}
                     </div>
                   </div>
                   {!bulkMode && (
