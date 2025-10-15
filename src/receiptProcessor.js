@@ -247,6 +247,7 @@ export class ReceiptProcessor {
     
     const extractedProducts = extractProductsFromReceipt(allLines)
     
+    
     const products = []
     
     for (const product of extractedProducts) {
@@ -258,19 +259,18 @@ export class ReceiptProcessor {
       const isDefinitelyNotFood = this.isDefinitelyNotFood(originalName)
       
       if (isDefinitelyNotFood) {
-        continue
+        continue // Hoppa över icke-matvaror
       }
       
       // Om det inte är definitivt icke-mat, testa AI med rensade namnet
       const isLikelyFood = this.isLikelyFoodProduct(cleanedName)
-      
       
       // Använd AI för att avgöra om detta är en matvara
       if (isLikelyFood) {
         // Standardisera produktformatet med originalnamnet men rensat för display
         const standardProduct = {
           name: cleanedName, // Använd det rensade namnet
-          originalName: originalName, // Behåll originalet för debug
+          originalName: originalName, // Behåll originalet
           quantity: product.quantity || this.extractQuantityFromName(originalName),
           unit: product.unit || this.guessUnit(originalName),
           price: product.price
@@ -278,6 +278,7 @@ export class ReceiptProcessor {
         products.push(standardProduct)
       }
     }
+    
     
     return products
   }
