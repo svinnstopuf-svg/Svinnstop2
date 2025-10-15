@@ -353,31 +353,41 @@ export default function App() {
       // Hämta produktinformation
       const productInfo = await lookupProduct(barcode)
       
+      // Skapa ett standarddatum (7 dagar från idag)
+      const defaultDate = new Date()
+      defaultDate.setDate(defaultDate.getDate() + 7)
+      const defaultExpiryDate = defaultDate.toISOString().split('T')[0]
+      
+      let itemName, itemQuantity
+      
       if (productInfo) {
-        // Skapa ett standarddatum (7 dagar från idag)
-        const defaultDate = new Date()
-        defaultDate.setDate(defaultDate.getDate() + 7)
-        const defaultExpiryDate = defaultDate.toISOString().split('T')[0]
-        
-        // Skapa det nya objektet
-        const newItem = {
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-          name: productInfo.name,
-          quantity: productInfo.quantity || 1,
-          expiresAt: defaultExpiryDate,
-          unit: SV_UNITS[getSuggestedUnitKey(productInfo.name)] || SV_UNITS.defaultUnit
-        }
-        
-        // Lägg till varan direkt i listan
-        setItems(prev => [...prev, newItem])
-        
-        // Markera att scanning var lyckad
-        setScanSuccessful(true)
-        
-        console.log('Produkt automatiskt tillagd:', productInfo.name)
+        // Känd produkt från databasen
+        itemName = productInfo.name
+        itemQuantity = productInfo.quantity || 1
+        console.log('Känd produkt funnen:', itemName)
       } else {
-        alert('Produkten kunde inte hittas. Du kan fylla i namn manuellt.')
+        // Okänd produkt - använd streckkoden
+        itemName = `Okänd produkt ${barcode}`
+        itemQuantity = 1
+        console.log('Okänd produkt - använder streckkod som namn')
       }
+      
+      // Skapa det nya objektet
+      const newItem = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        name: itemName,
+        quantity: itemQuantity,
+        expiresAt: defaultExpiryDate,
+        unit: SV_UNITS[getSuggestedUnitKey(itemName)] || SV_UNITS.defaultUnit
+      }
+      
+      // Lägg till varan direkt i listan
+      setItems(prev => [...prev, newItem])
+      
+      // Markera att scanning var lyckad
+      setScanSuccessful(true)
+      
+      console.log('Produkt automatiskt tillagd:', itemName)
       
     } catch (error) {
       console.error('Fel vid produktsökning:', error)
