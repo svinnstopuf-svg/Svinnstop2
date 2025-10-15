@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 import BarcodeScanner from './BarcodeScanner'
 import { lookupProduct } from './productAPI'
+import { calculateExpiryDate, getProductCategory } from './expiryDateAI'
 import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
@@ -349,18 +350,23 @@ export default function App() {
     try {
       console.log(`🧾 Kvittoscanning: Lägger till ${products.length} produkter`)
       
-      const defaultDate = new Date()
-      defaultDate.setDate(defaultDate.getDate() + 7)
-      const defaultExpiryDate = defaultDate.toISOString().split('T')[0]
-      
-      const newItems = products.map(product => ({
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-        name: product.name,
-        quantity: product.quantity || 1,
-        expiresAt: defaultExpiryDate,
-        unit: product.unit || 'st',
-        price: product.price // Spara priset för framtida funktioner
-      }))
+      const newItems = products.map(product => {
+        // 🤖 Använd AI för varje produkt från kvittot
+        const smartExpiryDate = calculateExpiryDate(product.name, null)
+        const productCategory = getProductCategory(product.name, null)
+        
+        console.log(`🎯 ${product.name} → ${productCategory} → ${smartExpiryDate}`)
+        
+        return {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+          name: product.name,
+          quantity: product.quantity || 1,
+          expiresAt: smartExpiryDate,
+          unit: product.unit || 'st',
+          price: product.price, // Spara priset för framtida funktioner
+          category: productCategory // Spara kategori
+        }
+      })
       
       // Lägg till alla produkter samtidigt
       setItems(prev => [...prev, ...newItems])
@@ -379,15 +385,10 @@ export default function App() {
   const handleScanBarcode = async (barcode) => {
     try {
       setScanningProduct(true)
-      console.log('Skannad streckkod:', barcode)
+      console.log('📱 Skannad streckkod:', barcode)
       
       // Hämta produktinformation
       const productInfo = await lookupProduct(barcode)
-      
-      // Skapa ett standarddatum (7 dagar från idag)
-      const defaultDate = new Date()
-      defaultDate.setDate(defaultDate.getDate() + 7)
-      const defaultExpiryDate = defaultDate.toISOString().split('T')[0]
       
       let itemName, itemQuantity
       
@@ -395,21 +396,29 @@ export default function App() {
         // Känd produkt från databasen
         itemName = productInfo.name
         itemQuantity = productInfo.quantity || 1
-        console.log('Känd produkt funnen:', itemName)
+        console.log('✅ Känd produkt funnen:', itemName)
       } else {
         // Okänd produkt - använd streckkoden
         itemName = `Okänd produkt ${barcode}`
         itemQuantity = 1
-        console.log('Okänd produkt - använder streckkod som namn')
+        console.log('⚠️ Okänd produkt - använder streckkod som namn')
       }
+      
+      // 🤖 Använd AI för att beräkna utgångsdatum
+      const smartExpiryDate = calculateExpiryDate(itemName, productInfo)
+      const productCategory = getProductCategory(itemName, productInfo)
+      
+      console.log(`🎯 Produktkategori: ${productCategory}`)
+      console.log(`📅 AI-beräknat utgångsdatum: ${smartExpiryDate}`)
       
       // Skapa det nya objektet
       const newItem = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
         name: itemName,
         quantity: itemQuantity,
-        expiresAt: defaultExpiryDate,
-        unit: SV_UNITS[getSuggestedUnitKey(itemName)] || SV_UNITS.defaultUnit
+        expiresAt: smartExpiryDate,
+        unit: SV_UNITS[getSuggestedUnitKey(itemName)] || SV_UNITS.defaultUnit,
+        category: productCategory // Spara kategori för framtida användning
       }
       
       // Lägg till varan direkt i listan
@@ -644,6 +653,7 @@ export default function App() {
                     <div className="item-main">
                       <strong>{i.name}</strong>
                       <span className="muted">{i.quantity} {i.unit}</span>
+                      {i.category && <span className="category-badge">{i.category}</span>}
                     </div>
                     <div className="item-sub">
                       <span>Utgång: {i.expiresAt || '—'}</span>
