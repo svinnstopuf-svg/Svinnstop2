@@ -216,11 +216,38 @@ input::placeholder {
 .name-input-container {
   display: flex;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .name-input-container input {
   flex: 1;
+}
+
+/* Antal med enhetsvisning */
+.quantity-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.quantity-input-container input {
+  flex: 1;
+  padding-right: 50px; /* Plats för enheten */
+}
+
+.unit-display {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+  background: var(--bg);
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
 .scan-button {

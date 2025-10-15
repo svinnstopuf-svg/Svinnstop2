@@ -574,17 +574,20 @@ export default function App() {
               </label>
               <label>
                 <span>Antal</span>
-                <input 
-                  type="number" 
-                  name="quantity" 
-                  min="0" 
-                  step="0.1"
-                  inputMode="decimal"
-                  value={form.quantity} 
-                  onChange={onChange}
-                  onFocus={(e) => e.target.select()}
-                  placeholder={`0 ${suggestedUnit}`}
-                />
+                <div className="quantity-input-container">
+                  <input 
+                    type="number" 
+                    name="quantity" 
+                    min="0" 
+                    step="0.1"
+                    inputMode="decimal"
+                    value={form.quantity} 
+                    onChange={onChange}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0"
+                  />
+                  <span className="unit-display">{suggestedUnit}</span>
+                </div>
               </label>
             </div>
             <div className="form-row">
