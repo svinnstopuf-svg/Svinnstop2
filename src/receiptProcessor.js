@@ -253,11 +253,120 @@ export class ReceiptProcessor {
     return null
   }
 
-  // Avancerad AI för sömlös produktigenkänning
+  // Kraftfull OCR-felkorrektion och otydlighetshantering
+  correctOCRErrors(text) {
+    if (!text) return text
+    
+    // Vanliga OCR-fel och deras korrigeringar
+    const ocrCorrections = {
+      // Siffror som blir bokstäver
+      '0': ['o', 'O'], '1': ['l', 'I', '|'], '5': ['s', 'S'], '8': ['B'], '6': ['G'],
+      
+      // Bokstäver som blir siffror
+      'o': ['0'], 'l': ['1', 'I'], 's': ['5'], 'g': ['9'], 'z': ['2'],
+      
+      // Vanliga svenska bokstavsfel
+      'ä': ['a', 'ae'], 'ö': ['o', 'oe'], 'å': ['a', 'aa'],
+      'c': ['e'], 'e': ['c'], 'n': ['h'], 'h': ['n'], 'm': ['rn'],
+      'u': ['v'], 'v': ['u'], 'w': ['vv'], 'k': ['lc'], 'g': ['q'],
+      
+      // Speciella tecken som försvinner eller blir fel
+      '\u00a0': ' ', '­': '', '​': '', // Icke-synliga tecken
+    }
+    
+    let corrected = text
+    
+    // Applicera korrigeringar
+    for (const [correct, errors] of Object.entries(ocrCorrections)) {
+      for (const error of errors) {
+        corrected = corrected.replace(new RegExp(error, 'gi'), correct)
+      }
+    }
+    
+    return corrected
+  }
+  
+  // Phonetic matching för svenska ord (Double Metaphone-inspirerad)
+  getSoundex(word) {
+    if (!word) return ''
+    
+    let soundex = word.toLowerCase()
+      .replace(/[^åäöa-z]/g, '')
+      // Svenska ljud
+      .replace(/ck/g, 'k')
+      .replace(/ch/g, 'sh')
+      .replace(/sch/g, 'sh') 
+      .replace(/tj/g, 'sh')
+      .replace(/kj/g, 'sh')
+      .replace(/sk/g, 'sh')
+      .replace(/ä/g, 'e')
+      .replace(/ö/g, 'o')
+      .replace(/å/g, 'o')
+      // Liknande ljud
+      .replace(/[bp]/g, 'b')
+      .replace(/[dt]/g, 't')
+      .replace(/[kg]/g, 'k')
+      .replace(/[fv]/g, 'f')
+      .replace(/[sz]/g, 's')
+      .replace(/[mn]/g, 'm')
+      .replace(/[lr]/g, 'l')
+      
+    return soundex.substring(0, 4)
+  }
+  
+  // Kontextuell intelligens för produktgissning
+  findBestMatch(garbledText, candidates) {
+    const garbled = garbledText.toLowerCase().trim()
+    let bestMatch = null
+    let bestScore = 0
+    
+    for (const candidate of candidates) {
+      const cand = candidate.toLowerCase()
+      let score = 0
+      
+      // Exakt match
+      if (garbled === cand) return candidate
+      
+      // Substring match
+      if (garbled.includes(cand) || cand.includes(garbled)) {
+        score += 0.8
+      }
+      
+      // Fuzzy match med Levenshtein
+      const similarity = 1 - (this.levenshteinDistance(garbled, cand) / Math.max(garbled.length, cand.length))
+      score += similarity * 0.6
+      
+      // Phonetic match
+      if (this.getSoundex(garbled) === this.getSoundex(cand)) {
+        score += 0.4
+      }
+      
+      // Första bokstäver matchar
+      if (garbled[0] === cand[0]) {
+        score += 0.2
+      }
+      
+      // Samma längd ger bonus
+      if (Math.abs(garbled.length - cand.length) <= 2) {
+        score += 0.1
+      }
+      
+      if (score > bestScore) {
+        bestScore = score
+        bestMatch = candidate
+      }
+    }
+    
+    return bestScore > 0.5 ? bestMatch : null
+  }
+  
+  // Avancerad AI för sömlös produktigenkänning med otydlighetshantering
   isLikelyFoodProduct(productName) {
     if (!productName || productName.length < 2) return false
     
-    const name = productName.toLowerCase().trim()
+    // Först korrigera OCR-fel
+    const correctedName = this.correctOCRErrors(productName)
+    const name = correctedName.toLowerCase().trim()
     
     // Definitivt INTE matvaror (hög precision med fuzzy matching)
     const definitelyNotFood = [
@@ -414,20 +523,47 @@ export class ReceiptProcessor {
     ]
     
     // Använd avancerad produktanalys
-    const analysis = this.analyzeProductName(productName)
+    const analysis = this.analyzeProductName(correctedName)
     
-    // Fuzzy matching mot matvaruindikatorer
+    // Intelligent matching med flera metoder
+    
+    // 1. Direkta fuzzy matches mot matvaruindikatorer
     const fuzzyMatches = foodIndicators.filter(indicator => 
       this.fuzzyMatch(name, indicator, 0.6)
     )
     
     if (fuzzyMatches.length > 0) {
-      console.log(`🎯 Fuzzy match matvaror: ${fuzzyMatches.join(', ')} för "${productName}"`);
+      console.log(`🎯 Fuzzy match matvaror: ${fuzzyMatches.join(', ')} för "${productName}" (korrigerat: "${correctedName}")`)
       return true
     }
     
-    // Använd AI-analys med konfidensgrad
-    if (analysis.confidence >= 0.4) {
+    // 2. Intelligent best match med OCR-korrektion
+    const bestMatch = this.findBestMatch(name, foodIndicators)
+    if (bestMatch) {
+      console.log(`🤖 Intelligent match: "${productName}" → "${bestMatch}" (OCR-korrigerat: "${correctedName}")`)
+      return true
+    }
+    
+    // 3. Partiell matching - hitta delar av ord
+    const partialMatches = foodIndicators.filter(indicator => {
+      const parts = name.split(/[\s\-_]+/)
+      return parts.some(part => part.length > 2 && indicator.includes(part))
+    })
+    
+    if (partialMatches.length > 0) {
+      console.log(`📍 Partiell match: "${productName}" matchar delar av [${partialMatches.join(', ')}]`)
+      return true
+    }
+    
+    // 4. Kontextuell inferens baserat på ordstruktur
+    const contextualClues = this.analyzeWordStructure(name)
+    if (contextualClues.isFoodLike) {
+      console.log(`🔍 Kontextuell inferens: "${productName}" har matvaruliknande struktur (${contextualClues.reasons.join(', ')})`)
+      return true
+    }
+    
+    // 5. Använd AI-analys med konfidensgrad
+    if (analysis.confidence >= 0.3) { // Sänkt tröskel för mer generös matching
       console.log(`🤖 AI-analys: ${Math.round(analysis.confidence * 100)}% säker på "${productName}" (${analysis.categories.join(', ')})`);
       return true
     }
@@ -557,10 +693,74 @@ export class ReceiptProcessor {
     
     return analysis
   }
+  
+  // Kontextuell ordstrukturanalys för att gissa om något är mat
+  analyzeWordStructure(name) {
+    const analysis = {
+      isFoodLike: false,
+      reasons: []
+    }
+    
+    if (!name || name.length < 3) return analysis
+    
+    const lowerName = name.toLowerCase()
+    
+    // Svenska matvarusuffix
+    const foodSuffixes = ['kött', 'fisk', 'mjölk', 'bröd', 'ost', 'juice', 'olja', 'gryn', 'mjöl']
+    if (foodSuffixes.some(suffix => lowerName.endsWith(suffix))) {
+      analysis.isFoodLike = true
+      analysis.reasons.push('har matsuffix')
+    }
+    
+    // Svenska matvaruprefix
+    const foodPrefixes = ['fisk', 'kött', 'frukt', 'grönt', 'mejeri']
+    if (foodPrefixes.some(prefix => lowerName.startsWith(prefix))) {
+      analysis.isFoodLike = true
+      analysis.reasons.push('har matprefix')
+    }
+    
+    // Sammansatta ord med matvardelar
+    const foodParts = ['äpple', 'kött', 'mjölk', 'ost', 'bröd', 'fisk', 'kyckling']
+    const words = lowerName.split(/[\s-]+/)
+    if (words.some(word => foodParts.includes(word))) {
+      analysis.isFoodLike = true
+      analysis.reasons.push('innehåller matvarsdel')
+    }
+    
+    // Typiska svenska matvaruord-mönster
+    if (lowerName.match(/^[a-zåäö]{4,15}$/)) {
+      // Enkla ord utan siffror - ofta matvaror
+      if (!lowerName.match(/(disk|städ|kemisk|plast|metall|elektronik)/)) {
+        analysis.isFoodLike = true
+        analysis.reasons.push('enkelt svenskt ord')
+      }
+    }
+    
+    // Dubbla vokaler (svenska mönster)
+    if (lowerName.match(/[aeiouåäö]{2,}/)) {
+      analysis.isFoodLike = true
+      analysis.reasons.push('dubbla vokaler')
+    }
+    
+    // Typiska svenska slutljud
+    if (lowerName.match(/(ning|het|skap|dom)$/)) {
+      analysis.isFoodLike = false // Dessa är sällan mat
+    } else if (lowerName.match(/(or|ar|er|ad|at)$/)) {
+      analysis.isFoodLike = true
+      analysis.reasons.push('svenskt ordslut')
+    }
+    
+    return analysis
+  }
 
   cleanProductName(name) {
+    if (!name) return ''
+    
+    // Först korrigera OCR-fel
+    let cleaned = this.correctOCRErrors(name)
+    
     // Ta bort vanliga kvitto-prefix/suffix och kvantiteter
-    return name
+    cleaned = cleaned
       .replace(/^\d+\s*x?\s*/i, '') // Ta bort "2x" eller "3 st" i början
       .replace(/\s*\d+\s*st\s*$/i, '') // Ta bort "2 st" i slutet  
       .replace(/\s*\d+\s*kg\s*$/i, '') // Ta bort "1 kg" i slutet
@@ -572,11 +772,18 @@ export class ReceiptProcessor {
       .replace(/\s*\d+\s*ml\s*$/i, '') // Ta bort "250 ml" i slutet
       .replace(/\s*\d+[.,]\d{2}\s*kr?\s*$/i, '') // Ta bort pris i slutet
       .replace(/\s*\*\s*\d+[.,]\d{2}\s*$/i, '') // Ta bort "* 19,90" format
-      .replace(/[*]+/g, '') // Ta bort stjärnor
+      .replace(/[*\^\~\`]+/g, '') // Ta bort diverse symboler som kan komma från OCR
+      .replace(/[\u00a0\u2000-\u200f\u2028-\u202f]/g, ' ') // Ta bort konstiga mellanslag
       .replace(/\s+/g, ' ') // Normalisera mellanslag
+      .replace(/[^a-zA-ZåäöÅÄÖ\s\-]/g, '') // Ta bort konstiga tecken, behåll bara bokstäver
       .trim()
       .toLowerCase() // Normalisera till gemener
       .replace(/^(\w)/, (match) => match.toUpperCase()) // Stor bokstav först
+    
+    // Extra validering och korrektion
+    if (cleaned.length < 2) return name // Returnera original om för kort
+    
+    return cleaned
   }
 
   extractQuantity(text) {
