@@ -63,14 +63,19 @@ export class ReceiptProcessor {
       const extractedProduct = this.extractProductFromLine(line)
       
       if (extractedProduct) {
-        console.log(`✅ Hittad potentiell produkt:`, extractedProduct)
+        // Hantera både enskilda produkter och arrays (kommaseparerade)
+        const productsArray = Array.isArray(extractedProduct) ? extractedProduct : [extractedProduct]
         
-        // Använd AI för att avgöra om detta är en matvara
-        if (this.isLikelyFoodProduct(extractedProduct.name)) {
-          products.push(extractedProduct)
-          console.log(`🍎 Lägger till matvara: ${extractedProduct.name}`)
-        } else {
-          console.log(`🚫 Filtrerar bort icke-matvara: ${extractedProduct.name}`)
+        console.log(`✅ Hittade ${productsArray.length} potentiella produkter:`, productsArray.map(p => p.name))
+        
+        for (const product of productsArray) {
+          // Använd AI för att avgöra om detta är en matvara
+          if (this.isLikelyFoodProduct(product.name)) {
+            products.push(product)
+            console.log(`🍎 Lägger till matvara: ${product.name}`)
+          } else {
+            console.log(`🚫 Filtrerar bort icke-matvara: ${product.name}`)
+          }
         }
       }
     }
@@ -140,10 +145,10 @@ export class ReceiptProcessor {
 
   // Generös extraktion av produkter från kvittorader  
   extractProductFromLine(line) {
-    // Hoppa över uppenbart icke-produktrader
+    // Hoppa över uppenbart icke-produktrader (men INTE * som kan vara produkter)
     const obviousIgnore = [
       /^\s*$/,                           // Tom rad
-      /^[*\-=_]{3,}$/,                   // Bara symboler
+      /^[-=_]{3,}$/,                     // Bara streck/symboler (EJ * som kan vara produkter)
       /^\d{2}:\d{2}/,                    // Tid
       /^\d{4}-\d{2}-\d{2}/,              // Datum YYYY-MM-DD
       /^\d{2}[.\/\-]\d{2}[.\/\-]/,       // Datum DD.MM eller MM/DD
@@ -156,7 +161,7 @@ export class ReceiptProcessor {
       return null
     }
     
-    // Generösa mönster för att hitta produkter med priser
+    // Generösa mönster för att hitta produkter (med och utan priser)
     const productPatterns = [
       // Standard: "Produktnamn    12.50" eller "Produktnamn 12.50"
       /^(.+?)\s+(\d+[.,]\d{1,2})\s*kr?\s*$/i,
@@ -170,8 +175,14 @@ export class ReceiptProcessor {
       // Pris först: "12.50 Produktnamn"
       /^(\d+[.,]\d{1,2})\s*kr?\s+(.+)$/i,
       
-      // Endast produktnamn (inget pris) - för rader som kanske är uppdelade
-      /^([a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ\s\d]{2,40})$/
+      // ***NYTT*** Asterisk-format: "*Avokado", "*Lakritsmix", "*Svamp champinjon"
+      /^\*\s*([a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ\s\-]{2,40})\s*$/i,
+      
+      // ***NYTT*** Produkter med komman: "Avokado, Lakritsmix, Svamp"
+      /^([a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ\s\-,]{3,50})$/i,
+      
+      // Endast produktnamn (inget pris) - mer generös
+      /^([a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ\s\d\-]{2,40})$/i
     ]
     
     for (let pattern of productPatterns) {
@@ -203,13 +214,35 @@ export class ReceiptProcessor {
         const quantity = this.extractQuantity(originalText)
         const unit = this.extractUnit(originalText)
         
-        // Rensa produktnamnet
-        const cleanedName = this.cleanProductName(productName)
+        // Rensa produktnamnet (ta bort * och extra mellanslag)
+        let cleanedName = this.cleanProductName(productName)
+        cleanedName = cleanedName.replace(/^\*\s*/, '').trim() // Ta bort * i början
+        
+        // Hantera kommaseparerade produkter ("Avokado, Lakritsmix, Svamp")
+        if (cleanedName.includes(',')) {
+          console.log(`🔪 Hittade kommaseparerade produkter: "${cleanedName}"`)
+          const products = []
+          const parts = cleanedName.split(',').map(p => p.trim()).filter(p => p.length > 2)
+          
+          for (const part of parts) {
+            const partCleaned = this.cleanProductName(part)
+            if (this.isValidProductName(partCleaned)) {
+              products.push({
+                name: partCleaned,
+                price: price || 0,
+                quantity: 1, // Varje del får kvantitet 1
+                unit: this.guessUnit(partCleaned)
+              })
+            }
+          }
+          
+          return products // Returnera array av produkter
+        }
         
         if (this.isValidProductName(cleanedName)) {
           return {
             name: cleanedName,
-            price: price,
+            price: price || 0,
             quantity: quantity || 1,
             unit: unit || this.guessUnit(cleanedName)
           }
@@ -259,6 +292,8 @@ export class ReceiptProcessor {
       'purjolök', 'leek', 'selleri', 'rädisa', 'radish', 'rödbetor', 'beetroot',
       'palsternacka', 'parsnip', 'kålrot', 'swede', 'pumpa', 'pumpkin',
       'zucchini', 'squash', 'aubergine', 'eggplant', 'avokado', 'avocado',
+      // Svamp
+      'svamp', 'mushroom', 'champinjon', 'champignon', 'kantarell', 'shiitake',
       
       // Kött & chark (svenska termer + varumärken)
       'kött', 'meat', 'nötkött', 'beef', 'fläsk', 'pork', 'lamm', 'lamb',
@@ -348,6 +383,7 @@ export class ReceiptProcessor {
       // Sötsaker & snacks (svenska varumärken)
       'choklad', 'chocolate', 'marabou', 'fazer', 'lindt', 'toblerone',
       'godis', 'candy', 'lösgodis', 'haribo', 'malaco', 'cloetta',
+      'lakrits', 'lakritsmix', 'licorice', 'salmiak', 'djungelvraal',
       'kex', 'cookies', 'digestive', 'maria', 'ballerina', 'göteborgs',
       'chips', 'estrella', 'ojä', 'taffel', 'pringles', 'cheez doodles',
       'popcorn', 'nötter', 'nuts', 'mandel', 'cashew', 'pistasch',
