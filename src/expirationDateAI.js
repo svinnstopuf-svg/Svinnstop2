@@ -3,12 +3,12 @@ export class ExpirationDateAI {
   constructor() {
     // Databas med typiska hållbarhet för olika matvaror (i dagar)
     this.productLifespans = {
-      // Frukt & Grönt (rumstemperatur som bas)
-      'banan': { min: 3, max: 7, typical: 5, category: 'frukt' },
-      'avokado': { min: 1, max: 3, typical: 2, category: 'frukt' }, // Kort utan kylskåp
-      'tomat': { min: 3, max: 5, typical: 4, category: 'grönt' }, // Kort utan kylskåp
-      'gurka': { min: 2, max: 4, typical: 3, category: 'grönt' }, // Kort utan kylskåp
-      'paprika': { min: 3, max: 6, typical: 4, category: 'grönt' }, // Kort utan kylskåp
+      // Frukt & Grönt (kylskåp som standard)
+      'banan': { min: 3, max: 7, typical: 5, category: 'frukt' }, // Rumstemperatur bäst
+      'avokado': { min: 3, max: 8, typical: 5, category: 'frukt' }, // Kylskåp
+      'tomat': { min: 7, max: 14, typical: 10, category: 'grönt' }, // Kylskåp
+      'gurka': { min: 5, max: 10, typical: 7, category: 'grönt' }, // Kylskåp
+      'paprika': { min: 7, max: 14, typical: 10, category: 'grönt' }, // Kylskåp
       'citron': { min: 14, max: 28, typical: 21, category: 'citrus' },
       'lime': { min: 10, max: 21, typical: 14, category: 'citrus' },
       'äpple': { min: 14, max: 30, typical: 21, category: 'frukt' },
@@ -18,12 +18,12 @@ export class ExpirationDateAI {
       'potatis': { min: 30, max: 60, typical: 45, category: 'rotfrukt' },
       'lök': { min: 30, max: 90, typical: 60, category: 'rotfrukt' },
       'vitlök': { min: 30, max: 90, typical: 60, category: 'krydda' },
-      'sallad': { min: 1, max: 2, typical: 1, category: 'bladgrönt' }, // Visnar snabbt utan kylskåp
-      'spenat': { min: 1, max: 2, typical: 1, category: 'bladgrönt' }, // Visnar snabbt utan kylskåp
-      'broccoli': { min: 2, max: 4, typical: 3, category: 'grönt' }, // Kort utan kylskåp
-      'blomkål': { min: 2, max: 4, typical: 3, category: 'grönt' }, // Kort utan kylskåp
-      'champinjon': { min: 1, max: 3, typical: 2, category: 'svamp' }, // Kort utan kylskåp
-      'svamp': { min: 1, max: 3, typical: 2, category: 'svamp' }, // Kort utan kylskåp
+      'sallad': { min: 3, max: 7, typical: 5, category: 'bladgrönt' }, // Kylskåp
+      'spenat': { min: 3, max: 7, typical: 5, category: 'bladgrönt' }, // Kylskåp
+      'broccoli': { min: 5, max: 10, typical: 7, category: 'grönt' }, // Kylskåp
+      'blomkål': { min: 5, max: 10, typical: 7, category: 'grönt' }, // Kylskåp
+      'champinjon': { min: 3, max: 7, typical: 5, category: 'svamp' }, // Kylskåp
+      'svamp': { min: 3, max: 7, typical: 5, category: 'svamp' }, // Kylskåp
       
       // Mejeriprodukter
       'mjölk': { min: 5, max: 10, typical: 7, category: 'mejeri' },
@@ -131,21 +131,21 @@ export class ExpirationDateAI {
     const directMatch = this.findDirectMatch(cleanName)
     if (directMatch) {
       const enhanced = this.enhanceWithStorage(directMatch, cleanName)
-      return this.calculateDate(enhanced, `Direkt match för "${productName}"${enhanced.storageNote ? ' (' + enhanced.storageNote + ')' : ''}`)
+      return this.calculateDate(enhanced, `Direkt match för "${productName}"`)
     }
     
     // Försök partiell matchning
     const partialMatch = this.findPartialMatch(cleanName)
     if (partialMatch) {
       const enhanced = this.enhanceWithStorage(partialMatch, cleanName)
-      return this.calculateDate(enhanced, `Partiell match för "${productName}"${enhanced.storageNote ? ' (' + enhanced.storageNote + ')' : ''}`)
+      return this.calculateDate(enhanced, `Partiell match för "${productName}"`)
     }
     
     // Kategorigissning baserat på ordstruktur
     const categoryGuess = this.guessCategory(cleanName)
     if (categoryGuess) {
       const enhanced = this.enhanceWithStorage(categoryGuess, cleanName)
-      return this.calculateDate(enhanced, `Kategorigissning för "${productName}"${enhanced.storageNote ? ' (' + enhanced.storageNote + ')' : ''}`)
+      return this.calculateDate(enhanced, `Kategorigissning för "${productName}"`)
     }
     
     // Standard fallback
@@ -153,7 +153,7 @@ export class ExpirationDateAI {
     const enhanced = this.enhanceWithStorage(fallback, cleanName)
     return this.calculateDate(
       enhanced, 
-      `Standardgissning för "${productName}"${enhanced.storageNote ? ' (' + enhanced.storageNote + ')' : ''}`
+      `Standardgissning för "${productName}"`
     )
   }
   
@@ -189,58 +189,37 @@ export class ExpirationDateAI {
     ]
     
     let storageMultiplier = 1
-    let storageNote = ''
     
-    // Kylskåp KRÄVS - utan kylskåp håller de mycket kortare
+    // Kylskåp KRÄVS - mejeri, kött, fisk
     if (refrigeratorRequired.some(item => name.includes(item))) {
-      // Anta kylskåpsförvaring som standard för dessa
-      storageMultiplier = 1.0 // Redan kalkylerat för kylskåp
-      storageNote = 'kylskåp krävs'
+      storageMultiplier = 1.0 // Standard kylskåpsförvaring
       
       // Extra tid för hårda ostar och smör
       if (name.includes('ost') && !name.includes('cottage') && !name.includes('keso')) {
         storageMultiplier = 1.3
-        storageNote = 'hårdost i kylskåp'
       }
       
       if (name.includes('smör') || name.includes('butter')) {
         storageMultiplier = 1.5
-        storageNote = 'smör i kylskåp'
       }
     }
-    // Gynnas av kylskåp - dramatisk förlängning
+    // Grönsaker och frukt - standard kylskåp
     else if (benefitsFromRefrigeration.some(item => name.includes(item))) {
-      storageMultiplier = 2.5 // 2.5x längre i kylskåp
-      storageNote = 'förlängs kraftigt i kylskåp'
-      
-      // Bladgrönt gynnas extra mycket
-      if (name.includes('sallad') || name.includes('spenat') || name.includes('rucola')) {
-        storageMultiplier = 3.0
-        storageNote = 'bladgrönt håller länge i kylskåp'
-      }
+      storageMultiplier = 1.0 // Nu är kylskåp standard
     }
-    // Rumstemperatur - ingen förändring
+    // Rumstemperatur är bättre för vissa produkter
     else if (roomTemperatureOnly.some(item => name.includes(item))) {
-      storageMultiplier = 1.0
-      storageNote = 'rumstemperatur'
-      
-      // Potatis och lök håller länge i mörka, svala utrymmen
-      if (name.includes('potatis') || name.includes('lök')) {
-        storageMultiplier = 1.2
-        storageNote = 'svalt och mörkt'
-      }
+      storageMultiplier = 1.0 // Behåll som de är
     }
-    // Okänd produkt - anta kylskåpsfördel
+    // Okänd produkt - anta kylskåpsstandard
     else {
-      storageMultiplier = 1.8
-      storageNote = 'troligen längre i kylskåp'
+      storageMultiplier = 1.0 // Standard kylskåpsförvaring
     }
     
     // Applicera multiplier
     enhanced.min = Math.round(enhanced.min * storageMultiplier)
     enhanced.max = Math.round(enhanced.max * storageMultiplier)
     enhanced.typical = Math.round(enhanced.typical * storageMultiplier)
-    enhanced.storageNote = storageNote
     
     return enhanced
   }
@@ -294,8 +273,7 @@ export class ExpirationDateAI {
       confidence: this.getConfidence(lifespan),
       reason: reason,
       range: `${lifespan.min}-${lifespan.max} dagar`,
-      category: lifespan.category || 'okänt',
-      storageNote: lifespan.storageNote || null
+      category: lifespan.category || 'okänt'
     }
   }
   
