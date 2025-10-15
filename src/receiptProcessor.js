@@ -273,32 +273,37 @@ export class ReceiptProcessor {
     const products = []
     
     for (const product of extractedProducts) {
-      const isDefinitelyNotFood = this.isDefinitelyNotFood(product.name)
-      const isLikelyFood = this.isLikelyFoodProduct(product.name)
+      // Rensa produktnamn och extrahera kärnan
+      const cleanedName = this.extractCoreProductName(product.name)
+      const originalName = product.name
       
-      // Debug varje produkt
-      this.showDebugInfo(`Analyserar "${product.name}"`, 
-        `Definitely NOT food: ${isDefinitelyNotFood}\nLikely food: ${isLikelyFood}`)
+      const isDefinitelyNotFood = this.isDefinitelyNotFood(originalName)
+      const isLikelyFood = this.isLikelyFoodProduct(cleanedName) // Använd det rensade namnet
+      
+      // Debug varje produkt med båda namnen
+      this.showDebugInfo(`Analyserar "${originalName}"`, 
+        `Rensat namn: "${cleanedName}"\nDefinitely NOT food: ${isDefinitelyNotFood}\nLikely food: ${isLikelyFood}`)
       
       // Extra säkerhetskontroll - undvik icke-matvaror
       if (isDefinitelyNotFood) {
-        console.log(`🗑️ Hoppar över icke-matvara: ${product.name}`)
+        console.log(`🗑️ Hoppar över icke-matvara: ${originalName}`)
         continue
       }
       
-      // Använd AI för att avgöra om detta är en matvara
+      // Använd AI för att avgöra om detta är en matvara (med rensat namn)
       if (isLikelyFood) {
-        // Standardisera produktformatet
+        // Standardisera produktformatet med originalnamnet men rensat för display
         const standardProduct = {
-          name: product.name,
-          quantity: product.quantity || 1,
-          unit: product.unit || this.guessUnit(product.name),
+          name: cleanedName, // Använd det rensade namnet
+          originalName: originalName, // Behåll originalet för debug
+          quantity: product.quantity || this.extractQuantityFromName(originalName),
+          unit: product.unit || this.guessUnit(originalName),
           price: product.price
         }
         products.push(standardProduct)
-        console.log(`🍎 Lägger till matvara: ${standardProduct.name} (${standardProduct.quantity} ${standardProduct.unit})`)
+        console.log(`🍎 Lägger till matvara: ${cleanedName} (från "${originalName}")`)
       } else {
-        console.log(`🚫 Filtrerar bort icke-matvara: ${product.name}`)
+        console.log(`🚫 Filtrerar bort icke-matvara: ${originalName} (rensat: ${cleanedName})`)
       }
     }
     
@@ -1309,6 +1314,63 @@ export class ReceiptProcessor {
     if (/^\d+[.,]\d{2}\s*kr?$/.test(name)) return true // Bara priser
     
     return false
+  }
+
+  // Extrahera kärn-produktnamnet genom att ta bort priser, kvantiteter och symboler
+  extractCoreProductName(name) {
+    if (!name) return ''
+    
+    let cleaned = name.trim()
+    
+    // Ta bort ledande symboler som * eller -
+    cleaned = cleaned.replace(/^[*\-+#@&%]+\s*/, '')
+    
+    // Ta bort pris-mönster (X.XX kr, X,XX kr, XX.XX, etc.)
+    cleaned = cleaned.replace(/\s*\d+[.,]\d{1,2}\s*(kr|sek|:\-|$)/gi, '')
+    
+    // Ta bort enbart siffror i slutet (priser utan kr)
+    cleaned = cleaned.replace(/\s*\d+[.,]\d{2}\s*$/, '')
+    
+    // Ta bort kvantitets-mönster (2st, 1kg, 3x, 25t, etc.)
+    cleaned = cleaned.replace(/\s*\d+\s*(st|kg|g|l|ml|cl|x|t|pack|påse|burk)\b/gi, '')
+    
+    // Ta bort procent och specialtecken
+    cleaned = cleaned.replace(/[%#@&*+\-=<>{}\[\]\|\\~/]+/g, ' ')
+    
+    // Ta bort extra siffror och konstiga sekvenser
+    cleaned = cleaned.replace(/\s*\d{3,}\s*/g, ' ') // Långa siffersekvenser
+    
+    // Normalisera mellanslag och trim
+    cleaned = cleaned.replace(/\s+/g, ' ').trim()
+    
+    // Om resultatet är för kort, behåll mer av originalet
+    if (cleaned.length < 3 && name.length > 3) {
+      // Försök enklare rensning
+      cleaned = name.replace(/^[*\-+]+\s*/, '')
+                    .replace(/\s*\d+[.,]\d{2}.*$/, '')
+                    .replace(/[%*\-+=]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+    }
+    
+    return cleaned || name.trim()
+  }
+  
+  // Extrahera kvantitet från produktnamn
+  extractQuantityFromName(name) {
+    // Leta efter mönster som "2st", "1kg", "3x", etc.
+    const quantityMatch = name.match(/(\d+)\s*(st|kg|g|l|ml|cl|x|t|pack|påse|burk)/i)
+    if (quantityMatch) {
+      return parseInt(quantityMatch[1])
+    }
+    
+    // Leta efter siffror före produktnamnet
+    const frontNumberMatch = name.match(/^[*\-+]*\s*(\d+)\s*\w/)
+    if (frontNumberMatch) {
+      return parseInt(frontNumberMatch[1])
+    }
+    
+    return 1 // Standard kvantitet
   }
 
   cleanProductName(name) {
