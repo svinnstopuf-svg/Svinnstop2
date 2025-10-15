@@ -1,5 +1,6 @@
 import { createWorker } from 'tesseract.js'
 import { analyzeAgainstTrainingData, cleanReceiptProductName } from './receiptTrainingData.js'
+import { extractProductsFromReceipt, identifyStoreType } from './receiptAnalysisTraining.js'
 
 // Kvitto-processor som använder OCR för att läsa produkter från kvitton
 export class ReceiptProcessor {
@@ -46,41 +47,34 @@ export class ReceiptProcessor {
   }
 
   parseReceiptText(text) {
-    const products = []
     const allLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
     
     console.log('📄 Alla rader:', allLines)
     
-    // Hitta produktsektionen mellan referensnummer och total
-    const lines = this.extractProductSection(allLines)
+    // Använd avancerad kvittoanalys
+    console.log('🤖 Startar avancerad kvittoanalys...')
+    const extractedProducts = extractProductsFromReceipt(allLines)
     
-    console.log('🎯 Produktsektion extraherad:', lines)
+    const products = []
     
-    // Läs av ALLT i produktsektionen och låt AI avgöra vad som är matvaror
-    for (let line of lines) {
-      console.log(`🔍 Analyserar rad: "${line}"`)
-      
-      // Försök extrahera produktinformation från denna rad
-      const extractedProduct = this.extractProductFromLine(line)
-      
-      if (extractedProduct) {
-        // Hantera både enskilda produkter och arrays (kommaseparerade)
-        const productsArray = Array.isArray(extractedProduct) ? extractedProduct : [extractedProduct]
-        
-        console.log(`✅ Hittade ${productsArray.length} potentiella produkter:`, productsArray.map(p => p.name))
-        
-        for (const product of productsArray) {
-          // Använd AI för att avgöra om detta är en matvara
-          if (this.isLikelyFoodProduct(product.name)) {
-            products.push(product)
-            console.log(`🍎 Lägger till matvara: ${product.name}`)
-          } else {
-            console.log(`🚫 Filtrerar bort icke-matvara: ${product.name}`)
-          }
+    for (const product of extractedProducts) {
+      // Använd AI för att avgöra om detta är en matvara
+      if (this.isLikelyFoodProduct(product.name)) {
+        // Standardisera produktformatet
+        const standardProduct = {
+          name: product.name,
+          quantity: product.quantity || 1,
+          unit: product.unit || this.guessUnit(product.name),
+          price: product.price
         }
+        products.push(standardProduct)
+        console.log(`🍎 Lägger till matvara: ${standardProduct.name} (${standardProduct.quantity} ${standardProduct.unit})`)
+      } else {
+        console.log(`🚫 Filtrerar bort icke-matvara: ${product.name}`)
       }
     }
     
+    console.log(`📊 Slutresultat: ${products.length} matvaror identifierade`)
     return products
   }
 
