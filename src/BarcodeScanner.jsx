@@ -353,20 +353,20 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
   }
 
   const handleClose = () => {
-    console.log('Stänger scanner...')
+    console.log('🔴 Stänger scanner fullständigt - kröss-knapp tryckt')
     
     try {
       // Stoppa CodeReader
       if (codeReader) {
         codeReader.reset()
-        console.log('CodeReader stoppad')
+        console.log('CodeReader stoppad och resetad')
       }
     } catch (err) {
       console.log('Fel vid CodeReader stop:', err)
     }
     
     try {
-      // Stoppa kamera
+      // Stoppa kamera fullständigt
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks()
         tracks.forEach(track => {
@@ -380,19 +380,23 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
       console.log('Fel vid kamera stop:', err)
     }
     
-    // Rensa state
+    // Fullständig state-reset för att undvika problem
     setScanning(false)
     setError(null)
     setHasPermission(null)
-    setScanMode('barcode')
+    setScanMode('barcode') // Återställ till grundläge
     setIsProcessingReceipt(false)
     setIsProcessingDate(false)
     setFoundDates([])
     setOcrProgress(0)
+    setFocusPoint(null)
+    setShowFocusRing(false)
     
-    // Stäng modal
+    console.log('Scanner-state helt resetad')
+    
+    // Stäng modal och meddela App.jsx
     onClose()
-    console.log('Scanner stängd')
+    console.log('✅ Scanner fullständigt stängd - återvänder till huvudapp')
   }
 
   if (!isOpen) return null

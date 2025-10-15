@@ -850,21 +850,25 @@ export default function App() {
     <BarcodeScanner 
       isOpen={showScanner}
       onClose={() => {
-        console.log('Scanner stängs...', 'scanSuccessful:', scanSuccessful, 'isDateScanningMode:', isDateScanningMode)
-        setShowScanner(false)
+        console.log('🔴 Kröss-knapp tryckt - stänger scanner och återvänder till huvudapp')
         
-        if (scanSuccessful) {
-          setScanSuccessful(false) // Rensa flaggan
-          console.log('Scanner stängs efter lyckad scanning')
-        } else if (!isDateScanningMode) {
-          // Bara refresha om vi INTE är i automatisk datumscanning
-          console.log('Scanner stängs manuellt - laddar om sidan')
-          setTimeout(() => {
-            window.location.reload()
-          }, 100)
-        } else {
-          console.log('Scanner stängs under automatisk datumscanning - ingen refresh')
+        // Rensa alltid automatisk scanning-state vid manuell stängning
+        if (isDateScanningMode) {
+          console.log('Avbryter automatisk datumscanning')
+          setPendingProducts([])
+          setCurrentProductIndex(0)
+          setIsDateScanningMode(false)
         }
+        
+        // Rensa scanner-state
+        setShowScanner(false)
+        setScanSuccessful(false)
+        
+        // Refresha ALLTID för att säkerställa att användaren kommer tillbaka till huvudappen
+        console.log('Refreshar sidan för att säkerställa återgång till huvudapp')
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
       }}
       onScan={handleScanBarcode}
       onReceiptScan={handleReceiptScan}
