@@ -47,158 +47,218 @@ export class ReceiptProcessor {
   }
 
   async processReceipt(imageElement) {
-    const maxRetries = 2 // Försök max 2 gånger
-    
-    // Debug: visa att vi startar scanning
-    this.showDebugInfo('🔄 STARTAR SCANNING', `Försöker ${maxRetries} gånger`)
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await this.initialize()
+    try {
+      await this.initialize()
+      
+      // Debug: visa att vi startar scanning
+      this.showDebugInfo('🔄 MULTI-PASS OCR STARTAR', 'Kör 3 olika OCR-strategier samtidigt')
+      
+      // Skapa 3 olika förbehandlade versioner av bilden
+      const versions = [
+        { name: 'Standard', image: this.preprocessImage(imageElement, 'standard') },
+        { name: 'Hög kontrast', image: this.preprocessImage(imageElement, 'high_contrast') },
+        { name: 'Mjuk', image: this.preprocessImage(imageElement, 'soft') }
+      ]
+      
+      const allResults = []
+      
+      // Kör OCR på alla versioner
+      for (let i = 0; i < versions.length; i++) {
+        const version = versions[i]
+        console.log(`📸 Kör OCR med ${version.name}-inställningar...`)
+        this.showDebugInfo(`📸 OCR ${i+1}/3: ${version.name}`, 'Startar...')
         
-        console.log(`📸 Läser kvittobild... (försök ${attempt}/${maxRetries})`)
-        this.showDebugInfo(`📸 FÖRSÖK ${attempt}/${maxRetries}`, 'Startar OCR...')
-        
-        // Förbehandla bilden för bättre OCR
-        const preprocessedImage = this.preprocessImage(imageElement)
-        
-        const startTime = Date.now()
-        const { data: { text } } = await this.worker.recognize(preprocessedImage)
-        const endTime = Date.now()
-        
-        console.log('📝 OCR-text:', text)
-        this.showDebugInfo(`📝 OCR RESULTAT (${endTime - startTime}ms)`, 
-          `Textlängd: ${text.length} tecken\n\nText:\n${text}`)
-        
-        // Extrahera produkter från texten
-        const products = this.parseReceiptText(text)
-        
-        console.log('📦 Extraherade produkter:', products)
-        this.showDebugInfo(`📦 PRODUKTER FÖRSÖK ${attempt}`, 
-          `Hittade ${products.length} produkter:\n${products.map(p => `- ${p.name} (${p.price})`).join('\n')}`)
-        
-        // Om vi hittade produkter, returnera dem
-        if (products && products.length > 0) {
-          console.log(`✅ Lyckades på försök ${attempt}/${maxRetries}`)
-          this.showDebugInfo(`✅ KLART!`, `Lyckades på försök ${attempt} med ${products.length} produkter`)
-          return products
-        } else if (attempt < maxRetries) {
-          console.log(`⚠️ Inga produkter hittades på försök ${attempt}, försöker igen...`)
-          this.showDebugInfo(`⚠️ FÖRSÖK ${attempt} MISSLYCKADES`, `Väntar 1 sekund innan försök ${attempt + 1}...`)
-          // Vänta lite innan nästa försök
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          continue
-        } else {
-          console.log('❌ Inga produkter hittades efter alla försök')
-          this.showDebugInfo('❌ ALLA FÖRSÖK MISSLYCKADES', 'Inga produkter hittades')
-          return []
-        }
-        
-      } catch (error) {
-        console.error(`❌ OCR-fel på försök ${attempt}:`, error)
-        
-        if (attempt < maxRetries) {
-          console.log('🔄 Försöker igen...')
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          continue
-        } else {
-          throw error
+        try {
+          // Sätt olika OCR-parametrar för varje version
+          await this.setOCRParameters(i)
+          
+          const startTime = Date.now()
+          const { data: { text } } = await this.worker.recognize(version.image)
+          const endTime = Date.now()
+          
+          console.log(`OCR ${version.name}:`, text)
+          this.showDebugInfo(`📝 ${version.name} (${endTime - startTime}ms)`, 
+            `Längd: ${text.length}\n\n${text}`)
+          
+          // Extrahera produkter
+          const products = this.parseReceiptText(text, version.name)
+          
+          allResults.push({
+            version: version.name,
+            text: text,
+            products: products,
+            score: this.scoreResult(text, products)
+          })
+          
+          this.showDebugInfo(`📦 ${version.name} resultat`, 
+            `${products.length} produkter, poäng: ${allResults[allResults.length-1].score}`)
+          
+        } catch (error) {
+          console.error(`OCR ${version.name} misslyckades:`, error)
+          allResults.push({ version: version.name, products: [], score: 0 })
         }
       }
+      
+      // Välj bästa resultatet baserat på poäng
+      allResults.sort((a, b) => b.score - a.score)
+      const bestResult = allResults[0]
+      
+      this.showDebugInfo('🏆 BÄSTA RESULTAT', 
+        `${bestResult.version}: ${bestResult.products.length} produkter (poäng: ${bestResult.score})`)
+      
+      console.log(`✅ Bästa resultat: ${bestResult.version} med ${bestResult.products.length} produkter`)
+      return bestResult.products
+        
+    } catch (error) {
+      console.error('❌ Multi-pass OCR misslyckades:', error)
+      this.showDebugInfo('❌ FEL', `OCR misslyckades: ${error.message}`)
+      return []
     }
+  }
+
+  // Sätt olika OCR-parametrar för olika strategier
+  async setOCRParameters(strategy) {
+    const configs = [
+      // Strategi 0: Precision (för tydlig text)
+      {
+        tessedit_pageseg_mode: 6, // Uniform text block
+        tessedit_ocr_engine_mode: 2, // LSTM only
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() '
+      },
+      // Strategi 1: Aggressiv (för otydlig text)
+      {
+        tessedit_pageseg_mode: 8, // Single word
+        tessedit_ocr_engine_mode: 1, // LSTM + Legacy
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/()  '
+      },
+      // Strategi 2: Bred (för komplexa layouter)
+      {
+        tessedit_pageseg_mode: 11, // Sparse text
+        tessedit_ocr_engine_mode: 3, // Legacy only
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/()  '
+      }
+    ]
+    
+    await this.worker.setParameters(configs[strategy])
+  }
+
+  // Poängsätt resultat baserat på kvalitet
+  scoreResult(text, products) {
+    let score = 0
+    
+    // Poäng för antal produkter
+    score += products.length * 10
+    
+    // Poäng för textlängd (mer text = mer information)
+    score += Math.min(text.length / 10, 50)
+    
+    // Poäng för vanliga matvaruord
+    const foodWords = ['banan', 'svamp', 'champinjon', 'gurka', 'avokado', 'lakrits', 'bröd', 'mjölk', 'ost', 'kött']
+    const lowerText = text.toLowerCase()
+    foodWords.forEach(word => {
+      if (lowerText.includes(word)) score += 5
+    })
+    
+    // Poäng för prisformat (X.XX kr)
+    const priceMatches = text.match(/\d+[.,]\d{2}\s*kr/gi)
+    if (priceMatches) score += priceMatches.length * 3
+    
+    return score
   }
 
   // Förbehandla bild för bättre OCR-resultat
-  preprocessImage(imageElement) {
+  preprocessImage(imageElement, mode = 'standard') {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     
-    // Skala upp bilden 2x för bättre OCR-precision
-    const scale = 2
+    // Skala upp bilden för bättre OCR-precision
+    const scale = mode === 'soft' ? 1.5 : 2
     canvas.width = (imageElement.naturalWidth || imageElement.width) * scale
     canvas.height = (imageElement.naturalHeight || imageElement.height) * scale
     
-    // Rita originalbilden uppskalad med antialiasing av
-    ctx.imageSmoothingEnabled = false
+    ctx.imageSmoothingEnabled = mode === 'soft'
     ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
     
-    // Hämta bilddata
-    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    let data = imageData.data
-    
-    // Steg 1: Reducera brus (median filter approximation)
-    const cleanedData = new Uint8ClampedArray(data.length)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
     const width = canvas.width
     const height = canvas.height
     
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const i = (y * width + x) * 4
-        
-        // Samla 3x3 område för brusminskning
-        const neighbors = []
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const ni = ((y + dy) * width + (x + dx)) * 4
-            const gray = data[ni] * 0.299 + data[ni + 1] * 0.587 + data[ni + 2] * 0.114
-            neighbors.push(gray)
-          }
+    // Olika förbehandlingsstrategier
+    switch (mode) {
+      case 'high_contrast':
+        // Hård svartvit kontrast
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+          const enhanced = gray > 110 ? 255 : 0 // Lägre tröskel för mer text
+          data[i] = data[i + 1] = data[i + 2] = enhanced
         }
+        break
         
-        // Sortera och ta median
-        neighbors.sort((a, b) => a - b)
-        const medianGray = neighbors[4] // Mitten av 9 värden
+      case 'soft':
+        // Mjuk förbättring
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+          const enhanced = Math.min(255, gray * 1.3) // Öka kontrast mjukt
+          data[i] = data[i + 1] = data[i + 2] = enhanced
+        }
+        break
         
-        cleanedData[i] = medianGray
-        cleanedData[i + 1] = medianGray
-        cleanedData[i + 2] = medianGray
-        cleanedData[i + 3] = data[i + 3] // Behåll alpha
-      }
-    }
-    
-    // Steg 2: Adaptiv tröskelvärdering (bättre än fast 128)
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = (y * width + x) * 4
+      default: // 'standard'
+        // Adaptiv tröskelvärdering som tidigare
+        const cleanedData = new Uint8ClampedArray(data.length)
         
-        // Beräkna lokal medel i 15x15 område
-        let sum = 0
-        let count = 0
-        const radius = 7
-        
-        for (let dy = -radius; dy <= radius; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            const ny = y + dy
-            const nx = x + dx
-            if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-              const ni = (ny * width + nx) * 4
-              sum += cleanedData[ni]
-              count++
+        // Brusminskning
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const i = (y * width + x) * 4
+            const neighbors = []
+            
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const ni = ((y + dy) * width + (x + dx)) * 4
+                const gray = data[ni] * 0.299 + data[ni + 1] * 0.587 + data[ni + 2] * 0.114
+                neighbors.push(gray)
+              }
             }
+            
+            neighbors.sort((a, b) => a - b)
+            const medianGray = neighbors[4]
+            cleanedData[i] = cleanedData[i + 1] = cleanedData[i + 2] = medianGray
+            cleanedData[i + 3] = data[i + 3]
           }
         }
         
-        const localMean = sum / count
-        const threshold = localMean - 10 // Lite lägre tröskel för att fånga svag text
-        
-        // Tillämpa tröskelvärdering
-        const pixelValue = cleanedData[i] > threshold ? 255 : 0
-        
-        data[i] = pixelValue
-        data[i + 1] = pixelValue
-        data[i + 2] = pixelValue
-        // Alpha behålls
-      }
+        // Adaptiv tröskelvärdering
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4
+            let sum = 0, count = 0
+            const radius = 7
+            
+            for (let dy = -radius; dy <= radius; dy++) {
+              for (let dx = -radius; dx <= radius; dx++) {
+                const ny = y + dy, nx = x + dx
+                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                  sum += cleanedData[(ny * width + nx) * 4]
+                  count++
+                }
+              }
+            }
+            
+            const threshold = (sum / count) - 10
+            const pixelValue = cleanedData[i] > threshold ? 255 : 0
+            data[i] = data[i + 1] = data[i + 2] = pixelValue
+          }
+        }
     }
     
-    // Sätt tillbaka bearbetad bilddata
     ctx.putImageData(imageData, 0, 0)
-    
-    console.log('🖼️ Avancerad bildförbehandling klar: skalning, brusminskning, adaptiv tröskelvärdering')
+    console.log(`🖼️ Bildförbehandling (${mode}) klar`)
     return canvas
   }
 
-  parseReceiptText(text) {
+  parseReceiptText(text, version = 'unknown') {
     const allLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
     
     console.log('📄 Alla rader:', allLines)
@@ -1256,59 +1316,6 @@ export class ReceiptProcessor {
       .replace(/[^a-zA-ZåäöÅÄÖ\s\-]/g, '') // Ta bort konstiga tecken
       .replace(/\s+/g, ' ') // Normalisera mellanslag
       .trim()
-  }
-  
-  // Förbehandla bild för bättre OCR-resultat
-  preprocessImage(imageElement) {
-    try {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      
-      // Sätt canvas-storlek baserat på bilden
-      canvas.width = imageElement.width || imageElement.videoWidth || 800
-      canvas.height = imageElement.height || imageElement.videoHeight || 600
-      
-      // Rita originalbilden
-      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
-      
-      // Hämta bilddata
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const data = imageData.data
-      
-      // Avancerad bildbehandling för bättre OCR
-      for (let i = 0; i < data.length; i += 4) {
-        // Konvertera till gråskala
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-        
-        // Förbättrad kontrast med mjukare övergång
-        let enhanced = gray
-        
-        // Öka kontrasten progressivt
-        enhanced = ((enhanced - 128) * 1.5) + 128
-        
-        // Begränsa värden till 0-255
-        enhanced = Math.max(0, Math.min(255, enhanced))
-        
-        // Ytterligare skärpa för text
-        if (enhanced < 100) enhanced = 0     // Mjörka mörka områden
-        else if (enhanced > 180) enhanced = 255  // Ljusa områden blir vita
-        
-        data[i] = enhanced      // Röd
-        data[i + 1] = enhanced  // Grön  
-        data[i + 2] = enhanced  // Blå
-        // Alpha förblir oförändrad (data[i + 3])
-      }
-      
-      // Sätt tillbaka den förbättrade bilddata
-      ctx.putImageData(imageData, 0, 0)
-      
-      console.log('✨ Bilddata förbehandlad för bättre OCR')
-      return canvas
-      
-    } catch (error) {
-      console.log('⚠️ Bildbehandling misslyckades, använder original:', error)
-      return imageElement
-    }
   }
   
   async cleanup() {
