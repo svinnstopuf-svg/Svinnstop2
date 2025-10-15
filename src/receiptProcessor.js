@@ -6,6 +6,7 @@ import { extractProductsFromReceipt, identifyStoreType } from './receiptAnalysis
 export class ReceiptProcessor {
   constructor() {
     this.worker = null
+    this.debugMode = true // Sätt till false för att stänga av debug
   }
 
   async initialize() {
@@ -38,6 +39,8 @@ export class ReceiptProcessor {
       const products = this.parseReceiptText(text)
       
       console.log('📦 Extraherade produkter:', products)
+      this.showDebugInfo('Extraherade produkter:', products.map(p => `${p.name} (${p.price} kr)`).join('\n'))
+      
       return products
       
     } catch (error) {
@@ -53,19 +56,29 @@ export class ReceiptProcessor {
     
     // Använd avancerad kvittoanalys
     console.log('🤖 Startar avancerad kvittoanalys...')
+    this.showDebugInfo('OCR Rader:', allLines.map((line, i) => `${i+1}: ${line}`).join('\n'))
+    
     const extractedProducts = extractProductsFromReceipt(allLines)
+    this.showDebugInfo('Rå produkter från OCR:', extractedProducts.map(p => `${p.name} (${p.price})`).join('\n'))
     
     const products = []
     
     for (const product of extractedProducts) {
+      const isDefinitelyNotFood = this.isDefinitelyNotFood(product.name)
+      const isLikelyFood = this.isLikelyFoodProduct(product.name)
+      
+      // Debug varje produkt
+      this.showDebugInfo(`Analyserar "${product.name}"`, 
+        `Definitely NOT food: ${isDefinitelyNotFood}\nLikely food: ${isLikelyFood}`)
+      
       // Extra säkerhetskontroll - undvik icke-matvaror
-      if (this.isDefinitelyNotFood(product.name)) {
+      if (isDefinitelyNotFood) {
         console.log(`🗑️ Hoppar över icke-matvara: ${product.name}`)
         continue
       }
       
       // Använd AI för att avgöra om detta är en matvara
-      if (this.isLikelyFoodProduct(product.name)) {
+      if (isLikelyFood) {
         // Standardisera produktformatet
         const standardProduct = {
           name: product.name,
@@ -82,6 +95,43 @@ export class ReceiptProcessor {
     
     console.log(`📊 Slutresultat: ${products.length} matvaror identifierade`)
     return products
+  }
+
+  // Visa debug-info på skärmen för telefondebug
+  showDebugInfo(title, content) {
+    if (!this.debugMode) return
+    
+    // Skapa eller hitta debug-element
+    let debugElement = document.getElementById('receipt-debug')
+    if (!debugElement) {
+      debugElement = document.createElement('div')
+      debugElement.id = 'receipt-debug'
+      debugElement.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.9);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 9999;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      `
+      document.body.appendChild(debugElement)
+    }
+    
+    // Lägg till debug-info
+    const timestamp = new Date().toLocaleTimeString()
+    debugElement.innerHTML += `\n\n[${timestamp}] ${title}\n${content}\n${'='.repeat(50)}`
+    
+    // Scrolla ned
+    debugElement.scrollTop = debugElement.scrollHeight
   }
 
   extractProductSection(lines) {
@@ -258,6 +308,35 @@ export class ReceiptProcessor {
   correctOCRErrors(text) {
     if (!text) return text
     
+    let corrected = text.toLowerCase()
+    
+    // Specifika produktnamn-korrigeringar
+    const productCorrections = {
+      'ritik': 'lakritsmix',
+      'ritik.*mix': 'lakritsmix',
+      'ritik.*1258.*dre': 'lakritsmix',
+      'akritsmix': 'lakritsmix',
+      'iakritsmix': 'lakritsmix',
+      'lakrit.*mix': 'lakritsmix',
+      'gurka.*mini': 'mini gurka',
+      'mini.*gurka': 'mini gurka',
+      'gur[kc]a': 'gurka',
+      'avoka[dt]o': 'avokado',
+      'avo[ck]ado': 'avokado',
+      'svamp.*champ': 'svamp champinjon',
+      'champ.*svamp': 'svamp champinjon'
+    }
+    
+    // Applicera produktkorrigeringar
+    for (const [errorPattern, correction] of Object.entries(productCorrections)) {
+      const regex = new RegExp(errorPattern, 'gi')
+      if (regex.test(corrected)) {
+        corrected = correction
+        console.log(`⚙️ OCR-korrektion: "${text}" → "${correction}"`)
+        return correction
+      }
+    }
+    
     // Vanliga OCR-fel och deras korrigeringar
     const ocrCorrections = {
       // Siffror som blir bokstäver
@@ -275,9 +354,7 @@ export class ReceiptProcessor {
       '\u00a0': ' ', '­': '', '​': '', // Icke-synliga tecken
     }
     
-    let corrected = text
-    
-    // Applicera korrigeringar
+    // Applicera grundläggande korrigeringar
     for (const [correct, errors] of Object.entries(ocrCorrections)) {
       for (const error of errors) {
         corrected = corrected.replace(new RegExp(error, 'gi'), correct)
@@ -392,7 +469,15 @@ export class ReceiptProcessor {
     }
     
     // Omfattande matvaruindikatorer med svenska termer, varumärken och synonymer
+    // PLUS OCR-trasiga versioner för fuzzy matching
     const foodIndicators = [
+      // OCR-trasiga versioner av vanliga produkter
+      'ritik', 'akrit', 'iakrit', 'lakrit', // För lakritsmix
+      'vokado', 'avoka', 'avoca', 'avokndo', // För avokado  
+      'gurka', 'gurca', 'gurk', 'gur', 'urka', // För gurka
+      'vamp', 'svanp', 'svam', 'champ', 'chanp', // För svamp
+      'bnan', 'bana', 'banan', 'banana', // För banan
+      
       // Frukt & grönt (svenska och internationella namn)
       'äpple', 'apple', 'päron', 'pears', 'banan', 'banana', 'apelsin', 'orange', 
       'citron', 'lemon', 'lime', 'kiwi', 'mango', 'ananas', 'pineapple',
@@ -538,9 +623,9 @@ export class ReceiptProcessor {
     
     // Intelligent matching med flera metoder
     
-    // 1. Direkta fuzzy matches mot matvaruindikatorer
+    // 1. Direkta fuzzy matches mot matvaruindikatorer (lägre tröskel för OCR-fel)
     const fuzzyMatches = foodIndicators.filter(indicator => 
-      this.fuzzyMatch(name, indicator, 0.6)
+      this.fuzzyMatch(name, indicator, 0.4) // Sänkt från 0.6 till 0.4
     )
     
     if (fuzzyMatches.length > 0) {
@@ -574,7 +659,7 @@ export class ReceiptProcessor {
     }
     
     // 5. Använd AI-analys med konfidensgrad
-    if (analysis.confidence >= 0.3) { // Sänkt tröskel för mer generös matching
+    if (analysis.confidence >= 0.2) { // Sänkt tröskel ännu mer för OCR-fel
       console.log(`🤖 AI-analys: ${Math.round(analysis.confidence * 100)}% säker på "${productName}" (${analysis.categories.join(', ')})`);
       return true
     }

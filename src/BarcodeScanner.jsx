@@ -5,7 +5,7 @@ import Tesseract from 'tesseract.js'
 import ProductSelectionPage from './components/ProductSelectionPage'
 import { getExpirationDateGuess } from './expirationDateAI'
 
-const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, isDateScanningMode = false, currentProduct = null, productProgress = null }) => {
+const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, onDebug, isDateScanningMode = false, currentProduct = null, productProgress = null }) => {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const [codeReader, setCodeReader] = useState(null)
@@ -204,6 +204,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
       
       // Processa bilden med OCR
       const products = await processReceiptImage(canvas)
+      
+      if (onDebug) {
+        onDebug('📸 OCR Kvittoscanning', `Processade kvittobild och hittade ${products ? products.length : 0} produkter`)
+        if (products && products.length > 0) {
+          onDebug('📦 Produkter från kvitto', products.map(p => `- ${p.name} (${p.price || 'inget pris'} kr)`).join('\n'))
+        }
+      }
       
       if (products && products.length > 0) {
         console.log(`✅ Hittade ${products.length} produkter på kvittot`)

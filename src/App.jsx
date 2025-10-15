@@ -182,6 +182,10 @@ export default function App() {
   const [pendingProducts, setPendingProducts] = useState([])
   const [currentProductIndex, setCurrentProductIndex] = useState(0)
   const [isDateScanningMode, setIsDateScanningMode] = useState(false)
+  
+  // Debug-state för kvittoscanning
+  const [debugInfo, setDebugInfo] = useState([])
+  const [showDebug, setShowDebug] = useState(true)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -426,10 +430,21 @@ export default function App() {
     }
   }
 
+  // Debug-funktioner
+  const addDebugInfo = (title, content) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDebugInfo(prev => [...prev, { timestamp, title, content }].slice(-20)) // Behåll senaste 20
+  }
+  
+  const clearDebugInfo = () => {
+    setDebugInfo([])
+  }
+  
   // Kvittoscanning
   const handleReceiptScan = async (products, hasExpirationDate = false) => {
     try {
       console.log(`🧾 Kvittoscanning: Hittade ${products.length} produkter`)
+      addDebugInfo('🧾 Kvittoscanning resultat', `Hittade ${products.length} produkter:\n${products.map(p => `- ${p.name} (${p.price} kr)`).join('\n')}`)
       
       // Kolla om produkter redan har utgångsdatum (AI-gissning)
       if (hasExpirationDate) {
@@ -878,6 +893,37 @@ export default function App() {
           </div>
         )}
       </section>
+      
+      {showDebug && debugInfo.length > 0 && (
+        <section className="card debug-section">
+          <div className="debug-header">
+            <h2>🔍 Debug: Kvittoscanning</h2>
+            <div className="debug-controls">
+              <button onClick={clearDebugInfo} className="debug-btn">Rensa</button>
+              <button onClick={() => setShowDebug(false)} className="debug-btn">Dölj</button>
+            </div>
+          </div>
+          <div className="debug-content">
+            {debugInfo.map((info, i) => (
+              <div key={i} className="debug-item">
+                <div className="debug-time">{info.timestamp}</div>
+                <div className="debug-title">{info.title}</div>
+                <div className="debug-content-text">{info.content}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      
+      {!showDebug && (
+        <button 
+          onClick={() => setShowDebug(true)} 
+          className="show-debug-btn"
+          style={{position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000}}
+        >
+          🔍 Debug
+        </button>
+      )}
 
       <footer className="muted">Data sparas i din webbläsare (localStorage).</footer>
     </div>
@@ -908,6 +954,7 @@ export default function App() {
       onScan={handleScanBarcode}
       onReceiptScan={handleReceiptScan}
       onDateScan={handleDateScanComplete}
+      onDebug={addDebugInfo}
       isDateScanningMode={isDateScanningMode}
       currentProduct={isDateScanningMode && pendingProducts.length > 0 ? {
         ...pendingProducts[currentProductIndex],
