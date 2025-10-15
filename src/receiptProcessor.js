@@ -81,11 +81,15 @@ export class ReceiptProcessor {
       for (let pattern of productPatterns) {
         const match = line.match(pattern)
         if (match) {
-          let productName = match[1].trim()
+          const originalText = match[1].trim()
           const price = parseFloat(match[2].replace(',', '.'))
           
+          // Extrahera kvantitet FÖRE rensning
+          const quantity = this.extractQuantity(originalText)
+          const unit = this.extractUnit(originalText)
+          
           // Rensa produktnamnet från kvantiteter och priser
-          productName = this.cleanProductName(productName)
+          const productName = this.cleanProductName(originalText)
           
           // Validera att det är ett giltigt produktnamn och en matvara
           if (this.isValidProductName(productName) && 
@@ -94,8 +98,8 @@ export class ReceiptProcessor {
             products.push({
               name: productName,
               price: price,
-              quantity: this.extractQuantity(match[1]) || 1,
-              unit: this.guessUnit(productName)
+              quantity: quantity || 1,
+              unit: unit || this.guessUnit(productName)
             })
             break // Sluta testa mönster för denna rad
           }
@@ -128,33 +132,96 @@ export class ReceiptProcessor {
   }
 
   extractQuantity(text) {
-    // Extrahera kvantitet från text som "2x Mjölk" eller "Äpplen 1kg"
-    const qtyMatch = text.match(/(\d+)\s*x\s*/i) || text.match(/(\d+)\s*st/i)
-    return qtyMatch ? parseInt(qtyMatch[1]) : null
+    // Extrahera kvantitet från olika kvittoformat
+    const patterns = [
+      // "2x Mjölk" eller "3 x Äpplen"
+      /(\d+)\s*x\s*/i,
+      // "Gurka 2st" eller "2 st Tomat"
+      /(?:^|\s)(\d+)\s*st(?:\s|$)/i,
+      // "Potatis 1kg" eller "1,5 kg Fisk"
+      /(\d+(?:[.,]\d+)?)\s*kg/i,
+      // "Mjölk 1L" eller "0,5 L Grädde"
+      /(\d+(?:[.,]\d+)?)\s*L/i,
+      // "Juice 33cl" eller "250 ml Grädde"
+      /(\d+)\s*(?:cl|ml)/i,
+      // "500g Kött" 
+      /(\d+)\s*g/i,
+      // Fallback: nummer i början som "3 Bananer"
+      /^(\d+)\s+[a-zåäö]/i
+    ]
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern)
+      if (match) {
+        const value = parseFloat(match[1].replace(',', '.'))
+        console.log(`🔢 Extraherad kvantitet: ${value} från "${text}"`)
+        return value
+      }
+    }
+    
+    return null
+  }
+  
+  extractUnit(text) {
+    // Extrahera enhet från kvittotexten
+    const unitPatterns = [
+      { pattern: /\d+(?:[.,]\d+)?\s*(kg)/i, unit: 'kg' },
+      { pattern: /\d+(?:[.,]\d+)?\s*(g)(?:\s|$)/i, unit: 'g' },
+      { pattern: /\d+(?:[.,]\d+)?\s*(L)/i, unit: 'L' },
+      { pattern: /\d+\s*(cl)/i, unit: 'cl' },
+      { pattern: /\d+\s*(ml)/i, unit: 'ml' },
+      { pattern: /\d+\s*(st)(?:\s|$)/i, unit: 'st' },
+      { pattern: /\d+\s*x\s*/i, unit: 'st' } // "2x" betyder styck
+    ]
+    
+    for (const { pattern, unit } of unitPatterns) {
+      if (pattern.test(text)) {
+        console.log(`📎 Extraherad enhet: ${unit} från "${text}"`)
+        return unit
+      }
+    }
+    
+    return null
   }
 
   guessUnit(productName) {
     const name = productName.toLowerCase()
     
-    // Vätskor
+    // Vätskor - ofta i liter eller cl
     if (name.includes('mjölk') || name.includes('juice') || name.includes('läsk') || 
-        name.includes('öl') || name.includes('vin') || name.includes('vatten')) {
+        name.includes('öl') || name.includes('vin') || name.includes('vatten') ||
+        name.includes('grädde') || name.includes('filmjölk')) {
       return 'L'
     }
     
-    // Kött/ost (vikt)
+    // Kött/fisk/ost - oftast i gram/kg
     if (name.includes('kött') || name.includes('ost') || name.includes('skinka') || 
-        name.includes('korv') || name.includes('fisk')) {
-      return 'g'
+        name.includes('korv') || name.includes('fisk') || name.includes('kyckling') ||
+        name.includes('nöt') || name.includes('fläsk') || name.includes('bacon') ||
+        name.includes('lax') || name.includes('torsk')) {
+      return 'kg'
     }
     
-    // Frukt/grönsaker (ofta vikt)
+    // Lösviktsvaror - frukt/grönsaker
     if (name.includes('tomat') || name.includes('potatis') || name.includes('äpple') || 
-        name.includes('banan') || name.includes('gurka')) {
-      return 'g'
+        name.includes('banan') || name.includes('gurka') || name.includes('morot') ||
+        name.includes('lök') || name.includes('paprika') || name.includes('avokado') ||
+        name.includes('citron') || name.includes('apelsin')) {
+      return 'kg'
     }
     
-    // Standard
+    // Bröd och bakvaror - oftast per styck
+    if (name.includes('bröd') || name.includes('kaka') || name.includes('bulle') ||
+        name.includes('muffin') || name.includes('tårta')) {
+      return 'st'
+    }
+    
+    // Konserver och förpackningar
+    if (name.includes('burk') || name.includes('konserv') || name.includes('förpackning')) {
+      return 'st'
+    }
+    
+    // Standard fallback
     return 'st'
   }
 
