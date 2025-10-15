@@ -84,11 +84,13 @@ export class ReceiptProcessor {
           let productName = match[1].trim()
           const price = parseFloat(match[2].replace(',', '.'))
           
-          // Rensa produktnamnet
+          // Rensa produktnamnet från kvantiteter och priser
           productName = this.cleanProductName(productName)
           
-          // Validera att det ser ut som ett produktnamn
-          if (this.isValidProductName(productName) && price > 0 && price < 1000) {
+          // Validera att det är ett giltigt produktnamn och en matvara
+          if (this.isValidProductName(productName) && 
+              this.isFoodProduct(productName) && 
+              price > 0 && price < 1000) {
             products.push({
               name: productName,
               price: price,
@@ -105,14 +107,24 @@ export class ReceiptProcessor {
   }
 
   cleanProductName(name) {
-    // Ta bort vanliga kvitto-prefix/suffix
+    // Ta bort vanliga kvitto-prefix/suffix och kvantiteter
     return name
       .replace(/^\d+\s*x?\s*/i, '') // Ta bort "2x" eller "3 st" i början
-      .replace(/\s*\d+\s*st\s*$/i, '') // Ta bort "2 st" i slutet
+      .replace(/\s*\d+\s*st\s*$/i, '') // Ta bort "2 st" i slutet  
+      .replace(/\s*\d+\s*kg\s*$/i, '') // Ta bort "1 kg" i slutet
+      .replace(/\s*\d+[.,]\d+\s*kg\s*$/i, '') // Ta bort "1,5 kg" i slutet
+      .replace(/\s*\d+\s*g\s*$/i, '') // Ta bort "500 g" i slutet
+      .replace(/\s*\d+\s*L\s*$/i, '') // Ta bort "1 L" i slutet
+      .replace(/\s*\d+[.,]\d+\s*L\s*$/i, '') // Ta bort "1,5 L" i slutet
+      .replace(/\s*\d+\s*cl\s*$/i, '') // Ta bort "33 cl" i slutet
+      .replace(/\s*\d+\s*ml\s*$/i, '') // Ta bort "250 ml" i slutet
       .replace(/\s*\d+[.,]\d{2}\s*kr?\s*$/i, '') // Ta bort pris i slutet
+      .replace(/\s*\*\s*\d+[.,]\d{2}\s*$/i, '') // Ta bort "* 19,90" format
       .replace(/[*]+/g, '') // Ta bort stjärnor
       .replace(/\s+/g, ' ') // Normalisera mellanslag
       .trim()
+      .toLowerCase() // Normalisera till gemener
+      .replace(/^(\w)/, (match) => match.toUpperCase()) // Stor bokstav först
   }
 
   extractQuantity(text) {
@@ -152,6 +164,101 @@ export class ReceiptProcessor {
            name.length < 50 && 
            /[a-zA-ZåäöÅÄÖ]/.test(name) && // Innehåller bokstäver
            !/^\d+[.,]\d{2}$/.test(name) // Är inte bara ett pris
+  }
+
+  isFoodProduct(name) {
+    const lowerName = name.toLowerCase()
+    
+    // Definitivt INTE matvaror (filtreras bort)
+    const nonFoodItems = [
+      // Hushållsartiklar
+      'plastpåse', 'plastbärare', 'kasse', 'påse', 'papperspåse',
+      'papperskasse', 'tygkasse', 'bärare', 'handla',
+      
+      // Hygienartiklar  
+      'tandkräm', 'tandborste', 'schampo', 'balsam', 'duschgel', 
+      'tvål', 'deodorant', 'parfym', 'rakgel', 'rakning',
+      'damhygien', 'blöjor', 'barnblöjor', 'servetter', 'papper',
+      
+      // Kemikalier och städ
+      'diskmedel', 'tvättmedel', 'sköljmedel', 'blekmedel',
+      'städ', 'rengöring', 'spray', 'kemikalie',
+      
+      // Övrigt
+      'tidning', 'magasin', 'cigaretter', 'tobak', 'alkohol',
+      'batterier', 'glödlampa', 'lampa', 'el-artikel',
+      'leksak', 'present', 'blommor', 'växt'
+    ]
+    
+    // Kolla om produkten innehåller något icke-matvaru ord
+    if (nonFoodItems.some(item => lowerName.includes(item))) {
+      console.log(`🚫 Filtrerar bort icke-matvara: ${name}`)
+      return false
+    }
+    
+    // Matvarukategorier (positivlista)
+    const foodCategories = [
+      // Grönsaker & frukt
+      'tomat', 'gurka', 'morot', 'lök', 'potatis', 'sallad', 'paprika',
+      'äpple', 'banan', 'apelsin', 'citron', 'vindruv', 'kiwi', 'mango',
+      'avokado', 'broccoli', 'blomkål', 'zucchini', 'aubergine',
+      
+      // Kött & fisk
+      'kött', 'kyckling', 'nöt', 'fläsk', 'korv', 'skinka', 'bacon',
+      'fisk', 'lax', 'torsk', 'räka', 'musslor', 'tonfisk',
+      
+      // Mejeri
+      'mjölk', 'grädde', 'filmjölk', 'yoghurt', 'kvarg', 'ost',
+      'smör', 'margarin', 'crème fraiche', 'keso',
+      
+      // Spannmål & bröd
+      'bröd', 'pasta', 'ris', 'bulgur', 'quinoa', 'havregryn', 
+      'müsli', 'flingor', 'flour', 'mjöl',
+      
+      // Konserver & torrvaror
+      'konserv', 'burk', 'krossad', 'passata', 'ärtor', 'bönor',
+      'linser', 'nötter', 'mandel', 'cashew', 'valnöt',
+      
+      // Drycker
+      'juice', 'läsk', 'vatten', 'te', 'kaffe', 'choklad',
+      
+      // Kryddor & tillagning
+      'krydda', 'salt', 'peppar', 'vitlök', 'persilja', 'basilika',
+      'oregano', 'curry', 'paprikapulver', 'kanel', 'vanilj',
+      'olja', 'oliv', 'vinäger', 'honung', 'sirap', 'socker',
+      
+      // Godis & bakning
+      'godis', 'choklad', 'kaka', 'bakelse', 'tårta', 'muffins',
+      'kex', 'chips', 'popcorn', 'nötter'
+    ]
+    
+    // Om namnet innehåller något matvaru-ord, acceptera det
+    const isFoodByCategory = foodCategories.some(food => lowerName.includes(food))
+    
+    // Acceptera även produkter som har typiska mat-ord i sig
+    const foodIndicators = [
+      /eko\s/i,     // Ekologisk
+      /krav/i,      // KRAV-märkt 
+      /färsk/i,     // Färsk
+      /fryst/i,     // Fryst
+      /konserv/i,   // Konserverad
+      /torkad/i,    // Torkad
+      /rå[a-z]/i,   // Råvara
+      /naturell/i   // Naturell
+    ]
+    
+    const hasConfidenceIndicators = foodIndicators.some(pattern => pattern.test(lowerName))
+    
+    // Slutlig bedömning
+    const isFood = isFoodByCategory || hasConfidenceIndicators
+    
+    if (!isFood) {
+      console.log(`❓ Osäker på om '${name}' är matvara - filtrerar bort för säkerhets skull`)
+    } else {
+      console.log(`✅ Identifierad matvara: ${name}`)
+    }
+    
+    return isFood
   }
 
   async cleanup() {
