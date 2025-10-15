@@ -55,76 +55,22 @@ export class ReceiptProcessor {
     
     console.log('🎯 Produktsektion extraherad:', lines)
     
-    // Svenska butiksmönster
-    const productPatterns = [
-      // ICA-format: "PRODUKT NAMN    12.50"
-      /^(.+?)\s+(\d+[.,]\d{2})\s*kr?\s*$/i,
-      // Coop-format: "Produkt namn 2st    25.00"
-      /^(.+?)\s+\d*st\s+(\d+[.,]\d{2})\s*kr?\s*$/i,
-      // Generisk: "Text med pris    X.XX"
-      /^(.+?)\s+(\d+[.,]\d{2})\s*$/,
-    ]
-    
-    // Ord/fraser att ignorera (inte produkter)
-    const ignorePatterns = [
-      // Kvittohuvud och butiksinformation
-      /^(ica|coop|willys|hemköp|citygross|maxi|tempo)/i,
-      /^(tack|thank|hejdå|goodbye|välkommen|welcome)/i,
-      /^(kvitto|receipt|bon)/i,
-      
-      // Datum och tider
-      /^\d{4}-\d{2}-\d{2}/, // Datum YYYY-MM-DD
-      /^\d{2}[.\/\-]\d{2}[.\/\-]\d{2,4}/, // Datum DD.MM.YY
-      /^\d{2}:\d{2}/, // Tid HH:MM
-      
-      // Totaler och betalning  
-      /^(summa|total|sum|att\s+betala|slutsumma)$/i,
-      /^(moms|vat|skatt)$/i,
-      /^(kort|card|kontant|cash|swish|återbäring|change)$/i,
-      
-      // Referensnummer och ID:n
-      /^(ref[\s.]*\d+|trans[\s.]*\d+|id[\s.]*\d+)$/i,
-      /^\d{10,}$/, // Långa nummer
-      /^[A-Z]{2,}\d{3,}$/, // Kod + siffror som ABC123
-      
-      // Bara priser eller symboler
-      /^\d+[.,]\d{2}\s*kr?\s*$/, // Bara pris utan produktnamn
-      /^[*\-=_]{3,}$/, // Bara symboler/streck
-      /^\s*$/ // Tom rad
-    ]
-    
+    // Läs av ALLT i produktsektionen och låt AI avgöra vad som är matvaror
     for (let line of lines) {
-      // Hoppa över tom rad eller ignorerade mönster
-      if (ignorePatterns.some(pattern => pattern.test(line))) {
-        continue
-      }
+      console.log(`🔍 Analyserar rad: "${line}"`)
       
-      // Testa produktmönster
-      for (let pattern of productPatterns) {
-        const match = line.match(pattern)
-        if (match) {
-          const originalText = match[1].trim()
-          const price = parseFloat(match[2].replace(',', '.'))
-          
-          // Extrahera kvantitet FÖRE rensning
-          const quantity = this.extractQuantity(originalText)
-          const unit = this.extractUnit(originalText)
-          
-          // Rensa produktnamnet från kvantiteter och priser
-          const productName = this.cleanProductName(originalText)
-          
-          // Validera att det är ett giltigt produktnamn och en matvara
-          if (this.isValidProductName(productName) && 
-              this.isFoodProduct(productName) && 
-              price > 0 && price < 1000) {
-            products.push({
-              name: productName,
-              price: price,
-              quantity: quantity || 1,
-              unit: unit || this.guessUnit(productName)
-            })
-            break // Sluta testa mönster för denna rad
-          }
+      // Försök extrahera produktinformation från denna rad
+      const extractedProduct = this.extractProductFromLine(line)
+      
+      if (extractedProduct) {
+        console.log(`✅ Hittad potentiell produkt:`, extractedProduct)
+        
+        // Använd AI för att avgöra om detta är en matvara
+        if (this.isLikelyFoodProduct(extractedProduct.name)) {
+          products.push(extractedProduct)
+          console.log(`🍎 Lägger till matvara: ${extractedProduct.name}`)
+        } else {
+          console.log(`🚫 Filtrerar bort icke-matvara: ${extractedProduct.name}`)
         }
       }
     }
@@ -190,6 +136,200 @@ export class ReceiptProcessor {
     console.log(`📋 Extraherar rader ${startIndex + 1}-${endIndex} (${productLines.length} rader)`)
     
     return productLines
+  }
+
+  // Generös extraktion av produkter från kvittorader  
+  extractProductFromLine(line) {
+    // Hoppa över uppenbart icke-produktrader
+    const obviousIgnore = [
+      /^\s*$/,                           // Tom rad
+      /^[*\-=_]{3,}$/,                   // Bara symboler
+      /^\d{2}:\d{2}/,                    // Tid
+      /^\d{4}-\d{2}-\d{2}/,              // Datum YYYY-MM-DD
+      /^\d{2}[.\/\-]\d{2}[.\/\-]/,       // Datum DD.MM eller MM/DD
+      /^(summa|total|sum|moms|vat|kort|kontant|swish|cash)$/i, // Kvitto-termer
+      /^\d+[.,]\d{2}\s*kr?\s*$/,         // Bara pris
+      /^(ref[\s.]*\d+|trans[\s.]*\d+)$/i // Referensnummer
+    ]
+    
+    if (obviousIgnore.some(pattern => pattern.test(line))) {
+      return null
+    }
+    
+    // Generösa mönster för att hitta produkter med priser
+    const productPatterns = [
+      // Standard: "Produktnamn    12.50" eller "Produktnamn 12.50"
+      /^(.+?)\s+(\d+[.,]\d{1,2})\s*kr?\s*$/i,
+      
+      // Med kvantitet: "Produktnamn 2st    25.00"
+      /^(.+?)\s+\d+\s*(?:st|kg|g|L|cl|ml)\s+(\d+[.,]\d{1,2})\s*kr?\s*$/i,
+      
+      // Med multiplikation: "Produktnamn 2 x 12.50"
+      /^(.+?)\s+\d+\s*x\s*(\d+[.,]\d{1,2})\s*kr?\s*$/i,
+      
+      // Pris först: "12.50 Produktnamn"
+      /^(\d+[.,]\d{1,2})\s*kr?\s+(.+)$/i,
+      
+      // Endast produktnamn (inget pris) - för rader som kanske är uppdelade
+      /^([a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ\s\d]{2,40})$/
+    ]
+    
+    for (let pattern of productPatterns) {
+      const match = line.match(pattern)
+      if (match) {
+        let productName, price
+        
+        if (pattern.source.includes('^(\\d+')) {
+          // Pris först format
+          price = parseFloat(match[1].replace(',', '.'))
+          productName = match[2].trim()
+        } else if (match[2] && /\d/.test(match[2])) {
+          // Standard format med pris som match[2]
+          productName = match[1].trim()
+          price = parseFloat(match[2].replace(',', '.'))
+        } else {
+          // Endast produktnamn
+          productName = match[1].trim()
+          price = 0 // Okänt pris
+        }
+        
+        // Validera pris
+        if (price > 0 && (price < 0.1 || price > 1000)) {
+          continue // Orealistiskt pris
+        }
+        
+        // Extrahera kvantitet innan rensning
+        const originalText = match[0]
+        const quantity = this.extractQuantity(originalText)
+        const unit = this.extractUnit(originalText)
+        
+        // Rensa produktnamnet
+        const cleanedName = this.cleanProductName(productName)
+        
+        if (this.isValidProductName(cleanedName)) {
+          return {
+            name: cleanedName,
+            price: price,
+            quantity: quantity || 1,
+            unit: unit || this.guessUnit(cleanedName)
+          }
+        }
+      }
+    }
+    
+    return null
+  }
+
+  // AI-baserad intelligent matvarubedömning
+  isLikelyFoodProduct(productName) {
+    if (!productName || productName.length < 2) return false
+    
+    const name = productName.toLowerCase().trim()
+    
+    // Definitivt INTE matvaror (hög precision)
+    const definitelyNotFood = [
+      'påse', 'plastpåse', 'kasse', 'bärare', 'papperspåse',
+      'diskmedel', 'tvättmedel', 'städ', 'rengöring', 'kemikalie',
+      'tandkräm', 'tandborste', 'schampo', 'tvål', 'deodorant',
+      'batterier', 'glödlampa', 'tidning', 'magasin', 'present',
+      'blommor', 'växt', 'leksak', 'cigaretter', 'tobak'
+    ]
+    
+    if (definitelyNotFood.some(item => name.includes(item))) {
+      return false
+    }
+    
+    // Matvaruindikatorer (bred lista)
+    const foodIndicators = [
+      // Frukt & grönt
+      'äpple', 'päron', 'banan', 'apelsin', 'citron', 'lime', 'kiwi', 'mango', 'ananas',
+      'vindruv', 'melon', 'vattenmelon', 'jordgubb', 'hallon', 'blåbär', 'lingon',
+      'tomat', 'gurka', 'paprika', 'lök', 'vitlök', 'morot', 'potatis', 'sötpotatis',
+      'broccoli', 'blomkål', 'kål', 'sallad', 'spenat', 'ruccola', 'dill', 'persilja',
+      'purjolök', 'selleri', 'rädisa', 'rödbetor', 'palsternacka', 'kålrot',
+      
+      // Kött & chark
+      'kött', 'nötkött', 'fläskkött', 'lamm', 'kyckling', 'kalkonfläsk', 'korv',
+      'prinskorv', 'falukorv', 'salami', 'skinka', 'bacon', 'köttbullar', 'fläskfilé',
+      'nötfärs', 'kyckling', 'kycklingfilé', 'köttfärs',
+      
+      // Fisk & skaldjur
+      'fisk', 'lax', 'torsk', 'sill', 'makrill', 'tonfisk', 'räkor', 'kräftor',
+      'musslor', 'hummer', 'krabba', 'abborre', 'gädda',
+      
+      // Mejeri
+      'mjölk', 'grädde', 'filmjölk', 'yoghurt', 'naturell', 'grekisk', 'kvarg',
+      'ost', 'cheddar', 'gouda', 'brie', 'herrgård', 'präst', 'västerbotten',
+      'smör', 'margarin', 'crème fraiche', 'philadelphia', 'cottage cheese',
+      
+      // Ägg
+      'ägg', 'hönsägg', 'ekologiska ägg',
+      
+      // Bröd & spannmål
+      'bröd', 'skogaholm', 'polarbröd', 'limpa', 'tunnbröd', 'knäckebröd',
+      'pasta', 'spagetti', 'makaroner', 'penne', 'fusilli', 'lasagne',
+      'ris', 'jasminris', 'basmatiris', 'risotto', 'bulgur', 'quinoa', 'couscous',
+      'havregryn', 'müsli', 'flingor', 'cornflakes', 'special k',
+      'mjöl', 'vetemjöl', 'graham', 'dinkel',
+      
+      // Konserver & torrvaror
+      'krossad', 'passata', 'tomater', 'bönor', 'kidneybönor', 'vita bönor',
+      'linser', 'ärtor', 'kikärtor', 'mais', 'oliver',
+      'nötter', 'mandel', 'valnötter', 'cashew', 'pistasch', 'jordnötter',
+      'russin', 'dadlar', 'fikon', 'aprikoser',
+      
+      // Kryddor & såser
+      'salt', 'peppar', 'krydda', 'oregano', 'basilika', 'rosmarin', 'timjan',
+      'kanel', 'kardemumma', 'ingefära', 'curry', 'paprikapulver', 'chili',
+      'ketchup', 'senap', 'majonnäs', 'sojasås', 'tabasco', 'sriracha',
+      'olja', 'olivolja', 'rapsolja', 'solrosolja', 'kokosolja',
+      'vinäger', 'balsamico', 'äppelcidervinäger',
+      
+      // Sötsaker & bakning
+      'socker', 'florsocker', 'farinsocker', 'honung', 'sirap', 'lönnsirap',
+      'vanilj', 'vaniljsocker', 'bakpulver', 'jäst', 'kakao',
+      'choklad', 'marabou', 'fazer', 'lindt', 'godis', 'lösgodis',
+      'kex', 'digestive', 'maria', 'ballerina', 'göteborgs',
+      
+      // Drycker
+      'juice', 'äppeljuice', 'apelsinjuice', 'tranbärsjuice',
+      'läsk', 'coca cola', 'pepsi', 'sprite', 'fanta', 'festis',
+      'vatten', 'mineralvatten', 'ramlösa', 'loka', 'evian',
+      'kaffe', 'te', 'earl grey', 'grön te', 'rooibos', 'chai',
+      'öl', 'folköl', 'lättöl', 'starköl', 'ipa', 'lager',
+      'vin', 'rödvin', 'vitt vin', 'rosé', 'champagne', 'prosecco',
+      
+      // Fryst & kött
+      'fryst', 'frozen', 'kött', 'korv', 'pizza', 'pannkakor',
+      'glass', 'magnum', 'ben jerry', 'häagen dazs', 'gb',
+      
+      // Övrigt
+      'baby', 'barnmat', 'välling', 'gröt', 'follow', 'semper',
+      'glutenfri', 'laktosfri', 'vegansk', 'vegetarisk', 'eko', 'krav'
+    ]
+    
+    // Om namnet innehåller någon matvaruindikator
+    if (foodIndicators.some(indicator => name.includes(indicator))) {
+      return true
+    }
+    
+    // Heuristik: korta ord som verkar vara matvaror
+    if (name.length <= 15) {
+      // Vanliga svenska matvaruord-ändelser
+      const foodEndings = ['mjölk', 'ost', 'kött', 'fisk', 'bröd', 'juice', 'gryn', 'olja']
+      if (foodEndings.some(ending => name.endsWith(ending))) {
+        return true
+      }
+    }
+    
+    // Standard fallback - om det passerat alla filter och ser ut som ett produktnamn
+    // Låt det passera och låt användaren avgöra
+    if (name.match(/^[a-zåäö\s]+$/i) && name.length >= 3 && name.length <= 25) {
+      console.log(`⚠️ Osäker produkt som får passera: "${productName}"`);
+      return true
+    }
+    
+    return false
   }
 
   cleanProductName(name) {
@@ -363,100 +503,6 @@ export class ReceiptProcessor {
            !/^\d+[.,]\d{2}$/.test(name) // Är inte bara ett pris
   }
 
-  isFoodProduct(name) {
-    const lowerName = name.toLowerCase()
-    
-    // Definitivt INTE matvaror (filtreras bort)
-    const nonFoodItems = [
-      // Hushållsartiklar
-      'plastpåse', 'plastbärare', 'kasse', 'påse', 'papperspåse',
-      'papperskasse', 'tygkasse', 'bärare', 'handla',
-      
-      // Hygienartiklar  
-      'tandkräm', 'tandborste', 'schampo', 'balsam', 'duschgel', 
-      'tvål', 'deodorant', 'parfym', 'rakgel', 'rakning',
-      'damhygien', 'blöjor', 'barnblöjor', 'servetter', 'papper',
-      
-      // Kemikalier och städ
-      'diskmedel', 'tvättmedel', 'sköljmedel', 'blekmedel',
-      'städ', 'rengöring', 'spray', 'kemikalie',
-      
-      // Övrigt
-      'tidning', 'magasin', 'cigaretter', 'tobak', 'alkohol',
-      'batterier', 'glödlampa', 'lampa', 'el-artikel',
-      'leksak', 'present', 'blommor', 'växt'
-    ]
-    
-    // Kolla om produkten innehåller något icke-matvaru ord
-    if (nonFoodItems.some(item => lowerName.includes(item))) {
-      console.log(`🚫 Filtrerar bort icke-matvara: ${name}`)
-      return false
-    }
-    
-    // Matvarukategorier (positivlista)
-    const foodCategories = [
-      // Grönsaker & frukt
-      'tomat', 'gurka', 'morot', 'lök', 'potatis', 'sallad', 'paprika',
-      'äpple', 'banan', 'apelsin', 'citron', 'vindruv', 'kiwi', 'mango',
-      'avokado', 'broccoli', 'blomkål', 'zucchini', 'aubergine',
-      
-      // Kött & fisk
-      'kött', 'kyckling', 'nöt', 'fläsk', 'korv', 'skinka', 'bacon',
-      'fisk', 'lax', 'torsk', 'räka', 'musslor', 'tonfisk',
-      
-      // Mejeri
-      'mjölk', 'grädde', 'filmjölk', 'yoghurt', 'kvarg', 'ost',
-      'smör', 'margarin', 'crème fraiche', 'keso',
-      
-      // Spannmål & bröd
-      'bröd', 'pasta', 'ris', 'bulgur', 'quinoa', 'havregryn', 
-      'müsli', 'flingor', 'flour', 'mjöl',
-      
-      // Konserver & torrvaror
-      'konserv', 'burk', 'krossad', 'passata', 'ärtor', 'bönor',
-      'linser', 'nötter', 'mandel', 'cashew', 'valnöt',
-      
-      // Drycker
-      'juice', 'läsk', 'vatten', 'te', 'kaffe', 'choklad',
-      
-      // Kryddor & tillagning
-      'krydda', 'salt', 'peppar', 'vitlök', 'persilja', 'basilika',
-      'oregano', 'curry', 'paprikapulver', 'kanel', 'vanilj',
-      'olja', 'oliv', 'vinäger', 'honung', 'sirap', 'socker',
-      
-      // Godis & bakning
-      'godis', 'choklad', 'kaka', 'bakelse', 'tårta', 'muffins',
-      'kex', 'chips', 'popcorn', 'nötter'
-    ]
-    
-    // Om namnet innehåller något matvaru-ord, acceptera det
-    const isFoodByCategory = foodCategories.some(food => lowerName.includes(food))
-    
-    // Acceptera även produkter som har typiska mat-ord i sig
-    const foodIndicators = [
-      /eko\s/i,     // Ekologisk
-      /krav/i,      // KRAV-märkt 
-      /färsk/i,     // Färsk
-      /fryst/i,     // Fryst
-      /konserv/i,   // Konserverad
-      /torkad/i,    // Torkad
-      /rå[a-z]/i,   // Råvara
-      /naturell/i   // Naturell
-    ]
-    
-    const hasConfidenceIndicators = foodIndicators.some(pattern => pattern.test(lowerName))
-    
-    // Slutlig bedömning
-    const isFood = isFoodByCategory || hasConfidenceIndicators
-    
-    if (!isFood) {
-      console.log(`❓ Osäker på om '${name}' är matvara - filtrerar bort för säkerhets skull`)
-    } else {
-      console.log(`✅ Identifierad matvara: ${name}`)
-    }
-    
-    return isFood
-  }
 
   async cleanup() {
     if (this.worker) {
