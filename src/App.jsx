@@ -344,6 +344,37 @@ export default function App() {
     setCanUndo(actionHistory.length > 1)
   }
 
+  // Kvittoscanning
+  const handleReceiptScan = async (products) => {
+    try {
+      console.log(`🧾 Kvittoscanning: Lägger till ${products.length} produkter`)
+      
+      const defaultDate = new Date()
+      defaultDate.setDate(defaultDate.getDate() + 7)
+      const defaultExpiryDate = defaultDate.toISOString().split('T')[0]
+      
+      const newItems = products.map(product => ({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+        name: product.name,
+        quantity: product.quantity || 1,
+        expiresAt: defaultExpiryDate,
+        unit: product.unit || 'st',
+        price: product.price // Spara priset för framtida funktioner
+      }))
+      
+      // Lägg till alla produkter samtidigt
+      setItems(prev => [...prev, ...newItems])
+      
+      // Markera som lyckad
+      setScanSuccessful(true)
+      
+      console.log('✅ Alla kvittoprodukter tillagda:', newItems.map(item => item.name).join(', '))
+    } catch (error) {
+      console.error('Fel vid kvittoscanning:', error)
+      alert('Något gick fel vid kvittoscanning.')
+    }
+  }
+
   // Streckkodsscanning
   const handleScanBarcode = async (barcode) => {
     try {
@@ -708,6 +739,7 @@ export default function App() {
         }
       }}
       onScan={handleScanBarcode}
+      onReceiptScan={handleReceiptScan}
     />
     </>
   )

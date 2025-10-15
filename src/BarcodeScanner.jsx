@@ -1,12 +1,16 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
+import { processReceiptImage } from './receiptProcessor'
 
-const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
+const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
   const videoRef = useRef(null)
+  const canvasRef = useRef(null)
   const [codeReader, setCodeReader] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState(null)
   const [hasPermission, setHasPermission] = useState(null)
+  const [scanMode, setScanMode] = useState('barcode') // 'barcode' eller 'receipt'
+  const [isProcessingReceipt, setIsProcessingReceipt] = useState(false)
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -105,6 +109,45 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
     }
   }
 
+  const captureReceipt = async () => {
+    if (!videoRef.current) return
+    
+    try {
+      setIsProcessingReceipt(true)
+      
+      // Skapa canvas och fånga bild från video
+      const canvas = canvasRef.current
+      const video = videoRef.current
+      const ctx = canvas.getContext('2d')
+      
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      ctx.drawImage(video, 0, 0)
+      
+      console.log('📸 Kvittobild tagen, bearbetar med OCR...')
+      
+      // Processa bilden med OCR
+      const products = await processReceiptImage(canvas)
+      
+      if (products && products.length > 0) {
+        console.log(`✅ Hittade ${products.length} produkter på kvittot`)
+        onReceiptScan(products)
+        
+        // Vänta lite innan stängning så användaren ser resultatet
+        setTimeout(() => {
+          handleClose()
+        }, 500)
+      } else {
+        setError('Inga produkter hittades på kvittot. Försök med bättre ljus eller håll kvittot rakare.')
+      }
+    } catch (error) {
+      console.error('❌ Kvitto-OCR fel:', error)
+      setError('Kunde inte läsa kvittot. Kontrollera att det är tydligt och försök igen.')
+    } finally {
+      setIsProcessingReceipt(false)
+    }
+  }
+
   const handleClose = () => {
     console.log('Stänger scanner...')
     
@@ -137,6 +180,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
     setScanning(false)
     setError(null)
     setHasPermission(null)
+    setScanMode('barcode')
+    setIsProcessingReceipt(false)
     
     // Stäng modal
     onClose()
@@ -149,7 +194,23 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
     <div className="scanner-overlay">
       <div className="scanner-modal">
         <div className="scanner-header">
-          <h3>📱 Scanna streckkod</h3>
+          <h3>{scanMode === 'barcode' ? '📱 Scanna streckkod' : '🧾 Scanna kvitto'}</h3>
+          <div className="scanner-mode-toggle">
+            <button 
+              onClick={() => setScanMode('barcode')}
+              className={`mode-btn ${scanMode === 'barcode' ? 'active' : ''}`}
+              title="Streckkodsscanning"
+            >
+              📱
+            </button>
+            <button 
+              onClick={() => setScanMode('receipt')}
+              className={`mode-btn ${scanMode === 'receipt' ? 'active' : ''}`}
+              title="Kvittoscanning"
+            >
+              🧾
+            </button>
+          </div>
           <button 
             onClick={handleClose} 
             className="scanner-close"
@@ -188,15 +249,52 @@ const BarcodeScanner = ({ isOpen, onClose, onScan }) => {
                   playsInline
                   muted
                 />
+                <canvas 
+                  ref={canvasRef} 
+                  style={{ display: 'none' }}
+                />
                 <div className="scanner-overlay-frame">
-                  <div className="scan-line"></div>
+                  {scanMode === 'barcode' ? (
+                    <div className="scan-line"></div>
+                  ) : (
+                    <div className="receipt-frame">
+                      <div className="frame-corners"></div>
+                      {isProcessingReceipt && (
+                        <div className="processing-overlay">
+                          <div className="spinner"></div>
+                          <p>Läser kvitto...</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="scanner-instructions">
-                <p>🎯 Rikta kameran mot streckkoden</p>
-                <p>Håll enheten stadigt och se till att streckkoden är tydligt synlig</p>
+                {scanMode === 'barcode' ? (
+                  <>
+                    <p>🎯 Rikta kameran mot streckkoden</p>
+                    <p>Håll enheten stadigt och se till att streckkoden är tydligt synlig</p>
+                  </>
+                ) : (
+                  <>
+                    <p>🧾 Centrera kvittot i bildrutan</p>
+                    <p>Se till att hela kvittot syns och texten är tydlig</p>
+                  </>
+                )}
               </div>
+              
+              {scanMode === 'receipt' && (
+                <div className="scanner-capture">
+                  <button 
+                    onClick={captureReceipt}
+                    disabled={isProcessingReceipt}
+                    className="capture-btn"
+                  >
+                    {isProcessingReceipt ? '⚙️ Bearbetar...' : '📸 Läs kvitto'}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
