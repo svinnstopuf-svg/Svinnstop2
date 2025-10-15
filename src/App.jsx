@@ -176,6 +176,11 @@ export default function App() {
   const [scanSuccessful, setScanSuccessful] = useState(false)
   const [showExpirySettings, setShowExpirySettings] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  
+  // Automatiskt utgångsdatum-scanning stöd
+  const [pendingProducts, setPendingProducts] = useState([])
+  const [currentProductIndex, setCurrentProductIndex] = useState(0)
+  const [isDateScanningMode, setIsDateScanningMode] = useState(false)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -373,40 +378,77 @@ export default function App() {
     
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
   }
+  
+  // Hantera automatisk datumscanning
+  const handleDateScanComplete = (scannedDate) => {
+    if (!isDateScanningMode || pendingProducts.length === 0) {
+      // Vanlig datumscanning (inte automatisk sekvens)
+      setForm(prev => ({ ...prev, expiresAt: scannedDate }))
+      setScanSuccessful(true)
+      return
+    }
+    
+    const currentProduct = pendingProducts[currentProductIndex]
+    
+    // Uppdatera den aktuella produkten med det scannade datumet
+    const updatedProduct = {
+      ...currentProduct,
+      expiresAt: scannedDate
+    }
+    
+    // Lägg till produkten i listan
+    setItems(prev => [...prev, updatedProduct])
+    console.log(`✅ ${currentProduct.name} tillagd med utgångsdatum: ${scannedDate}`)
+    
+    // Gå till nästa produkt
+    const nextIndex = currentProductIndex + 1
+    
+    if (nextIndex < pendingProducts.length) {
+      // Det finns fler produkter att scanna
+      setCurrentProductIndex(nextIndex)
+      console.log(`🔄 Fortsatt till produkt ${nextIndex + 1}/${pendingProducts.length}: ${pendingProducts[nextIndex].name}`)
+    } else {
+      // Alla produkter är klara
+      console.log('✅ Alla produkter har fått utgångsdatum')
+      
+      // Rensa automatisk scanning-state
+      setPendingProducts([])
+      setCurrentProductIndex(0)
+      setIsDateScanningMode(false)
+      setScanSuccessful(true)
+    }
+  }
 
   // Kvittoscanning
   const handleReceiptScan = async (products) => {
     try {
-      console.log(`🧾 Kvittoscanning: Lägger till ${products.length} produkter`)
+      console.log(`🧾 Kvittoscanning: Hittade ${products.length} produkter`)
       
-      const newItems = products.map(product => {
-        // 🤖 Använd smart AI för varje produkt från kvittot
-        const smartResult = calculateSmartExpiryDate(product.name, null)
+      // Förbered produkter för automatisk utgångsdatumscanning
+      const preparedProducts = products.map(product => {
         const categoryResult = getSmartProductCategory(product.name, null)
-        
-        console.log(`🎯 ${product.name} → ${categoryResult.category} → ${smartResult.date} (${smartResult.method})`)
         
         return {
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
           name: product.name,
           quantity: product.quantity || 1,
-          expiresAt: smartResult.date,
           unit: product.unit || 'st',
           price: product.price,
           category: categoryResult.category,
-          confidence: smartResult.confidence,
-          aiMethod: smartResult.method,
-          adjustments: smartResult.adjustments
+          expiresAt: null, // Kommer att sättas genom datumscanning
+          confidence: null,
+          aiMethod: 'manual_scan',
+          adjustments: []
         }
       })
       
-      // Lägg till alla produkter samtidigt
-      setItems(prev => [...prev, ...newItems])
+      // Ställ in för automatisk datumscanning
+      setPendingProducts(preparedProducts)
+      setCurrentProductIndex(0)
+      setIsDateScanningMode(true)
       
-      // Markera som lyckad
-      setScanSuccessful(true)
+      console.log('📋 Startar automatisk datumscanning för:', preparedProducts.map(p => p.name).join(', '))
       
-      console.log('✅ Alla kvittoprodukter tillagda:', newItems.map(item => item.name).join(', '))
     } catch (error) {
       console.error('Fel vid kvittoscanning:', error)
       alert('Något gick fel vid kvittoscanning.')
@@ -443,26 +485,25 @@ export default function App() {
       console.log(`🎯 Produktkategori: ${categoryResult.category} (konfidenz: ${categoryResult.confidence}%)`)
       console.log(`📅 Smart AI-beräknat utgångsdatum: ${smartResult.date} (${smartResult.method})`)
       
-      // Skapa det nya objektet
-      const newItem = {
+      // Förbered produkt för automatisk utgångsdatumscanning
+      const preparedProduct = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
         name: itemName,
         quantity: itemQuantity,
-        expiresAt: smartResult.date,
         unit: SV_UNITS[getSuggestedUnitKey(itemName)] || SV_UNITS.defaultUnit,
         category: categoryResult.category,
-        confidence: smartResult.confidence,
-        aiMethod: smartResult.method,
-        adjustments: smartResult.adjustments
+        expiresAt: null, // Kommer att sättas genom datumscanning
+        confidence: null,
+        aiMethod: 'manual_scan',
+        adjustments: []
       }
       
-      // Lägg till varan direkt i listan
-      setItems(prev => [...prev, newItem])
+      // Ställ in för automatisk datumscanning
+      setPendingProducts([preparedProduct])
+      setCurrentProductIndex(0)
+      setIsDateScanningMode(true)
       
-      // Markera att scanning var lyckad
-      setScanSuccessful(true)
-      
-      console.log('Produkt automatiskt tillagd:', itemName)
+      console.log('📋 Startar automatisk datumscanning för:', itemName)
       
     } catch (error) {
       console.error('Fel vid produktsökning:', error)
@@ -815,11 +856,10 @@ export default function App() {
       }}
       onScan={handleScanBarcode}
       onReceiptScan={handleReceiptScan}
-      onDateScan={(date) => {
-        console.log('📅 Datum scannat:', date)
-        setForm(prev => ({ ...prev, expiresAt: date }))
-        setScanSuccessful(true)
-      }}
+      onDateScan={handleDateScanComplete}
+      isDateScanningMode={isDateScanningMode}
+      currentProduct={isDateScanningMode && pendingProducts.length > 0 ? pendingProducts[currentProductIndex] : null}
+      productProgress={isDateScanningMode ? `${currentProductIndex + 1}/${pendingProducts.length}` : null}
     />
     
     {showExpirySettings && editingItem && (

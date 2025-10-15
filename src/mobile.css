@@ -1219,6 +1219,41 @@ input:focus {
   }
 }
 
+/* Automatisk datumscanning */
+.product-name {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.progress {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.auto-scan-info {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: var(--border-radius-sm);
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.auto-scan-info p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.auto-scan-info p + p {
+  margin-top: 8px;
+}
+
+.auto-scan-info strong {
+  color: var(--primary-color);
+}
+
 /* Fokus-ring för tap-to-focus funktionalitet */
 .focus-ring {
   position: absolute;

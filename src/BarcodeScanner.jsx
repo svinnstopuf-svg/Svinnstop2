@@ -3,14 +3,14 @@ import { BrowserMultiFormatReader } from '@zxing/browser'
 import { processReceiptImage } from './receiptProcessor'
 import Tesseract from 'tesseract.js'
 
-const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan }) => {
+const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, isDateScanningMode = false, currentProduct = null, productProgress = null }) => {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const [codeReader, setCodeReader] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState(null)
   const [hasPermission, setHasPermission] = useState(null)
-  const [scanMode, setScanMode] = useState('barcode') // 'barcode', 'receipt' eller 'date'
+  const [scanMode, setScanMode] = useState(isDateScanningMode ? 'date' : 'barcode') // 'barcode', 'receipt' eller 'date'
   const [isProcessingReceipt, setIsProcessingReceipt] = useState(false)
   const [focusPoint, setFocusPoint] = useState(null)
   const [showFocusRing, setShowFocusRing] = useState(false)
@@ -61,6 +61,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan }) 
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen])
+
+  // Automatiskt byta till datumscanning om vi är i automatiskt läge
+  useEffect(() => {
+    if (isDateScanningMode) {
+      setScanMode('date')
+    }
+  }, [isDateScanningMode])
 
   const startScanning = async () => {
     try {
@@ -399,33 +406,45 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan }) 
       <div className="scanner-modal">
         <div className="scanner-header">
           <h3>
-            {scanMode === 'barcode' && '📱 Scanna streckkod'}
-            {scanMode === 'receipt' && '🧾 Scanna kvitto'}
-            {scanMode === 'date' && '📅 Scanna utgångsdatum'}
+            {isDateScanningMode && currentProduct ? (
+              <>
+                📅 Scanna utgångsdatum för:<br/>
+                <span className="product-name">{currentProduct.name}</span>
+                {productProgress && <span className="progress">({productProgress})</span>}
+              </>
+            ) : (
+              <>
+                {scanMode === 'barcode' && '📱 Scanna streckkod'}
+                {scanMode === 'receipt' && '🧾 Scanna kvitto'}
+                {scanMode === 'date' && '📅 Scanna utgångsdatum'}
+              </>
+            )}
           </h3>
-          <div className="scanner-mode-toggle">
-            <button 
-              onClick={() => setScanMode('barcode')}
-              className={`mode-btn ${scanMode === 'barcode' ? 'active' : ''}`}
-              title="Streckkodsscanning"
-            >
-              📱
-            </button>
-            <button 
-              onClick={() => setScanMode('receipt')}
-              className={`mode-btn ${scanMode === 'receipt' ? 'active' : ''}`}
-              title="Kvittoscanning"
-            >
-              🧾
-            </button>
-            <button 
-              onClick={() => setScanMode('date')}
-              className={`mode-btn ${scanMode === 'date' ? 'active' : ''}`}
-              title="Datumscanning"
-            >
-              📅
-            </button>
-          </div>
+          {!isDateScanningMode && (
+            <div className="scanner-mode-toggle">
+              <button 
+                onClick={() => setScanMode('barcode')}
+                className={`mode-btn ${scanMode === 'barcode' ? 'active' : ''}`}
+                title="Streckkodsscanning"
+              >
+                📱
+              </button>
+              <button 
+                onClick={() => setScanMode('receipt')}
+                className={`mode-btn ${scanMode === 'receipt' ? 'active' : ''}`}
+                title="Kvittoscanning"
+              >
+                🧾
+              </button>
+              <button 
+                onClick={() => setScanMode('date')}
+                className={`mode-btn ${scanMode === 'date' ? 'active' : ''}`}
+                title="Datumscanning"
+              >
+                📅
+              </button>
+            </div>
+          )}
           <button 
             onClick={handleClose} 
             className="scanner-close"
@@ -529,8 +548,22 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan }) 
                 )}
                 {scanMode === 'date' && (
                   <>
-                    <p>📅 Rikta kameran mot utgångsdatumet på förpackningen</p>
-                    <p>Se till att datumet är tydligt och välbelyst</p>
+                    {isDateScanningMode && currentProduct ? (
+                      <>
+                        <div className="auto-scan-info">
+                          <p><strong>🎯 Automatisk datumscanning aktiv</strong></p>
+                          <p>Scanna utgångsdatumet för: <strong>{currentProduct.name}</strong></p>
+                          <p>Progress: {productProgress}</p>
+                        </div>
+                        <p>📅 Rikta kameran mot utgångsdatumet på förpackningen</p>
+                        <p>När du är klar kommer nästa produkt automatiskt</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>📅 Rikta kameran mot utgångsdatumet på förpackningen</p>
+                        <p>Se till att datumet är tydligt och välbelyst</p>
+                      </>
+                    )}
                     <p>👆 Tryck på bilden för att fokusera</p>
                   </>
                 )}
