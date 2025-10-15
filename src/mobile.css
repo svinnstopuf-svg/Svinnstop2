@@ -1414,6 +1414,14 @@ input:focus {
   gap: 2px;
 }
 
+.storage-note {
+  font-size: 9px;
+  opacity: 0.8;
+  margin-top: 2px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Mobile optimering */
 @media (max-width: 480px) {
   .date-choice-buttons {

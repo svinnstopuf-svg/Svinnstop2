@@ -85,6 +85,11 @@ const ProductSelectionPage = ({
                         {formatDate(product.aiSuggestion.date)} 
                         <Clock className="w-3 h-3 inline ml-1" />
                         {product.aiSuggestion.daysFromNow}d
+                        {product.aiSuggestion.storageNote && (
+                          <div className="storage-note">
+                            📦 {product.aiSuggestion.storageNote}
+                          </div>
+                        )}
                       </small>
                     </div>
                   </button>
