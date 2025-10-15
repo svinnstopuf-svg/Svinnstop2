@@ -96,10 +96,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
             console.log('Streckkod scannad:', barcode)
             onScan(barcode)
             
-            // Vänta lite så att App.jsx hinner processa onScan först
-            setTimeout(() => {
-              handleClose()
-            }, 200)
+            // Låt App.jsx hantera stängning och flyt till nästa steg
+            console.log('Streckkod skickad till App.jsx - väntar på nästa instruktion')
           }
           
           if (error && !(error.name === 'NotFoundException')) {
@@ -207,10 +205,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
         console.log(`✅ Hittade ${products.length} produkter på kvittot`)
         onReceiptScan(products)
         
-        // Vänta lite innan stängning så användaren ser resultatet
-        setTimeout(() => {
-          handleClose()
-        }, 500)
+        // Låt App.jsx hantera nästa steg (automatisk datumscanning)
+        console.log('Kvittoprodukter skickade till App.jsx - väntar på nästa instruktion')
       } else {
         setError('Inga produkter hittades på kvittot. Försök med bättre ljus eller håll kvittot rakare.')
       }
@@ -351,9 +347,9 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
     if (onDateScan) {
       onDateScan(date)
     }
-    setTimeout(() => {
-      handleClose()
-    }, 200)
+    
+    // Låt App.jsx hantera nästa steg (nästa produkt eller stängning)
+    console.log('Datum valt och skickat till App.jsx:', date)
   }
 
   const handleClose = () => {

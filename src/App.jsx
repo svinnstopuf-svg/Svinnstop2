@@ -416,6 +416,12 @@ export default function App() {
       setCurrentProductIndex(0)
       setIsDateScanningMode(false)
       setScanSuccessful(true)
+      
+      // Stäng scanner och refresha sidan när hela sekvensen är klar
+      setTimeout(() => {
+        console.log('Automatisk datumscanning klar - refreshar sidan')
+        window.location.reload()
+      }, 500) // Kort delay så användaren ser att det är klart
     }
   }
 
@@ -447,7 +453,9 @@ export default function App() {
       setCurrentProductIndex(0)
       setIsDateScanningMode(true)
       
+      // Inte stäng scanner - låt den växla till datumläge
       console.log('📋 Startar automatisk datumscanning för:', preparedProducts.map(p => p.name).join(', '))
+      console.log('Scanner hålls öppen för datumscanning av', preparedProducts.length, 'produkter')
       
     } catch (error) {
       console.error('Fel vid kvittoscanning:', error)
@@ -503,7 +511,9 @@ export default function App() {
       setCurrentProductIndex(0)
       setIsDateScanningMode(true)
       
+      // Inte stäng scanner - låt den växla till datumläge
       console.log('📋 Startar automatisk datumscanning för:', itemName)
+      console.log('Scanner hålls öppen för datumscanning')
       
     } catch (error) {
       console.error('Fel vid produktsökning:', error)
@@ -840,18 +850,20 @@ export default function App() {
     <BarcodeScanner 
       isOpen={showScanner}
       onClose={() => {
-        console.log('Scanner stängs...', 'scanSuccessful:', scanSuccessful)
+        console.log('Scanner stängs...', 'scanSuccessful:', scanSuccessful, 'isDateScanningMode:', isDateScanningMode)
         setShowScanner(false)
         
         if (scanSuccessful) {
           setScanSuccessful(false) // Rensa flaggan
           console.log('Scanner stängs efter lyckad scanning')
-        } else {
+        } else if (!isDateScanningMode) {
+          // Bara refresha om vi INTE är i automatisk datumscanning
           console.log('Scanner stängs manuellt - laddar om sidan')
-          // Bara ladda om vid manuell stängning
           setTimeout(() => {
             window.location.reload()
           }, 100)
+        } else {
+          console.log('Scanner stängs under automatisk datumscanning - ingen refresh')
         }
       }}
       onScan={handleScanBarcode}
