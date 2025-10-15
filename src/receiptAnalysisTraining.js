@@ -4,14 +4,14 @@ export const realReceiptPatterns = {
   ica: {
     storeName: /ICA\s+(MAXI|SUPERMARKET|KVANTUM|NÄRA)/i,
     productPatterns: [
-      // Standard ICA-format: "PRODUKTNAMN    12.90"
-      /^([A-ZÅÄÖ][A-ZÅÄÖ\s\-0-9]{2,35})\s{2,}(\d+[.,]\d{2})\s*kr?\s*$/,
+      // Standard ICA-format: "PRODUKTNAMN    12.90" (blandat case OK)
+      /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s{2,}(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
       // Med kvantitet: "BANANER KLASS 1  1.234 KG  15.90"
-      /^([A-ZÅÄÖ][A-ZÅÄÖ\s\-]{2,30})\s+\d+[.,]\d{3}\s*KG\s+(\d+[.,]\d{2})\s*kr?\s*$/,
-      // Rabatt-format: "*ÄPPLEN ROYAL GALA  -2.00"
-      /^\*([A-ZÅÄÖ][A-ZÅÄÖ\s\-]{2,30})\s+\-(\d+[.,]\d{2})\s*kr?\s*$/,
+      /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-]{2,30})\s+\d+[.,]\d{3}\s*KG\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+      // Rabatt-format med asterisk: "*Lakritsmix ICA Basic  19.90"
+      /^\*([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-]{2,30})\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
       // Utan pris: "BANAN KLASS 1"
-      /^([A-ZÅÄÖ][A-ZÅÄÖ\s\-0-9]{2,35})$/
+      /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})$/i
     ],
     // Typiska ICA-produktnamn mönster
     namePatterns: [
@@ -26,11 +26,11 @@ export const realReceiptPatterns = {
     storeName: /COOP\s+(EXTRA|KONSUM|FORUM)/i,
     productPatterns: [
       // Coop blandat case: "Bananer Eko    8.90"
-      /^([A-ZÅÄÖa-zåäö][A-ZÅÄÖa-zåäö\s\-0-9]{2,35})\s{2,}(\d+[.,]\d{2})\s*kr?\s*$/,
+      /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s{2,}(\d+[.,]\d{2})(?:\s*kr)?\s*$/,
       // Med vikt: "Tomater kvist 0.456 kg 12.50"
-      /^([A-ZÅÄÖa-zåäö][A-ZÅÄÖa-zåäö\s\-]{2,30})\s+\d+[.,]\d{3}\s*kg\s+(\d+[.,]\d{2})\s*kr?\s*$/,
+      /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-]{2,30})\s+\d+[.,]\d{3}\s*kg\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/,
       // Enkel format: "Banan Fynd"
-      /^([A-ZÅÄÖa-zåäö][A-ZÅÄÖa-zåäö\s\-0-9]{2,35})$/
+      /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})$/
     ]
   },
 
@@ -85,7 +85,7 @@ export const realReceiptPatterns = {
 export const advancedProductPatterns = [
   // Kvitton med symboler först
   {
-    pattern: /^([*\-+>@#&→▪•◆≫①-⑳])\s*([A-ZÅÄÖ][A-ZÅÄÖa-zåäö\s\-0-9]{2,35})\s*(\d+[.,]\d{2})?\s*kr?\s*$/i,
+    pattern: /^([*\-+>@#&→▪•◆≫①-⑳])\s*([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s*(\d+[.,]\d{2})?(?:\s*kr)?\s*$/i,
     extract: (match) => ({
       symbol: match[1],
       name: match[2].trim(),
@@ -95,7 +95,7 @@ export const advancedProductPatterns = [
 
   // Kvitton med pris och prickar
   {
-    pattern: /^([A-ZÅÄÖ][A-ZÅÄÖa-zåäö\s\-0-9]{2,35})\.{3,}(\d+[.,]\d{2})\s*kr?\s*$/i,
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\.{3,}(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
     extract: (match) => ({
       name: match[1].trim(),
       price: parseFloat(match[2].replace(',', '.'))
@@ -104,7 +104,7 @@ export const advancedProductPatterns = [
 
   // Standard kvittoformat med mellanslag
   {
-    pattern: /^([A-ZÅÄÖ][A-ZÅÄÖa-zåäö\s\-0-9]{2,35})\s{2,}(\d+[.,]\d{2})\s*kr?\s*$/i,
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s{2,}(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
     extract: (match) => ({
       name: match[1].trim(),
       price: parseFloat(match[2].replace(',', '.'))
@@ -113,7 +113,7 @@ export const advancedProductPatterns = [
 
   // Med kvantitet och vikt
   {
-    pattern: /^([A-ZÅÄÖ][A-ZÅÄÖa-zåäö\s\-]{2,30})\s+\d+[.,]\d{3}\s*(kg|KG)\s+(\d+[.,]\d{2})\s*kr?\s*$/i,
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-]{2,30})\s+\d+[.,]\d{3}\s*(kg|KG)\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
     extract: (match) => ({
       name: match[1].trim(),
       unit: 'kg',
@@ -123,7 +123,7 @@ export const advancedProductPatterns = [
 
   // Produkter utan pris
   {
-    pattern: /^([A-ZÅÄÖ][A-ZÅÄÖa-zåäö\s\-0-9]{2,35})\s*$/i,
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s*$/i,
     extract: (match) => ({
       name: match[1].trim(),
       price: null
@@ -132,7 +132,7 @@ export const advancedProductPatterns = [
 
   // Kommaseparerade listor: "Banan, Gurka, Avokado"
   {
-    pattern: /^([A-ZÅÄÖa-zåäö][A-ZÅÄÖa-zåäö\s\-,]{5,60})$/i,
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-,]{5,60})$/i,
     extract: (match) => {
       const text = match[1].trim()
       if (text.includes(',') && text.split(',').length <= 6) {
@@ -320,10 +320,10 @@ function isValidProductName(name) {
     return false
   }
   
-  // Filter för ICA-tjänster och bonusprogram
+  // Filter för ICA-tjänster och bonusprogram (men INTE matvaror med ICA som varumärke)
   const icaServices = [
-    'ica', 'aptiten', 'banken', 'bank', 'försäkring', 'insurance',
-    'stamkund', 'medlem', 'member', 'bonus', 'kvittolotteri', 'kundklubb'
+    'ica aptiten', 'ica banken', 'ica bank', 'ica försäkring', 'ica insurance',
+    'ica stamkund', 'ica medlem', 'ica member', 'ica bonus', 'ica kvittolotteri', 'ica kundklubb'
   ]
   
   if (icaServices.some(service => cleanName.includes(service))) {
