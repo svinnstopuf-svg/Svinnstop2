@@ -11,6 +11,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
   const [hasPermission, setHasPermission] = useState(null)
   const [scanMode, setScanMode] = useState('barcode') // 'barcode' eller 'receipt'
   const [isProcessingReceipt, setIsProcessingReceipt] = useState(false)
+  const [focusPoint, setFocusPoint] = useState(null)
+  const [showFocusRing, setShowFocusRing] = useState(false)
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -106,6 +108,67 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
       } else {
         setError('Kunde inte starta kameran. Försök igen.')
       }
+    }
+  }
+
+  const handleTapToFocus = async (event) => {
+    if (!videoRef.current || !videoRef.current.srcObject) return
+    
+    try {
+      const rect = videoRef.current.getBoundingClientRect()
+      const x = (event.clientX - rect.left) / rect.width
+      const y = (event.clientY - rect.top) / rect.height
+      
+      console.log('📍 Fokuserar på punkt:', { x, y })
+      
+      // Visa fokus-ring på tryckpunkten
+      setFocusPoint({ x: x * 100, y: y * 100 })
+      setShowFocusRing(true)
+      
+      // Hämta video track för fokusering
+      const stream = videoRef.current.srcObject
+      const videoTrack = stream.getVideoTracks()[0]
+      
+      if (videoTrack) {
+        const capabilities = videoTrack.getCapabilities()
+        
+        if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+          // Försök sätta fokuspunkt
+          const constraints = {
+            advanced: [{
+              focusMode: 'continuous',
+              pointsOfInterest: [{ x, y }]
+            }]
+          }
+          
+          try {
+            await videoTrack.applyConstraints(constraints)
+            console.log('✅ Fokus satt på punkt')
+          } catch (constraintError) {
+            console.log('⚠️ Fokusering ej tillgänglig på denna enhet')
+            
+            // Fallback: Försök med enklare fokusering
+            try {
+              await videoTrack.applyConstraints({
+                advanced: [{ focusMode: 'continuous' }]
+              })
+            } catch (fallbackError) {
+              console.log('ℹ️ Automatisk fokus används')
+            }
+          }
+        } else {
+          console.log('ℹ️ Manuell fokusering stöds ej, använder autofokus')
+        }
+      }
+      
+      // Göm fokus-ring efter 1.5 sekunder
+      setTimeout(() => {
+        setShowFocusRing(false)
+      }, 1500)
+      
+    } catch (error) {
+      console.error('❌ Tap-to-focus fel:', error)
+      setShowFocusRing(false)
     }
   }
 
@@ -248,6 +311,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
                   autoPlay
                   playsInline
                   muted
+                  onClick={handleTapToFocus}
+                  style={{ cursor: 'crosshair' }}
                 />
                 <canvas 
                   ref={canvasRef} 
@@ -267,6 +332,18 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
                       )}
                     </div>
                   )}
+                  
+                  {/* Fokus-ring för tap-to-focus */}
+                  {showFocusRing && focusPoint && (
+                    <div 
+                      className="focus-ring"
+                      style={{
+                        left: `${focusPoint.x}%`,
+                        top: `${focusPoint.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    />
+                  )}
                 </div>
               </div>
               
@@ -275,11 +352,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
                   <>
                     <p>🎯 Rikta kameran mot streckkoden</p>
                     <p>Håll enheten stadigt och se till att streckkoden är tydligt synlig</p>
+                    <p>👆 Tryck på bilden för att fokusera</p>
                   </>
                 ) : (
                   <>
                     <p>🧾 Centrera kvittot i bildrutan</p>
                     <p>Se till att hela kvittot syns och texten är tydlig</p>
+                    <p>👆 Tryck på bilden för att fokusera</p>
                   </>
                 )}
               </div>
