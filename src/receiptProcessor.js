@@ -17,36 +17,126 @@ export class ReceiptProcessor {
     await this.worker.loadLanguage('swe+eng') // Svenska och engelska
     await this.worker.initialize('swe+eng')
     
-    // Optimera för kvitton
+    // Förbättrade OCR-inställningar för svenska kvitton
     await this.worker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr% ',
-      tessedit_pageseg_mode: 6 // Uniform block of text
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() ',
+      tessedit_pageseg_mode: 6, // Uniform block of text  
+      tessedit_ocr_engine_mode: 2, // Neural net LSTM only (bättre kvalitet)
+      preserve_interword_spaces: 1, // Behåll mellanslag mellan ord
+      tessedit_char_blacklist: '|[]{}~`^_=+\\"', // Filtrera bort problematiska tecken
+      classify_enable_learning: 1, // Aktivera lärning
+      classify_enable_adaptive_matcher: 1, // Adaptiv matchning
+      textord_debug_tabfind: 0, // Reducera brus
+      textord_tabfind_find_tables: 0, // Inaktivera tabelldetektering
+      load_system_dawg: 1, // Använd systemordbok
+      load_freq_dawg: 1, // Använd frekvensordbok
+      load_punc_dawg: 1, // Använd punkteringsordbok
+      load_number_dawg: 1, // Använd sifferordbok
+      load_unambig_dawg: 1, // Använd entydighetsordbok
+      load_bigram_dawg: 1, // Använd bigramordbok
+      load_fixed_length_dawgs: 1 // Använd fasta ordlängder
     })
     
     console.log('✅ OCR-worker redo')
   }
 
   async processReceipt(imageElement) {
-    try {
-      await this.initialize()
-      
-      console.log('📸 Läser kvittobild...')
-      const { data: { text } } = await this.worker.recognize(imageElement)
-      
-      console.log('📝 OCR-text:', text)
-      
-      // Extrahera produkter från texten
-      const products = this.parseReceiptText(text)
-      
-      console.log('📦 Extraherade produkter:', products)
-      this.showDebugInfo('Extraherade produkter:', products.map(p => `${p.name} (${p.price} kr)`).join('\n'))
-      
-      return products
-      
-    } catch (error) {
-      console.error('❌ OCR-fel:', error)
-      throw error
+    const maxRetries = 2 // Försök max 2 gånger
+    
+    // Debug: visa att vi startar scanning
+    this.showDebugInfo('🔄 STARTAR SCANNING', `Försöker ${maxRetries} gånger`)
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.initialize()
+        
+        console.log(`📸 Läser kvittobild... (försök ${attempt}/${maxRetries})`)
+        this.showDebugInfo(`📸 FÖRSÖK ${attempt}/${maxRetries}`, 'Startar OCR...')
+        
+        // Förbehandla bilden för bättre OCR
+        const preprocessedImage = this.preprocessImage(imageElement)
+        
+        const startTime = Date.now()
+        const { data: { text } } = await this.worker.recognize(preprocessedImage)
+        const endTime = Date.now()
+        
+        console.log('📝 OCR-text:', text)
+        this.showDebugInfo(`📝 OCR RESULTAT (${endTime - startTime}ms)`, 
+          `Textlängd: ${text.length} tecken\n\nText:\n${text}`)
+        
+        // Extrahera produkter från texten
+        const products = this.parseReceiptText(text)
+        
+        console.log('📦 Extraherade produkter:', products)
+        this.showDebugInfo(`📦 PRODUKTER FÖRSÖK ${attempt}`, 
+          `Hittade ${products.length} produkter:\n${products.map(p => `- ${p.name} (${p.price})`).join('\n')}`)
+        
+        // Om vi hittade produkter, returnera dem
+        if (products && products.length > 0) {
+          console.log(`✅ Lyckades på försök ${attempt}/${maxRetries}`)
+          this.showDebugInfo(`✅ KLART!`, `Lyckades på försök ${attempt} med ${products.length} produkter`)
+          return products
+        } else if (attempt < maxRetries) {
+          console.log(`⚠️ Inga produkter hittades på försök ${attempt}, försöker igen...`)
+          this.showDebugInfo(`⚠️ FÖRSÖK ${attempt} MISSLYCKADES`, `Väntar 1 sekund innan försök ${attempt + 1}...`)
+          // Vänta lite innan nästa försök
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          continue
+        } else {
+          console.log('❌ Inga produkter hittades efter alla försök')
+          this.showDebugInfo('❌ ALLA FÖRSÖK MISSLYCKADES', 'Inga produkter hittades')
+          return []
+        }
+        
+      } catch (error) {
+        console.error(`❌ OCR-fel på försök ${attempt}:`, error)
+        
+        if (attempt < maxRetries) {
+          console.log('🔄 Försöker igen...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          continue
+        } else {
+          throw error
+        }
+      }
     }
+  }
+
+  // Förbehandla bild för bättre OCR-resultat
+  preprocessImage(imageElement) {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    
+    // Sätt canvas-storlek till bildens storlek
+    canvas.width = imageElement.naturalWidth || imageElement.width
+    canvas.height = imageElement.naturalHeight || imageElement.height
+    
+    // Rita originalbilden
+    ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
+    
+    // Hämta bilddata
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    
+    // Förbättra kontrast och skärpa
+    for (let i = 0; i < data.length; i += 4) {
+      // Konvertera till gråskala
+      const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11
+      
+      // Öka kontrast (stark svartvit effekt)
+      const enhanced = gray > 128 ? 255 : 0
+      
+      data[i] = enhanced     // R
+      data[i + 1] = enhanced // G
+      data[i + 2] = enhanced // B
+      // Alpha (i + 3) lämnas oförändrad
+    }
+    
+    // Sätt tillbaka den bearbetade bilddata
+    ctx.putImageData(imageData, 0, 0)
+    
+    console.log('🖼️ Bildförbehandling klar: kontrast förbättrad')
+    return canvas
   }
 
   parseReceiptText(text) {
@@ -1107,6 +1197,59 @@ export class ReceiptProcessor {
       .replace(/[^a-zA-ZåäöÅÄÖ\s\-]/g, '') // Ta bort konstiga tecken
       .replace(/\s+/g, ' ') // Normalisera mellanslag
       .trim()
+  }
+  
+  // Förbehandla bild för bättre OCR-resultat
+  preprocessImage(imageElement) {
+    try {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      // Sätt canvas-storlek baserat på bilden
+      canvas.width = imageElement.width || imageElement.videoWidth || 800
+      canvas.height = imageElement.height || imageElement.videoHeight || 600
+      
+      // Rita originalbilden
+      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
+      
+      // Hämta bilddata
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+      
+      // Avancerad bildbehandling för bättre OCR
+      for (let i = 0; i < data.length; i += 4) {
+        // Konvertera till gråskala
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+        
+        // Förbättrad kontrast med mjukare övergång
+        let enhanced = gray
+        
+        // Öka kontrasten progressivt
+        enhanced = ((enhanced - 128) * 1.5) + 128
+        
+        // Begränsa värden till 0-255
+        enhanced = Math.max(0, Math.min(255, enhanced))
+        
+        // Ytterligare skärpa för text
+        if (enhanced < 100) enhanced = 0     // Mjörka mörka områden
+        else if (enhanced > 180) enhanced = 255  // Ljusa områden blir vita
+        
+        data[i] = enhanced      // Röd
+        data[i + 1] = enhanced  // Grön  
+        data[i + 2] = enhanced  // Blå
+        // Alpha förblir oförändrad (data[i + 3])
+      }
+      
+      // Sätt tillbaka den förbättrade bilddata
+      ctx.putImageData(imageData, 0, 0)
+      
+      console.log('✨ Bilddata förbehandlad för bättre OCR')
+      return canvas
+      
+    } catch (error) {
+      console.log('⚠️ Bildbehandling misslyckades, använder original:', error)
+      return imageElement
+    }
   }
   
   async cleanup() {
