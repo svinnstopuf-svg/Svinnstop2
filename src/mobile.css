@@ -1171,6 +1171,39 @@ input:focus {
   opacity: 0.8;
 }
 
+/* AI-konfidenz indikator */
+.ai-info {
+  display: inline-block;
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--primary-color);
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 8px;
+  margin-left: 6px;
+  font-weight: 500;
+  cursor: help;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+/* Redigeringsknapp för utgångsdatum */
+.edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 3px;
+  transition: var(--transition);
+  margin-right: 4px;
+}
+
+.edit-btn:hover {
+  background: var(--border);
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
+
 /* Utgångsdatum inställningar modal */
 .expiry-settings-overlay {
   position: fixed;

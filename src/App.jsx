@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 import BarcodeScanner from './BarcodeScanner'
+import ExpirySettings from './ExpirySettings'
 import { lookupProduct } from './productAPI'
-import { calculateExpiryDate, getProductCategory } from './expiryDateAI'
+import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
@@ -173,6 +174,8 @@ export default function App() {
   const [showScanner, setShowScanner] = useState(false)
   const [scanningProduct, setScanningProduct] = useState(false)
   const [scanSuccessful, setScanSuccessful] = useState(false)
+  const [showExpirySettings, setShowExpirySettings] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -344,6 +347,32 @@ export default function App() {
     setActionHistory(prev => prev.slice(0, -1))
     setCanUndo(actionHistory.length > 1)
   }
+  
+  // Hantera utgångsdatum justeringar
+  const handleEditExpiry = (item) => {
+    setEditingItem(item)
+    setShowExpirySettings(true)
+  }
+  
+  const handleExpiryUpdate = (updatedItem) => {
+    const originalItem = editingItem
+    
+    // Lär AI:n från justeringen
+    learnFromUserAdjustment(
+      originalItem.name,
+      originalItem.expiresAt,
+      updatedItem.expiresAt,
+      originalItem.category,
+      updatedItem.adjustmentReason || ''
+    )
+    
+    // Uppdatera item i listan
+    setItems(prev => prev.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    ))
+    
+    console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
+  }
 
   // Kvittoscanning
   const handleReceiptScan = async (products) => {
@@ -351,20 +380,23 @@ export default function App() {
       console.log(`🧾 Kvittoscanning: Lägger till ${products.length} produkter`)
       
       const newItems = products.map(product => {
-        // 🤖 Använd AI för varje produkt från kvittot
-        const smartExpiryDate = calculateExpiryDate(product.name, null)
-        const productCategory = getProductCategory(product.name, null)
+        // 🤖 Använd smart AI för varje produkt från kvittot
+        const smartResult = calculateSmartExpiryDate(product.name, null)
+        const categoryResult = getSmartProductCategory(product.name, null)
         
-        console.log(`🎯 ${product.name} → ${productCategory} → ${smartExpiryDate}`)
+        console.log(`🎯 ${product.name} → ${categoryResult.category} → ${smartResult.date} (${smartResult.method})`)
         
         return {
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
           name: product.name,
           quantity: product.quantity || 1,
-          expiresAt: smartExpiryDate,
+          expiresAt: smartResult.date,
           unit: product.unit || 'st',
-          price: product.price, // Spara priset för framtida funktioner
-          category: productCategory // Spara kategori
+          price: product.price,
+          category: categoryResult.category,
+          confidence: smartResult.confidence,
+          aiMethod: smartResult.method,
+          adjustments: smartResult.adjustments
         }
       })
       
@@ -404,21 +436,24 @@ export default function App() {
         console.log('⚠️ Okänd produkt - använder streckkod som namn')
       }
       
-      // 🤖 Använd AI för att beräkna utgångsdatum
-      const smartExpiryDate = calculateExpiryDate(itemName, productInfo)
-      const productCategory = getProductCategory(itemName, productInfo)
+      // 🤖 Använd smart AI för att beräkna utgångsdatum
+      const smartResult = calculateSmartExpiryDate(itemName, productInfo)
+      const categoryResult = getSmartProductCategory(itemName, productInfo)
       
-      console.log(`🎯 Produktkategori: ${productCategory}`)
-      console.log(`📅 AI-beräknat utgångsdatum: ${smartExpiryDate}`)
+      console.log(`🎯 Produktkategori: ${categoryResult.category} (konfidenz: ${categoryResult.confidence}%)`)
+      console.log(`📅 Smart AI-beräknat utgångsdatum: ${smartResult.date} (${smartResult.method})`)
       
       // Skapa det nya objektet
       const newItem = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
         name: itemName,
         quantity: itemQuantity,
-        expiresAt: smartExpiryDate,
+        expiresAt: smartResult.date,
         unit: SV_UNITS[getSuggestedUnitKey(itemName)] || SV_UNITS.defaultUnit,
-        category: productCategory // Spara kategori för framtida användning
+        category: categoryResult.category,
+        confidence: smartResult.confidence,
+        aiMethod: smartResult.method,
+        adjustments: smartResult.adjustments
       }
       
       // Lägg till varan direkt i listan
@@ -658,10 +693,23 @@ export default function App() {
                     <div className="item-sub">
                       <span>Utgång: {i.expiresAt || '—'}</span>
                       <span className="status">{status}</span>
+                      {i.confidence && (
+                        <span className="ai-info" title={`AI-metod: ${i.aiMethod}\nKonfidenz: ${i.confidence}%\nJusteringar: ${i.adjustments || 0}`}>
+                          🤖 {i.confidence}%
+                        </span>
+                      )}
                     </div>
                   </div>
                   {!bulkMode && (
                     <div className="item-actions">
+                      <button 
+                        className="edit-btn" 
+                        onClick={() => handleEditExpiry(i)}
+                        title="Justera utgångsdatum"
+                        aria-label="Justera utgångsdatum"
+                      >
+                        📝
+                      </button>
                       <button 
                         className="remove-btn" 
                         onClick={() => onRemove(i.id)}
@@ -751,6 +799,17 @@ export default function App() {
       onScan={handleScanBarcode}
       onReceiptScan={handleReceiptScan}
     />
+    
+    {showExpirySettings && editingItem && (
+      <ExpirySettings 
+        item={editingItem}
+        onUpdate={handleExpiryUpdate}
+        onClose={() => {
+          setShowExpirySettings(false)
+          setEditingItem(null)
+        }}
+      />
+    )}
     </>
   )
 }

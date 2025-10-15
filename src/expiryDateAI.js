@@ -2,7 +2,7 @@
 // Använder produktinformation för att uppskatta hållbarhet
 
 // Databas över typiska hållbarhetstider (i dagar från inköpsdatum)
-const PRODUCT_SHELF_LIFE = {
+export const PRODUCT_SHELF_LIFE = {
   // Mejeri
   'mjölk': 7,
   'milk': 7,
@@ -67,7 +67,7 @@ const PRODUCT_SHELF_LIFE = {
 }
 
 // Kategorier och deras typiska hållbarhetstider
-const CATEGORY_SHELF_LIFE = {
+export const CATEGORY_SHELF_LIFE = {
   'mejeri': 10,        // Dairy
   'kött': 3,           // Meat
   'fisk': 2,           // Fish
@@ -84,7 +84,7 @@ const CATEGORY_SHELF_LIFE = {
 }
 
 // AI-funktion för att kategorisera produkter
-function categorizeProduct(productName, productInfo = null) {
+export function categorizeProduct(productName, productInfo = null) {
   if (!productName) return 'okänd'
   
   const name = productName.toLowerCase()
