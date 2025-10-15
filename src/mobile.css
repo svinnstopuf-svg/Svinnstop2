@@ -1051,6 +1051,71 @@ input:focus {
   justify-content: center;
 }
 
+/* Datumscanning frame */
+.date-scan-frame {
+  position: absolute;
+  top: 30%;
+  left: 15%;
+  right: 15%;
+  bottom: 30%;
+  border: 2px solid #ff9800;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 152, 0, 0.1);
+}
+
+.date-scan-frame .frame-text {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Hittade datum */
+.found-dates {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.found-dates h4 {
+  margin: 0 0 12px 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.date-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.date-option-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 120px;
+}
+
+.date-option-btn:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+}
+
 .frame-corners::before,
 .frame-corners::after {
   content: '';

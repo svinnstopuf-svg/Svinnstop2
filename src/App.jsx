@@ -593,14 +593,34 @@ export default function App() {
             <div className="form-row">
               <label>
                 <span>Utgångsdatum</span>
-                <input 
-                  type="date" 
-                  name="expiresAt" 
-                  value={form.expiresAt} 
-                  onChange={onChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  required 
-                />
+                <div className="expiry-input-container">
+                  <input 
+                    type="date" 
+                    name="expiresAt" 
+                    value={form.expiresAt} 
+                    onChange={onChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    required 
+                  />
+                  {form.name && (
+                    <div className="expiry-helper">
+                      <span className="helper-text">💡 Kolla förpackningen för exakt datum</span>
+                      {suggestedUnit && (
+                        <button 
+                          type="button"
+                          className="ai-suggestion-btn"
+                          onClick={() => {
+                            const smartResult = calculateSmartExpiryDate(form.name, null)
+                            setForm(prev => ({ ...prev, expiresAt: smartResult.date }))
+                          }}
+                          title="Använd AI-förslag som utgångspunkt"
+                        >
+                          🤖 AI-förslag
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </label>
             </div>
           </div>
@@ -795,6 +815,11 @@ export default function App() {
       }}
       onScan={handleScanBarcode}
       onReceiptScan={handleReceiptScan}
+      onDateScan={(date) => {
+        console.log('📅 Datum scannat:', date)
+        setForm(prev => ({ ...prev, expiresAt: date }))
+        setScanSuccessful(true)
+      }}
     />
     
     {showExpirySettings && editingItem && (

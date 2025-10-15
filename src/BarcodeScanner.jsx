@@ -1,18 +1,22 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { processReceiptImage } from './receiptProcessor'
+import Tesseract from 'tesseract.js'
 
-const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
+const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan }) => {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const [codeReader, setCodeReader] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState(null)
   const [hasPermission, setHasPermission] = useState(null)
-  const [scanMode, setScanMode] = useState('barcode') // 'barcode' eller 'receipt'
+  const [scanMode, setScanMode] = useState('barcode') // 'barcode', 'receipt' eller 'date'
   const [isProcessingReceipt, setIsProcessingReceipt] = useState(false)
   const [focusPoint, setFocusPoint] = useState(null)
   const [showFocusRing, setShowFocusRing] = useState(false)
+  const [isProcessingDate, setIsProcessingDate] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(0)
+  const [foundDates, setFoundDates] = useState([])
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -211,6 +215,140 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
     }
   }
 
+  // Scanna utgångsdatum med OCR
+  const captureDateScan = async () => {
+    if (!videoRef.current) return
+    
+    try {
+      setIsProcessingDate(true)
+      setFoundDates([])
+      setOcrProgress(0)
+      
+      // Skapa canvas och fånga bild från video
+      const canvas = canvasRef.current
+      const video = videoRef.current
+      const ctx = canvas.getContext('2d')
+      
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      ctx.drawImage(video, 0, 0)
+      
+      console.log('📅 Scannar utgångsdatum med OCR...')
+      
+      // OCR med Tesseract
+      const result = await Tesseract.recognize(
+        canvas,
+        'eng+swe', // Stöd för svenska och engelska
+        {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setOcrProgress(Math.round(m.progress * 100))
+            }
+          }
+        }
+      )
+      
+      console.log('OCR resultat:', result.data.text)
+      
+      // Extrahera datum från OCR-text
+      const dates = extractDatesFromText(result.data.text)
+      
+      if (dates.length > 0) {
+        console.log('✅ Hittade datum:', dates)
+        setFoundDates(dates)
+      } else {
+        setError('Inga utgångsdatum hittades. Försök hålla förpackningen närmare och se till att datumet är tydligt.')
+      }
+      
+    } catch (error) {
+      console.error('❌ Datum OCR fel:', error)
+      setError('Kunde inte läsa datumet. Kontrollera belysningen och försök igen.')
+    } finally {
+      setIsProcessingDate(false)
+      setOcrProgress(0)
+    }
+  }
+
+  // Extrahera datum från OCR-text
+  const extractDatesFromText = (text) => {
+    const dates = []
+    
+    // Olika datumformat att söka efter
+    const datePatterns = [
+      // YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
+      /(\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2})/g,
+      // DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY
+      /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4})/g,
+      // DD MMM YYYY, DD MMM YY (svenska månader)
+      /(\d{1,2}\s+(?:jan|feb|mar|apr|maj|jun|jul|aug|sep|okt|nov|dec)[a-z]*\s+\d{2,4})/gi,
+      // Best före, Bäst före, Use by, Exp datum
+      /(?:best\s+före|bäst\s+före|use\s+by|exp\s*:?\s*|expiry\s*:?\s*|expires?\s*:?\s*|förbruka\s+före|sista\s+förbrukningsdag)(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{2,4})/gi
+    ]
+    
+    datePatterns.forEach(pattern => {
+      const matches = text.match(pattern)
+      if (matches) {
+        matches.forEach(match => {
+          const cleanMatch = match.replace(/[^0-9\/\-\.]/g, '')
+          if (cleanMatch.length >= 8) {
+            const parsedDate = parseAndValidateDate(cleanMatch)
+            if (parsedDate) {
+              dates.push(parsedDate)
+            }
+          }
+        })
+      }
+    })
+    
+    // Ta bort dubletter och sortera
+    const uniqueDates = [...new Set(dates)]
+    return uniqueDates.sort()
+  }
+
+  // Parsa och validera datum
+  const parseAndValidateDate = (dateStr) => {
+    try {
+      let date
+      
+      // Försök olika format
+      if (dateStr.match(/^\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2}$/)) {
+        // YYYY-MM-DD format
+        date = new Date(dateStr.replace(/[\/\.]/g, '-'))
+      } else if (dateStr.match(/^\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}$/)) {
+        // DD-MM-YYYY eller MM-DD-YYYY format
+        const parts = dateStr.split(/[-\/\.]/)
+        // Anta europeiskt format (DD-MM-YYYY)
+        date = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`)
+      } else {
+        date = new Date(dateStr)
+      }
+      
+      // Validera att det är ett rimligt datum
+      const today = new Date()
+      const threeYearsFromNow = new Date()
+      threeYearsFromNow.setFullYear(threeYearsFromNow.getFullYear() + 3)
+      
+      if (date >= today && date <= threeYearsFromNow) {
+        return date.toISOString().split('T')[0]
+      }
+      
+    } catch (error) {
+      console.log('Kunde inte parsa datum:', dateStr)
+    }
+    
+    return null
+  }
+
+  // Använd valt datum
+  const selectDate = (date) => {
+    if (onDateScan) {
+      onDateScan(date)
+    }
+    setTimeout(() => {
+      handleClose()
+    }, 200)
+  }
+
   const handleClose = () => {
     console.log('Stänger scanner...')
     
@@ -245,6 +383,9 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
     setHasPermission(null)
     setScanMode('barcode')
     setIsProcessingReceipt(false)
+    setIsProcessingDate(false)
+    setFoundDates([])
+    setOcrProgress(0)
     
     // Stäng modal
     onClose()
@@ -257,7 +398,11 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
     <div className="scanner-overlay">
       <div className="scanner-modal">
         <div className="scanner-header">
-          <h3>{scanMode === 'barcode' ? '📱 Scanna streckkod' : '🧾 Scanna kvitto'}</h3>
+          <h3>
+            {scanMode === 'barcode' && '📱 Scanna streckkod'}
+            {scanMode === 'receipt' && '🧾 Scanna kvitto'}
+            {scanMode === 'date' && '📅 Scanna utgångsdatum'}
+          </h3>
           <div className="scanner-mode-toggle">
             <button 
               onClick={() => setScanMode('barcode')}
@@ -272,6 +417,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
               title="Kvittoscanning"
             >
               🧾
+            </button>
+            <button 
+              onClick={() => setScanMode('date')}
+              className={`mode-btn ${scanMode === 'date' ? 'active' : ''}`}
+              title="Datumscanning"
+            >
+              📅
             </button>
           </div>
           <button 
@@ -319,15 +471,28 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
                   style={{ display: 'none' }}
                 />
                 <div className="scanner-overlay-frame">
-                  {scanMode === 'barcode' ? (
+                  {scanMode === 'barcode' && (
                     <div className="scan-line"></div>
-                  ) : (
+                  )}
+                  {scanMode === 'receipt' && (
                     <div className="receipt-frame">
                       <div className="frame-corners"></div>
                       {isProcessingReceipt && (
                         <div className="processing-overlay">
                           <div className="spinner"></div>
                           <p>Läser kvitto...</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {scanMode === 'date' && (
+                    <div className="date-scan-frame">
+                      <div className="frame-corners"></div>
+                      <div className="frame-text">Centrera utgångsdatumet här</div>
+                      {isProcessingDate && (
+                        <div className="processing-overlay">
+                          <div className="spinner"></div>
+                          <p>Läser datum... {ocrProgress}%</p>
                         </div>
                       )}
                     </div>
@@ -348,16 +513,24 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
               </div>
               
               <div className="scanner-instructions">
-                {scanMode === 'barcode' ? (
+                {scanMode === 'barcode' && (
                   <>
                     <p>🎯 Rikta kameran mot streckkoden</p>
                     <p>Håll enheten stadigt och se till att streckkoden är tydligt synlig</p>
                     <p>👆 Tryck på bilden för att fokusera</p>
                   </>
-                ) : (
+                )}
+                {scanMode === 'receipt' && (
                   <>
                     <p>🧾 Centrera kvittot i bildrutan</p>
                     <p>Se till att hela kvittot syns och texten är tydlig</p>
+                    <p>👆 Tryck på bilden för att fokusera</p>
+                  </>
+                )}
+                {scanMode === 'date' && (
+                  <>
+                    <p>📅 Rikta kameran mot utgångsdatumet på förpackningen</p>
+                    <p>Se till att datumet är tydligt och välbelyst</p>
                     <p>👆 Tryck på bilden för att fokusera</p>
                   </>
                 )}
@@ -372,6 +545,35 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan }) => {
                   >
                     {isProcessingReceipt ? '⚙️ Bearbetar...' : '📸 Läs kvitto'}
                   </button>
+                </div>
+              )}
+              
+              {scanMode === 'date' && (
+                <div className="scanner-capture">
+                  <button 
+                    onClick={captureDateScan}
+                    disabled={isProcessingDate}
+                    className="capture-btn"
+                  >
+                    {isProcessingDate ? `⚙️ Läser... ${ocrProgress}%` : '📅 Scanna datum'}
+                  </button>
+                </div>
+              )}
+              
+              {foundDates.length > 0 && (
+                <div className="found-dates">
+                  <h4>🎯 Hittade datum:</h4>
+                  <div className="date-options">
+                    {foundDates.map((date, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => selectDate(date)}
+                        className="date-option-btn"
+                      >
+                        📅 {date}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </>
