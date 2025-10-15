@@ -220,47 +220,78 @@ export class ReceiptProcessor {
     return null
   }
 
-  // AI-baserad intelligent matvarubedömning
+  // Avancerad AI för sömlös produktigenkänning
   isLikelyFoodProduct(productName) {
     if (!productName || productName.length < 2) return false
     
     const name = productName.toLowerCase().trim()
     
-    // Definitivt INTE matvaror (hög precision)
+    // Definitivt INTE matvaror (hög precision med fuzzy matching)
     const definitelyNotFood = [
-      'påse', 'plastpåse', 'kasse', 'bärare', 'papperspåse',
-      'diskmedel', 'tvättmedel', 'städ', 'rengöring', 'kemikalie',
-      'tandkräm', 'tandborste', 'schampo', 'tvål', 'deodorant',
-      'batterier', 'glödlampa', 'tidning', 'magasin', 'present',
-      'blommor', 'växt', 'leksak', 'cigaretter', 'tobak'
+      'påse', 'plastpåse', 'kasse', 'bärare', 'papperspåse', 'shopping', 'bag',
+      'diskmedel', 'tvättmedel', 'städ', 'rengöring', 'kemikalie', 'spray',
+      'tandkräm', 'tandborste', 'schampo', 'tvål', 'deodorant', 'shampoo',
+      'batterier', 'glödlampa', 'tidning', 'magasin', 'present', 'gåva',
+      'blommor', 'växt', 'leksak', 'cigaretter', 'tobak', 'lighter',
+      'verktyg', 'skruv', 'spik', 'järn', 'plast', 'metall', 'elektronik'
     ]
     
-    if (definitelyNotFood.some(item => name.includes(item))) {
+    // Fuzzy matching för icke-matvaror
+    if (definitelyNotFood.some(item => this.fuzzyMatch(name, item, 0.8))) {
+      console.log(`🚫 Fuzzy match icke-matvara: "${productName}"`)
       return false
     }
     
-    // Matvaruindikatorer (bred lista)
+    // Omfattande matvaruindikatorer med svenska termer, varumärken och synonymer
     const foodIndicators = [
-      // Frukt & grönt
-      'äpple', 'päron', 'banan', 'apelsin', 'citron', 'lime', 'kiwi', 'mango', 'ananas',
-      'vindruv', 'melon', 'vattenmelon', 'jordgubb', 'hallon', 'blåbär', 'lingon',
-      'tomat', 'gurka', 'paprika', 'lök', 'vitlök', 'morot', 'potatis', 'sötpotatis',
-      'broccoli', 'blomkål', 'kål', 'sallad', 'spenat', 'ruccola', 'dill', 'persilja',
-      'purjolök', 'selleri', 'rädisa', 'rödbetor', 'palsternacka', 'kålrot',
+      // Frukt & grönt (svenska och internationella namn)
+      'äpple', 'apple', 'päron', 'pears', 'banan', 'banana', 'apelsin', 'orange', 
+      'citron', 'lemon', 'lime', 'kiwi', 'mango', 'ananas', 'pineapple',
+      'vindruv', 'grapes', 'melon', 'vattenmelon', 'watermelon', 'cantaloupe',
+      'jordgubb', 'strawberry', 'hallon', 'raspberry', 'blåbär', 'blueberry', 
+      'lingon', 'cranberry', 'björnbär', 'blackberry', 'vinbär', 'currant',
+      'tomat', 'tomato', 'gurka', 'cucumber', 'paprika', 'pepper', 'chili',
+      'lök', 'onion', 'rödlök', 'vitlök', 'garlic', 'morot', 'carrot', 
+      'potatis', 'potato', 'sötpotatis', 'sweet potato', 'rotselleri', 'celery',
+      'broccoli', 'blomkål', 'cauliflower', 'kål', 'cabbage', 'vitkål', 'rödkål',
+      'sallad', 'lettuce', 'iceberg', 'rucola', 'arugula', 'spenat', 'spinach',
+      'dill', 'persilja', 'parsley', 'basilika', 'basil', 'oregano', 'timjan', 'thyme',
+      'purjolök', 'leek', 'selleri', 'rädisa', 'radish', 'rödbetor', 'beetroot',
+      'palsternacka', 'parsnip', 'kålrot', 'swede', 'pumpa', 'pumpkin',
+      'zucchini', 'squash', 'aubergine', 'eggplant', 'avokado', 'avocado',
       
-      // Kött & chark
-      'kött', 'nötkött', 'fläskkött', 'lamm', 'kyckling', 'kalkonfläsk', 'korv',
-      'prinskorv', 'falukorv', 'salami', 'skinka', 'bacon', 'köttbullar', 'fläskfilé',
-      'nötfärs', 'kyckling', 'kycklingfilé', 'köttfärs',
+      // Kött & chark (svenska termer + varumärken)
+      'kött', 'meat', 'nötkött', 'beef', 'fläsk', 'pork', 'lamm', 'lamb',
+      'kyckling', 'chicken', 'kalkon', 'turkey', 'and', 'duck', 'gås', 'goose',
+      'korv', 'sausage', 'prinskorv', 'falukorv', 'salami', 'chorizo', 'pepperoni',
+      'skinka', 'ham', 'bacon', 'fläsk', 'kassler', 'rökt', 'smoked',
+      'köttbullar', 'meatballs', 'köttfärs', 'mince', 'färs', 'ground',
+      'fläskfilé', 'pork tenderloin', 'nötfilé', 'beef fillet', 'entrecote',
+      'kyckling', 'kycklingfilé', 'chicken breast', 'kycklinglår', 'chicken thigh',
+      // Svenska köttvarumärken
+      'scan', 'danish crown', 'krönjägaren', 'levängers', 'gunnarshög',
       
       // Fisk & skaldjur
       'fisk', 'lax', 'torsk', 'sill', 'makrill', 'tonfisk', 'räkor', 'kräftor',
       'musslor', 'hummer', 'krabba', 'abborre', 'gädda',
       
-      // Mejeri
-      'mjölk', 'grädde', 'filmjölk', 'yoghurt', 'naturell', 'grekisk', 'kvarg',
-      'ost', 'cheddar', 'gouda', 'brie', 'herrgård', 'präst', 'västerbotten',
-      'smör', 'margarin', 'crème fraiche', 'philadelphia', 'cottage cheese',
+      // Mejeri (svenska termer + varumärken)
+      'mjölk', 'milk', 'standardmjölk', 'mellanmjölk', 'lättmjölk', 'minimjölk',
+      'havremjölk', 'oat milk', 'mandelmjölk', 'almond milk', 'sojamjölk', 'soy milk',
+      'grädde', 'cream', 'vispgrädde', 'whipping cream', 'matlagningsgrädde',
+      'filmjölk', 'soured milk', 'kefir', 'buttermilk', 'kärnmjölk',
+      'yoghurt', 'yogurt', 'naturell', 'natural', 'grekisk', 'greek', 'probiotisk',
+      'kvarg', 'quark', 'cottage cheese', 'keso', 'ricotta',
+      // Osttyper
+      'ost', 'cheese', 'cheddar', 'gouda', 'brie', 'camembert', 'roquefort',
+      'herrgård', 'präst', 'västerbotten', 'grädd', 'hård', 'mjölk',
+      'mozzarella', 'parmesan', 'feta', 'getost', 'chevre', 'blue cheese',
+      // Smör & margarin
+      'smör', 'butter', 'margarin', 'margarine', 'bregott', 'flora', 'lätta',
+      'crème fraiche', 'philadelphia', 'sourcream', 'gräddfil',
+      // Svenska mejerivarumärken
+      'arla', 'skånemejerier', 'norrmejerier', 'falsterbo', 'längkärra',
+      'krono', 'milko', 'garant', 'eldorado',
       
       // Ägg
       'ägg', 'hönsägg', 'ekologiska ägg',
@@ -291,45 +322,204 @@ export class ReceiptProcessor {
       'choklad', 'marabou', 'fazer', 'lindt', 'godis', 'lösgodis',
       'kex', 'digestive', 'maria', 'ballerina', 'göteborgs',
       
-      // Drycker
-      'juice', 'äppeljuice', 'apelsinjuice', 'tranbärsjuice',
-      'läsk', 'coca cola', 'pepsi', 'sprite', 'fanta', 'festis',
-      'vatten', 'mineralvatten', 'ramlösa', 'loka', 'evian',
-      'kaffe', 'te', 'earl grey', 'grön te', 'rooibos', 'chai',
-      'öl', 'folköl', 'lättöl', 'starköl', 'ipa', 'lager',
-      'vin', 'rödvin', 'vitt vin', 'rosé', 'champagne', 'prosecco',
+      // Drycker (med svenska varumärken)
+      'juice', 'äppeljuice', 'apelsinjuice', 'tranbärsjuice', 'ananasjuice',
+      'bravo', 'tropicana', 'god morgon', 'froosh', 'innocent', 'råjuice',
+      'läsk', 'coca cola', 'pepsi', 'sprite', 'fanta', 'festis', 'julmust',
+      '7up', 'mirinda', 'schweppes', 'trocadero', 'pommac', 'champis',
+      'vatten', 'mineralvatten', 'ramlösa', 'loka', 'evian', 'bonaqua',
+      'källvatten', 'naturell', 'kolsyrat', 'still', 'sparkling',
+      // Varma drycker
+      'kaffe', 'coffee', 'espresso', 'cappuccino', 'latte', 'americano',
+      'gevalia', 'löfbergs', 'zoegas', 'arvid nordquist', 'classic',
+      'te', 'tea', 'earl grey', 'grön te', 'green tea', 'rooibos', 'chai',
+      'lipton', 'tetley', 'twinings', 'örtte', 'kusmi',
+      // Alkohol
+      'öl', 'beer', 'folköl', 'lättöl', 'starköl', 'ipa', 'lager',
+      'carlsberg', 'heineken', 'stella artois', 'brooklyn', 'spendrups',
+      'vin', 'wine', 'rödvin', 'red wine', 'vitt vin', 'white wine',
+      'rosé', 'champagne', 'prosecco', 'cava', 'sprit', 'vodka', 'whiskey',
       
-      // Fryst & kött
-      'fryst', 'frozen', 'kött', 'korv', 'pizza', 'pannkakor',
-      'glass', 'magnum', 'ben jerry', 'häagen dazs', 'gb',
+      // Bröd & bakverk (svenska varumärken)
+      'bröd', 'bread', 'limpa', 'tunnbröd', 'knäckebröd', 'rye bread',
+      'polarbröd', 'skogaholm', 'wasa', 'leksands', 'fin crisp', 'ryvita',
+      'hamburgerbröd', 'toast', 'bagel', 'croissant', 'scones', 'muffins',
       
-      // Övrigt
-      'baby', 'barnmat', 'välling', 'gröt', 'follow', 'semper',
-      'glutenfri', 'laktosfri', 'vegansk', 'vegetarisk', 'eko', 'krav'
+      // Sötsaker & snacks (svenska varumärken)
+      'choklad', 'chocolate', 'marabou', 'fazer', 'lindt', 'toblerone',
+      'godis', 'candy', 'lösgodis', 'haribo', 'malaco', 'cloetta',
+      'kex', 'cookies', 'digestive', 'maria', 'ballerina', 'göteborgs',
+      'chips', 'estrella', 'ojä', 'taffel', 'pringles', 'cheez doodles',
+      'popcorn', 'nötter', 'nuts', 'mandel', 'cashew', 'pistasch',
+      
+      // Fryst & glass
+      'fryst', 'frozen', 'frysta', 'köttbullar', 'pizza', 'pannkakor',
+      'glass', 'ice cream', 'magnum', 'ben jerry', 'häagen dazs', 'gb',
+      'struts', '88:an', 'nogger', 'cornetto', 'päron split',
+      
+      // Kryddor & såser (svenska varumärken)
+      'krydda', 'spice', 'santa maria', 'ica basic', 'garant',
+      'ketchup', 'senap', 'mustard', 'majonnäs', 'mayonnaise', 'felix',
+      'sojasås', 'soy sauce', 'sriracha', 'tabasco', 'worcester',
+      
+      // Specialkost & hälsa
+      'glutenfri', 'gluten free', 'laktosfri', 'lactose free', 'vegansk', 'vegan',
+      'vegetarisk', 'vegetarian', 'eko', 'organic', 'krav', 'färsk', 'fresh',
+      'naturell', 'natural', 'hälsokost', 'superfood', 'protein',
+      
+      // Barnmat
+      'baby', 'barnmat', 'baby food', 'välling', 'gröt', 'porridge',
+      'semper', 'nestle', 'follow', 'hipp', 'blådra', 'näringsdryck',
+      
+      // Fisk & skaldjur (utökade)
+      'fisk', 'fish', 'lax', 'salmon', 'torsk', 'cod', 'sill', 'herring',
+      'makrill', 'mackerel', 'tonfisk', 'tuna', 'räkor', 'shrimp',
+      'kräftor', 'crayfish', 'musslor', 'mussels', 'ostron', 'oysters'
     ]
     
-    // Om namnet innehåller någon matvaruindikator
-    if (foodIndicators.some(indicator => name.includes(indicator))) {
+    // Använd avancerad produktanalys
+    const analysis = this.analyzeProductName(productName)
+    
+    // Fuzzy matching mot matvaruindikatorer
+    const fuzzyMatches = foodIndicators.filter(indicator => 
+      this.fuzzyMatch(name, indicator, 0.6)
+    )
+    
+    if (fuzzyMatches.length > 0) {
+      console.log(`🎯 Fuzzy match matvaror: ${fuzzyMatches.join(', ')} för "${productName}"`);
       return true
     }
     
-    // Heuristik: korta ord som verkar vara matvaror
+    // Använd AI-analys med konfidensgrad
+    if (analysis.confidence >= 0.4) {
+      console.log(`🤖 AI-analys: ${Math.round(analysis.confidence * 100)}% säker på "${productName}" (${analysis.categories.join(', ')})`);
+      return true
+    }
+    
+    // Varumärke ger hög troliga
+    if (analysis.brandMatch) {
+      console.log(`🎆 Känt varumärke "${analysis.brandMatch}" för "${productName}"`);
+      return true
+    }
+    
+    // Heuristik för svenska matvarunamn
     if (name.length <= 15) {
-      // Vanliga svenska matvaruord-ändelser
       const foodEndings = ['mjölk', 'ost', 'kött', 'fisk', 'bröd', 'juice', 'gryn', 'olja']
       if (foodEndings.some(ending => name.endsWith(ending))) {
+        console.log(`🔍 Matvarusuffix hittad i "${productName}"`);
         return true
       }
     }
     
-    // Standard fallback - om det passerat alla filter och ser ut som ett produktnamn
-    // Låt det passera och låt användaren avgöra
-    if (name.match(/^[a-zåäö\s]+$/i) && name.length >= 3 && name.length <= 25) {
-      console.log(`⚠️ Osäker produkt som får passera: "${productName}"`);
-      return true
+    // Generisk produktnamns-heuristik (lägre tröskel för sömlös upplevelse)
+    if (name.match(/^[a-zåäö\s-]{3,20}$/i) && !name.match(/\d{3,}/)) {
+      console.log(`❓ Osäker men tillåter: "${productName}" (användaren avgör)`);
+      return true  // Mer generös för sömlös upplevelse
     }
     
+    console.log(`🚫 Filtrerar definitivt bort: "${productName}"`);
     return false
+  }
+
+  // Fuzzy string matching för intelligent produktigenkänning
+  fuzzyMatch(str1, str2, threshold = 0.7) {
+    if (!str1 || !str2) return false
+    
+    const s1 = str1.toLowerCase().trim()
+    const s2 = str2.toLowerCase().trim()
+    
+    // Exakt match
+    if (s1 === s2) return true
+    
+    // Substring match
+    if (s1.includes(s2) || s2.includes(s1)) return true
+    
+    // Levenshtein distance för fuzzy matching
+    const distance = this.levenshteinDistance(s1, s2)
+    const maxLen = Math.max(s1.length, s2.length)
+    const similarity = 1 - (distance / maxLen)
+    
+    return similarity >= threshold
+  }
+  
+  // Levenshtein distance algoritm
+  levenshteinDistance(str1, str2) {
+    const matrix = []
+    
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i]
+    }
+    
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j
+    }
+    
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1,     // insertion
+            matrix[i - 1][j] + 1      // deletion
+          )
+        }
+      }
+    }
+    
+    return matrix[str2.length][str1.length]
+  }
+  
+  // Intelligent produktnamnsanalys med NLP-liknande tekniker
+  analyzeProductName(name) {
+    const analysis = {
+      originalName: name,
+      confidence: 0,
+      foodProbability: 0,
+      categories: [],
+      brandMatch: null,
+      cleanedName: this.cleanProductName(name)
+    }
+    
+    const lowerName = name.toLowerCase()
+    
+    // Kategoriklassificering
+    const categories = {
+      'frukt_gront': ['frukt', 'grön', 'sallad', 'tomat', 'gurka', 'potatis'],
+      'mejeri': ['mjölk', 'ost', 'yoghurt', 'smör', 'grädde'],
+      'kott_fisk': ['kött', 'fisk', 'kyckling', 'korv', 'skinka'],
+      'brod_spannmal': ['bröd', 'pasta', 'ris', 'havregryn'],
+      'drycker': ['juice', 'läsk', 'vatten', 'kaffe', 'te'],
+      'godis_snacks': ['choklad', 'godis', 'chips', 'kex']
+    }
+    
+    for (const [category, keywords] of Object.entries(categories)) {
+      if (keywords.some(keyword => lowerName.includes(keyword))) {
+        analysis.categories.push(category)
+        analysis.foodProbability += 0.2
+      }
+    }
+    
+    // Varumärkesigenkänning
+    const brands = ['arla', 'fazer', 'marabou', 'felix', 'scan', 'ica', 'coop']
+    for (const brand of brands) {
+      if (lowerName.includes(brand)) {
+        analysis.brandMatch = brand
+        analysis.foodProbability += 0.3
+        break
+      }
+    }
+    
+    // Specialmarkeringar
+    const specialMarkers = ['eko', 'krav', 'glutenfri', 'laktosfri']
+    if (specialMarkers.some(marker => lowerName.includes(marker))) {
+      analysis.foodProbability += 0.2
+    }
+    
+    analysis.confidence = Math.min(analysis.foodProbability, 1.0)
+    
+    return analysis
   }
 
   cleanProductName(name) {
