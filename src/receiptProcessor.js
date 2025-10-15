@@ -163,22 +163,48 @@ export class ReceiptProcessor {
   }
   
   extractUnit(text) {
-    // Extrahera enhet från kvittotexten
+    const lowerText = text.toLowerCase()
+    
+    // Först kolla explicita enheter i texten
     const unitPatterns = [
       { pattern: /\d+(?:[.,]\d+)?\s*(kg)/i, unit: 'kg' },
       { pattern: /\d+(?:[.,]\d+)?\s*(g)(?:\s|$)/i, unit: 'g' },
       { pattern: /\d+(?:[.,]\d+)?\s*(L)/i, unit: 'L' },
       { pattern: /\d+\s*(cl)/i, unit: 'cl' },
       { pattern: /\d+\s*(ml)/i, unit: 'ml' },
-      { pattern: /\d+\s*(st)(?:\s|$)/i, unit: 'st' },
-      { pattern: /\d+\s*x\s*/i, unit: 'st' } // "2x" betyder styck
+      { pattern: /\d+\s*(st)(?:\s|$)/i, unit: 'st' }
     ]
     
+    // Kolla för explicita enheter först
     for (const { pattern, unit } of unitPatterns) {
       if (pattern.test(text)) {
-        console.log(`📎 Extraherad enhet: ${unit} från "${text}"`)
+        console.log(`📎 Extraherad explicit enhet: ${unit} från "${text}"`)
         return unit
       }
+    }
+    
+    // Om "2x" format, gissa rätt enhet baserat på produkttyp
+    if (/\d+\s*x\s*/i.test(text)) {
+      // Vätskor ska vara i liter även om det står "2x Mjölk"
+      if (lowerText.includes('mjölk') || lowerText.includes('juice') || 
+          lowerText.includes('läsk') || lowerText.includes('vatten') ||
+          lowerText.includes('grädde') || lowerText.includes('filmjölk') ||
+          lowerText.includes('öl') || lowerText.includes('vin')) {
+        console.log(`🥛 Vätska med 'x' format - använder L: "${text}"`)
+        return 'L'
+      }
+      
+      // Kött/ost i kg
+      if (lowerText.includes('kött') || lowerText.includes('ost') || 
+          lowerText.includes('skinka') || lowerText.includes('korv') ||
+          lowerText.includes('fisk') || lowerText.includes('kyckling')) {
+        console.log(`🥩 Kött/ost med 'x' format - använder kg: "${text}"`)
+        return 'kg'
+      }
+      
+      // Annars styck
+      console.log(`📎 'x' format - använder st: "${text}"`)
+      return 'st'
     }
     
     return null
@@ -187,41 +213,63 @@ export class ReceiptProcessor {
   guessUnit(productName) {
     const name = productName.toLowerCase()
     
-    // Vätskor - ofta i liter eller cl
+    // Vätskor - ALLTID i liter
     if (name.includes('mjölk') || name.includes('juice') || name.includes('läsk') || 
         name.includes('öl') || name.includes('vin') || name.includes('vatten') ||
-        name.includes('grädde') || name.includes('filmjölk')) {
+        name.includes('grädde') || name.includes('filmjölk') || name.includes('yoghurt') ||
+        name.includes('kefir') || name.includes('smoothie')) {
+      console.log(`🥛 Gissar enhet L för vätska: ${productName}`)
       return 'L'
     }
     
-    // Kött/fisk/ost - oftast i gram/kg
+    // Kött/fisk/ost - i kg (eller g för mindre mängder)
     if (name.includes('kött') || name.includes('ost') || name.includes('skinka') || 
         name.includes('korv') || name.includes('fisk') || name.includes('kyckling') ||
         name.includes('nöt') || name.includes('fläsk') || name.includes('bacon') ||
-        name.includes('lax') || name.includes('torsk')) {
+        name.includes('lax') || name.includes('torsk') || name.includes('räka')) {
+      console.log(`🥩 Gissar enhet kg för kött/fisk: ${productName}`)
       return 'kg'
     }
     
-    // Lösviktsvaror - frukt/grönsaker
+    // Lösviktsvaror - frukt/grönsaker i kg
     if (name.includes('tomat') || name.includes('potatis') || name.includes('äpple') || 
         name.includes('banan') || name.includes('gurka') || name.includes('morot') ||
         name.includes('lök') || name.includes('paprika') || name.includes('avokado') ||
-        name.includes('citron') || name.includes('apelsin')) {
+        name.includes('citron') || name.includes('apelsin') || name.includes('päron') ||
+        name.includes('sallad') || name.includes('broccoli') || name.includes('blomkål')) {
+      console.log(`🥦 Gissar enhet kg för frukt/grönsaker: ${productName}`)
       return 'kg'
     }
     
-    // Bröd och bakvaror - oftast per styck
+    // Torrvaror som säljs i kg
+    if (name.includes('ris') || name.includes('pasta') || name.includes('mjöl') ||
+        name.includes('socker') || name.includes('nötter') || name.includes('mandel')) {
+      console.log(`🌾 Gissar enhet kg för torrvara: ${productName}`)
+      return 'kg'
+    }
+    
+    // Bröd och bakvaror - per styck
     if (name.includes('bröd') || name.includes('kaka') || name.includes('bulle') ||
-        name.includes('muffin') || name.includes('tårta')) {
+        name.includes('muffin') || name.includes('tårta') || name.includes('kex')) {
+      console.log(`🍞 Gissar enhet st för bakvara: ${productName}`)
       return 'st'
     }
     
-    // Konserver och förpackningar
-    if (name.includes('burk') || name.includes('konserv') || name.includes('förpackning')) {
+    // Konserver och förpackningar - per styck
+    if (name.includes('burk') || name.includes('konserv') || name.includes('förpackning') ||
+        name.includes('tårta') || name.includes('pizza')) {
+      console.log(`🥫 Gissar enhet st för förpackning: ${productName}`)
+      return 'st'
+    }
+    
+    // Ägg - per styck eller förpackning
+    if (name.includes('ägg')) {
+      console.log(`🥚 Gissar enhet st för ägg: ${productName}`)
       return 'st'
     }
     
     // Standard fallback
+    console.log(`❓ Okänd produkttyp - använder st som fallback: ${productName}`)
     return 'st'
   }
 
