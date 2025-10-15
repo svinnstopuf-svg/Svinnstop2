@@ -1,4 +1,5 @@
 import { createWorker } from 'tesseract.js'
+import { analyzeAgainstTrainingData, cleanReceiptProductName } from './receiptTrainingData.js'
 
 // Kvitto-processor som använder OCR för att läsa produkter från kvitton
 export class ReceiptProcessor {
@@ -589,12 +590,10 @@ export class ReceiptProcessor {
       }
     }
     
-    // ***SKÄRPT*** Generisk produktnamns-heuristik - bara för riktiga ord
-    if (name.length >= 4 && name.length <= 15 && 
-        name.match(/^[a-zåäö\s-]+$/i) && 
-        !name.match(/\d{3,}/) &&
-        this.looksLikeRealSwedishWord(name)) {
-      console.log(`❓ Osäker men verkar vara svenskt ord: "${productName}"`);
+    // ***TRÄNINGSDATA-BASERAD*** Validering - jämför mot verkliga kvitton
+    const trainingAnalysis = analyzeAgainstTrainingData(productName)
+    if (trainingAnalysis.confidence >= 0.3) {
+      console.log(`🎯 Träningsdata-match (${Math.round(trainingAnalysis.confidence * 100)}%): "${productName}" liknar [${trainingAnalysis.matches.join(', ')}]`);
       return true
     }
     
@@ -942,140 +941,33 @@ export class ReceiptProcessor {
     
     const trimmed = name.trim()
     
-    // Grundläggande längdkontroll
-    if (trimmed.length < 3 || trimmed.length > 40) return false
+    // Grundläggande längdkontroll - mer generös
+    if (trimmed.length < 2 || trimmed.length > 50) return false
     
-    // Måste innehålla bokstäver
-    if (!/[a-zA-ZåäöÅÄÖ]/.test(trimmed)) return false
+    // Måste innehålla minst 2 bokstäver
+    const letterCount = (trimmed.match(/[a-zA-ZåäöÅÄÖ]/g) || []).length
+    if (letterCount < 2) return false
     
     // Får inte bara vara ett pris
     if (/^\d+[.,]\d{2}$/.test(trimmed)) return false
     
-    // ***NYTT*** Filter för nonsens-strängar
+    // Får inte vara bara siffror
+    if (/^\d+$/.test(trimmed)) return false
     
-    // Får inte vara mest konstiga tecken
-    if (/[^a-zA-ZåäöÅÄÖ\s\-0-9]/.test(trimmed)) return false
+    // Får inte vara bara symboler/mellanslag
+    if (!/[a-zA-ZåäöÅÄÖ]/.test(trimmed)) return false
     
-    // Får inte vara mest siffror
-    const letterCount = (trimmed.match(/[a-zA-ZåäöÅÄÖ]/g) || []).length
-    const totalCount = trimmed.replace(/\s/g, '').length
-    if (letterCount / totalCount < 0.6) return false // Minst 60% bokstäver
-    
-    // ***KRITISKT*** Filter för meningslösa bokstavskombinationer
+    // Extrema fall - bara repeterade bokstäver
     const lowerName = trimmed.toLowerCase().replace(/\s/g, '')
-    
-    // Kolla om det är bara random bokstäver utan vokaler
-    const hasVowels = /[aeiouåäö]/.test(lowerName)
-    if (!hasVowels && lowerName.length > 3) {
-      console.log(`🚫 Filtrerar bort nonsens utan vokaler: "${name}"`)
-      return false
-    }
-    
-    // Kolla om det har för många repeterade bokstäver
-    if (/([a-zåäö])\1{2,}/.test(lowerName)) {
+    if (/^([a-zåäö])\1+$/.test(lowerName) && lowerName.length > 2) {
       console.log(`🚫 Filtrerar bort repeterad nonsens: "${name}"`)
       return false
     }
     
-    // Kolla om det ser ut som OCR-skräp (för många enskilda bokstäver)
-    const words = trimmed.split(/\s+/)
-    const singleLetterWords = words.filter(word => word.length === 1)
-    if (singleLetterWords.length > words.length / 2) {
-      console.log(`🚫 Filtrerar bort OCR-skräp med enskilda bokstäver: "${name}"`)
-      return false
-    }
-    
-    // Kolla om det är en svensk-liknande struktur
-    if (!this.hasSwedishWordStructure(lowerName)) {
-      console.log(`🚫 Filtrerar bort icke-svensk struktur: "${name}"`)
-      return false
-    }
-    
+    // Låt träningsdatan göra resten av jobbet!
     return true
   }
   
-  // Kontrollera om en sträng har svensk ordstruktur
-  hasSwedishWordStructure(text) {
-    if (!text || text.length < 3) return false
-    
-    // Måste ha minst en vokal
-    if (!/[aeiouåäö]/.test(text)) return false
-    
-    // Får inte ha för många konsonanter i rad
-    if (/[bcdfghjklmnpqrstvwxz]{4,}/.test(text)) return false
-    
-    // Får inte ha för många vokaler i rad
-    if (/[aeiouåäö]{4,}/.test(text)) return false
-    
-    // Typiska svenska kombos som ALLTID är OK
-    const swedishPatterns = [
-      /ck/, /ch/, /sch/, /sk/, /st/, /sp/, /sw/, /tw/,
-      /ng/, /nk/, /nd/, /nt/, /mp/, /mb/, /lg/, /rg/
-    ]
-    
-    // Om det har svenska mönster är det troligt OK
-    if (swedishPatterns.some(pattern => pattern.test(text))) {
-      return true
-    }
-    
-    // Enkel heuristik: växlande vokal/konsonant är bra
-    let vowelConsonantAlternation = 0
-    for (let i = 0; i < text.length - 1; i++) {
-      const isVowel1 = /[aeiouåäö]/.test(text[i])
-      const isVowel2 = /[aeiouåäö]/.test(text[i + 1])
-      if (isVowel1 !== isVowel2) vowelConsonantAlternation++
-    }
-    
-    // Bra växling indikerar riktigt ord
-    return vowelConsonantAlternation >= Math.min(text.length * 0.3, 2)
-  }
-  
-  // Extra validering för att kolla om det verkligen ser ut som ett svenskt ord
-  looksLikeRealSwedishWord(text) {
-    const lower = text.toLowerCase().trim()
-    
-    // För kort eller för långt
-    if (lower.length < 4 || lower.length > 20) return false
-    
-    // Måste ha både vokaler och konsonanter
-    const hasVowels = /[aeiouåäö]/.test(lower)
-    const hasConsonants = /[bcdfghjklmnpqrstvwxz]/.test(lower)
-    if (!hasVowels || !hasConsonants) return false
-    
-    // Får inte vara mest samma bokstav
-    const uniqueChars = new Set(lower.replace(/\s/g, ''))
-    if (uniqueChars.size < Math.ceil(lower.length / 3)) return false
-    
-    // Svenska ordslut som är vanliga för matvaror
-    const goodSwedishEndings = [
-      'or', 'ar', 'er', 'at', 'ad', 'an', 'en', 'on', 'in',
-      'ost', 'kött', 'mjölk', 'fisk', 'gröt', 'saft', 'juice'
-    ]
-    
-    if (goodSwedishEndings.some(ending => lower.endsWith(ending))) {
-      return true
-    }
-    
-    // Vanliga svenska början
-    const goodSwedishStarts = [
-      'ko', 'ka', 'kr', 'gr', 'fr', 'tr', 'st', 'sk', 'sp', 'fl', 'bl'
-    ]
-    
-    if (goodSwedishStarts.some(start => lower.startsWith(start))) {
-      return true
-    }
-    
-    // Kontrollera vokal/konsonant-balans
-    const vowels = (lower.match(/[aeiouåäö]/g) || []).length
-    const consonants = (lower.match(/[bcdfghjklmnpqrstvwxz]/g) || []).length
-    const total = vowels + consonants
-    
-    // Rimlig balans mellan vokaler och konsonanter
-    const vowelRatio = vowels / total
-    if (vowelRatio < 0.2 || vowelRatio > 0.7) return false
-    
-    return true
-  }
 
   cleanProductName(name) {
     return name.trim()
