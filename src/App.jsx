@@ -427,9 +427,42 @@ export default function App() {
   }
 
   // Kvittoscanning
-  const handleReceiptScan = async (products) => {
+  const handleReceiptScan = async (products, hasExpirationDate = false) => {
     try {
       console.log(`🧾 Kvittoscanning: Hittade ${products.length} produkter`)
+      
+      // Kolla om produkter redan har utgångsdatum (AI-gissning)
+      if (hasExpirationDate) {
+        const readyProducts = products.map(product => {
+          const categoryResult = getSmartProductCategory(product.name, null)
+          
+          return {
+            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+            name: product.name,
+            quantity: product.quantity || 1,
+            unit: product.unit || 'st',
+            price: product.price,
+            category: categoryResult.category,
+            expiresAt: product.expiresAt,
+            confidence: null,
+            aiMethod: product.aiMethod || 'ai_suggested',
+            adjustments: []
+          }
+        })
+        
+        // Lägg till produkter direkt
+        setItems(prev => [...prev, ...readyProducts])
+        setScanSuccessful(true)
+        
+        console.log('✨ Produkter med AI-datum tillagda:', readyProducts.map(p => `${p.name}: ${p.expiresAt}`).join(', '))
+        
+        // Stäng scanner efter kort fördröjning
+        setTimeout(() => {
+          setShowScanner(false)
+        }, 1000)
+        
+        return
+      }
       
       // Förbered produkter för automatisk utgångsdatumscanning
       const preparedProducts = products.map(product => {

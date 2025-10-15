@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { processReceiptImage } from './receiptProcessor'
 import Tesseract from 'tesseract.js'
-import RecognizedProductsModal from './components/RecognizedProductsModal'
+import ProductSelectionPage from './components/ProductSelectionPage'
+import { getExpirationDateGuess } from './expirationDateAI'
 
 const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, isDateScanningMode = false, currentProduct = null, productProgress = null }) => {
   const videoRef = useRef(null)
@@ -19,7 +20,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
   const [ocrProgress, setOcrProgress] = useState(0)
   const [foundDates, setFoundDates] = useState([])
   const [recognizedProducts, setRecognizedProducts] = useState([])
-  const [showRecognizedModal, setShowRecognizedModal] = useState(false)
+  const [showProductSelection, setShowProductSelection] = useState(false)
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -207,12 +208,15 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
       if (products && products.length > 0) {
         console.log(`✅ Hittade ${products.length} produkter på kvittot`)
         
-        // Spara alla produkter och visa modal
-        setRecognizedProducts(products)
-        setShowRecognizedModal(true)
+        // Spara alla produkter med AI-gissningar
+        const productsWithAI = products.map(product => ({
+          ...product,
+          aiSuggestion: getExpirationDateGuess(product.name)
+        }))
+        setRecognizedProducts(productsWithAI)
         
-        // Skicka första produkten som standard
-        onReceiptScan(products)
+        // Bara visa framsteg-knapp, inte automatisk modal
+        console.log('Produkter sparade - visa framsteg-knapp')
         
         // Låt App.jsx hantera nästa steg (automatisk datumscanning)
         console.log('Kvittoprodukter skickade till App.jsx - väntar på nästa instruktion')
@@ -401,7 +405,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
     setFocusPoint(null)
     setShowFocusRing(false)
     setRecognizedProducts([])
-    setShowRecognizedModal(false)
+    setShowProductSelection(false)
     
     console.log('Scanner-state helt resetad')
     
@@ -410,30 +414,34 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
     console.log('✅ Scanner fullständigt stängd - återvänder till huvudapp')
   }
   
-  const handleProductSelect = (product) => {
-    console.log('✨ Användare valde produkt:', product.name)
+  const handleScanDate = (product) => {
+    console.log('📷 Användare valde att scanna datum för:', product.name)
     
-    // Stäng modalen
-    setShowRecognizedModal(false)
+    // Stäng produktvalsidan
+    setShowProductSelection(false)
     
-    // Skicka vald produkt till App.jsx med AI-förslag
+    // Starta datumscanning för denna produkt
     onReceiptScan([product])
   }
   
-  const handleUseAISuggestion = () => {
-    if (!currentProduct?.aiSuggestion?.date) return
+  const handleUseAI = (product) => {
+    console.log('🤖 Användare valde AI-gissning för:', product.name)
     
-    console.log('🤖 Användare valde AI-gissning:', currentProduct.aiSuggestion.date)
+    // Formatera AI-datum till YYYY-MM-DD format
+    const aiDate = product.aiSuggestion.date.toISOString().split('T')[0]
     
-    // Formatera datum till YYYY-MM-DD format
-    const aiDate = currentProduct.aiSuggestion.date.toISOString().split('T')[0]
-    
-    // Använd AI-gissningen som scannat datum
-    if (onDateScan) {
-      onDateScan(aiDate)
+    // Skapa produkten med AI-datum direkt
+    const productWithDate = {
+      ...product,
+      expiresAt: aiDate,
+      aiMethod: 'ai_suggested'
     }
     
-    console.log('AI-gissning använd och skickad till App.jsx:', aiDate)
+    // Stäng produktvalsidan
+    setShowProductSelection(false)
+    
+    // Lägg till produkten direkt (via App.jsx)
+    onReceiptScan([productWithDate], true) // true = redan har datum
   }
 
   if (!isOpen) return null
@@ -578,9 +586,21 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
                 )}
                 {scanMode === 'receipt' && (
                   <>
-                    <p>🧾 Centrera kvittot i bildrutan</p>
-                    <p>Se till att hela kvittot syns och texten är tydlig</p>
-                    <p>👆 Tryck på bilden för att fokusera</p>
+                    {recognizedProducts.length > 0 ? (
+                      <div 
+                        className="clickable-instructions"
+                        onClick={() => setShowProductSelection(true)}
+                      >
+                        <p>✨ <strong>{recognizedProducts.length} produkt{recognizedProducts.length !== 1 ? 'er' : ''} hittade!</strong></p>
+                        <p>👆 <u>Klicka här för att välja produkter och sätta datum</u></p>
+                      </div>
+                    ) : (
+                      <>
+                        <p>🧾 Centrera kvittot i bildrutan</p>
+                        <p>Se till att hela kvittot syns och texten är tydlig</p>
+                        <p>👆 Tryck på bilden för att fokusera</p>
+                      </>
+                    )}
                   </>
                 )}
                 {scanMode === 'date' && (
@@ -668,12 +688,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
         </div>
       </div>
       
-      {/* Modal för att visa alla igenkända produkter */}
-      <RecognizedProductsModal
-        isOpen={showRecognizedModal}
-        onClose={() => setShowRecognizedModal(false)}
+      {/* Produktvals-sida */}
+      <ProductSelectionPage
+        isOpen={showProductSelection}
+        onClose={() => setShowProductSelection(false)}
         recognizedProducts={recognizedProducts}
-        onProductSelect={handleProductSelect}
+        onScanDate={handleScanDate}
+        onUseAI={handleUseAI}
       />
     </div>
   )
