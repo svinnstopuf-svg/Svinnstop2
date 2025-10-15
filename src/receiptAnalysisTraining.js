@@ -155,6 +155,8 @@ export const receiptNoise = [
   /^(TOTALT?|TOTAL|SUM|SUMMA).*$/i,
   /^(ATT\s+BETALA|TO\s+PAY).*$/i,
   /^(KONTANT|CASH|KORT|CARD|SWISH).*$/i,
+  /^(MOTTAGET|RECEIVED|PAYMENT).*$/i,
+  /^(KONTOKORT|BANKKORT|DEBIT|CREDIT).*$/i,
   
   // Datum och tid
   /^\d{4}-\d{2}-\d{2}.*$/,
@@ -178,6 +180,12 @@ export const receiptNoise = [
   // Kampanjer och erbjudanden
   /^(KAMPANJ|ERBJUDANDE|OFFER|RABATT).*$/i,
   /^(SPAR|SAVE|BONUS).*$/i,
+  
+  // ICA-specifika tjänster och bonusprogram
+  /^(ICA\s+)?(KORT|STAMKUND|MEDLEM|MEMBER).*$/i,
+  /^(ICA\s+)?(APTITEN|BANKEN|BANK|FÖRSÄKRING|INSURANCE).*$/i,
+  /^(BONUSCHECK|BONUS\s+CHECK|KVITTOLOTTERI).*$/i,
+  /^(KUNDKLUBB|CUSTOMER\s+CLUB).*$/i,
   
   // Bara siffror eller symboler
   /^\d+[.,]\d{2}\s*kr?\s*$/,
@@ -293,12 +301,44 @@ export function extractProductsFromReceipt(receiptLines) {
 function isValidProductName(name) {
   if (!name || name.length < 2 || name.length > 50) return false
   
+  const cleanName = name.toLowerCase().trim()
+  
   // Måste innehålla minst 2 bokstäver
   const letterCount = (name.match(/[A-ZÅÄÖa-zåäö]/g) || []).length
   if (letterCount < 2) return false
   
   // Får inte bara vara ett pris
   if (/^\d+[.,]\d{2}$/.test(name.trim())) return false
+  
+  // Filter för betalningsrelaterade termer
+  const paymentTerms = [
+    'kort', 'card', 'kontokort', 'bankkort', 'mottaget', 'payment',
+    'swish', 'kontant', 'cash', 'betalning', 'betalt', 'paid'
+  ]
+  
+  if (paymentTerms.some(term => cleanName.includes(term))) {
+    return false
+  }
+  
+  // Filter för ICA-tjänster och bonusprogram
+  const icaServices = [
+    'ica', 'aptiten', 'banken', 'bank', 'försäkring', 'insurance',
+    'stamkund', 'medlem', 'member', 'bonus', 'kvittolotteri', 'kundklubb'
+  ]
+  
+  if (icaServices.some(service => cleanName.includes(service))) {
+    return false
+  }
+  
+  // Filter för kvittoinformation
+  const receiptInfo = [
+    'kvitto', 'receipt', 'organisationsnummer', 'org', 'telefon', 'phone',
+    'adress', 'address', 'moms', 'vat', 'totalt', 'total', 'summa', 'sum'
+  ]
+  
+  if (receiptInfo.some(info => cleanName.includes(info))) {
+    return false
+  }
   
   return true
 }

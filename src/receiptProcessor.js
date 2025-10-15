@@ -58,6 +58,12 @@ export class ReceiptProcessor {
     const products = []
     
     for (const product of extractedProducts) {
+      // Extra säkerhetskontroll - undvik icke-matvaror
+      if (this.isDefinitelyNotFood(product.name)) {
+        console.log(`🗑️ Hoppar över icke-matvara: ${product.name}`)
+        continue
+      }
+      
       // Använd AI för att avgöra om detta är en matvara
       if (this.isLikelyFoodProduct(product.name)) {
         // Standardisera produktformatet
@@ -962,6 +968,50 @@ export class ReceiptProcessor {
     return true
   }
   
+  // Säkerhetskontroll för att identifiera definitivt INTE matvaror
+  isDefinitelyNotFood(productName) {
+    if (!productName) return true
+    
+    const name = productName.toLowerCase().trim()
+    
+    // Betalningsrelaterat
+    const paymentKeywords = [
+      'mottaget', 'kontokort', 'bankkort', 'kort', 'card', 'swish', 'kontant', 'cash',
+      'betalning', 'payment', 'betalt', 'paid', 'kredit', 'debit'
+    ]
+    
+    // ICA-tjänster och bonusprogram
+    const serviceKeywords = [
+      'ica aptiten', 'ica banken', 'ica försäkring', 'stamkund', 'medlem',
+      'bonuscheck', 'kvittolotteri', 'kundklubb', 'bonus check', 'aptiten'
+    ]
+    
+    // Kvittoinformation
+    const receiptKeywords = [
+      'organisationsnummer', 'org nr', 'telefon', 'tel', 'adress', 'address',
+      'kvitto', 'receipt', 'tack för', 'thank you', 'välkommen åter',
+      'moms', 'vat', 'totalt', 'total', 'summa', 'sum', 'att betala'
+    ]
+    
+    // Kampanjer och erbjudanden
+    const promotionKeywords = [
+      'kampanj', 'erbjudande', 'rabatt', 'spar', 'bonus', 'save', 'offer'
+    ]
+    
+    const allKeywords = [...paymentKeywords, ...serviceKeywords, ...receiptKeywords, ...promotionKeywords]
+    
+    // Kolla om något nyckelord finns i produktnamnet
+    if (allKeywords.some(keyword => name.includes(keyword))) {
+      return true
+    }
+    
+    // Kolla för bara siffror eller organisationsnummer-liknande
+    if (/^\d{3}\s*\d{2}\s*\d{5}$/.test(name)) return true // Organisationsnummer
+    if (/^\d{4,}$/.test(name)) return true // Långa siffror
+    if (/^\d+[.,]\d{2}\s*kr?$/.test(name)) return true // Bara priser
+    
+    return false
+  }
 
   cleanProductName(name) {
     return name.trim()
