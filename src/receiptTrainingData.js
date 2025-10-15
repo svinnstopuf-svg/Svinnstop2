@@ -226,6 +226,7 @@ export const digitalReceiptExamples = [
       "▪ Tomat på kvist 500g",
       "▪ Svamp portabello 200g",
       "▪ Lakritsbåtar Malaco",
+      "▪ Lakritsmix Haribo",
       "▪ Potatis Amandine 1.5kg",
       "▪ Morötter baby 400g",
       "▪ Schalottenlök 250g",
@@ -286,6 +287,24 @@ export const digitalReceiptExamples = [
       "≫ SALLAD LOLLO ROSSO",
       "≫ PAPRIKA GRÖN",
       "≫ APELSIN NAVEL"
+    ]
+  },
+  {
+    store: "WILLYS",
+    date: "2024-08-01",
+    products: [
+      "*Banan Ecuador Fair Trade",
+      "*Gurka Hollandsk",
+      "*Mini gurkor 400g", 
+      "*Avokado Ready To Eat 2st",
+      "*Hass Avokado 3st",
+      "*Svamp Champinjoner 250g",
+      "*Svamp Portabello",
+      "*Lakritsmix ICA Basic",
+      "*Saltlakrits Djungelvrål",
+      "*Lakritsbåtar Mixed",
+      "*Tomat Cherry 250g",
+      "*Tomat Kött 500g"
     ]
   }
 ];
