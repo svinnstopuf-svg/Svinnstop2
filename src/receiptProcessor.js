@@ -46,9 +46,14 @@ export class ReceiptProcessor {
 
   parseReceiptText(text) {
     const products = []
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+    const allLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
     
-    console.log('📄 Analyserar rader:', lines)
+    console.log('📄 Alla rader:', allLines)
+    
+    // Hitta produktsektionen mellan referensnummer och total
+    const lines = this.extractProductSection(allLines)
+    
+    console.log('🎯 Produktsektion extraherad:', lines)
     
     // Svenska butiksmönster
     const productPatterns = [
@@ -62,13 +67,30 @@ export class ReceiptProcessor {
     
     // Ord/fraser att ignorera (inte produkter)
     const ignorePatterns = [
-      /^(summa|total|moms|vat|kvitto|receipt|datum|date|tid|time|kort|card|kontant|cash|återbäring|change)$/i,
-      /^(tack|thank|hejdå|goodbye|välkommen|welcome)$/i,
-      /^(ica|coop|willys|hemköp|citygross)$/i,
+      // Kvittohuvud och butiksinformation
+      /^(ica|coop|willys|hemköp|citygross|maxi|tempo)/i,
+      /^(tack|thank|hejdå|goodbye|välkommen|welcome)/i,
+      /^(kvitto|receipt|bon)/i,
+      
+      // Datum och tider
+      /^\d{4}-\d{2}-\d{2}/, // Datum YYYY-MM-DD
+      /^\d{2}[.\/\-]\d{2}[.\/\-]\d{2,4}/, // Datum DD.MM.YY
+      /^\d{2}:\d{2}/, // Tid HH:MM
+      
+      // Totaler och betalning  
+      /^(summa|total|sum|att\s+betala|slutsumma)$/i,
+      /^(moms|vat|skatt)$/i,
+      /^(kort|card|kontant|cash|swish|återbäring|change)$/i,
+      
+      // Referensnummer och ID:n
+      /^(ref[\s.]*\d+|trans[\s.]*\d+|id[\s.]*\d+)$/i,
+      /^\d{10,}$/, // Långa nummer
+      /^[A-Z]{2,}\d{3,}$/, // Kod + siffror som ABC123
+      
+      // Bara priser eller symboler
       /^\d+[.,]\d{2}\s*kr?\s*$/, // Bara pris utan produktnamn
-      /^[*\-=]+$/, // Bara symboler
-      /^\d{4}-\d{2}-\d{2}/, // Datum
-      /^\d{2}:\d{2}/ // Tid
+      /^[*\-=_]{3,}$/, // Bara symboler/streck
+      /^\s*$/ // Tom rad
     ]
     
     for (let line of lines) {
@@ -108,6 +130,66 @@ export class ReceiptProcessor {
     }
     
     return products
+  }
+
+  extractProductSection(lines) {
+    // Hitta start och slutmarkering för produktsektionen
+    let startIndex = -1
+    let endIndex = lines.length
+    
+    // Leta efter referensnummer eller liknande startmarkering
+    const startPatterns = [
+      /^Ref[\s.]*\d+/i,           // "Ref. 40392" eller "Ref 40392"
+      /^\d{5,}/,                 // Långt nummer som referens  
+      /^Artikel/i,               // "Artikel" rubrik
+      /^Vara/i,                  // "Vara" rubrik
+      /^Produkt/i                // "Produkt" rubrik
+    ]
+    
+    // Leta efter slutmarkering
+    const endPatterns = [
+      /^(Summa|Total|Sum)/i,     // "Summa", "Total", "Sum"
+      /^(Att\s+betala)/i,        // "Att betala"
+      /^(Moms|VAT)/i,            // Momssektion
+      /^(Kort|Kontant|Card)/i,   // Betalningssektion
+      /^\s*[-=]+\s*$/            // Linje med bara streck
+    ]
+    
+    // Hitta startindex
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      
+      // Kolla startmönster
+      if (startPatterns.some(pattern => pattern.test(line))) {
+        startIndex = i + 1 // Börja EFTER startmarkeringen
+        console.log(`🚦 Produktsektion startar vid rad ${i + 1}: "${line}"`)
+        break
+      }
+    }
+    
+    // Om ingen explicit start hittas, börja från början
+    if (startIndex === -1) {
+      startIndex = 0
+      console.log('🔍 Ingen startmarkering hittad - scannar från början')
+    }
+    
+    // Hitta slutindex
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i]
+      
+      // Kolla slutmönster
+      if (endPatterns.some(pattern => pattern.test(line))) {
+        endIndex = i
+        console.log(`🚩 Produktsektion slutar vid rad ${i + 1}: "${line}"`)
+        break
+      }
+    }
+    
+    // Extrahera produktsektionen
+    const productLines = lines.slice(startIndex, endIndex)
+    console.log(`📋 Extraherar rader ${startIndex + 1}-${endIndex} (${productLines.length} rader)`)
+    
+    return productLines
   }
 
   cleanProductName(name) {
