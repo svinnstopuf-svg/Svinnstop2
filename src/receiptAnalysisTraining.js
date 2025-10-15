@@ -297,7 +297,6 @@ export function extractProductsFromReceipt(receiptLines) {
   const allText = receiptLines.join('\n')
   const storeInfo = identifyStoreType(allText)
   
-  console.log(`🏦 Identifierad butikstyp: ${storeInfo.type} (${storeInfo.confidence} säkerhet)`)
   
   const products = []
   const processedLines = new Set() // Undvik dubletter
@@ -306,25 +305,15 @@ export function extractProductsFromReceipt(receiptLines) {
   for (let lineIndex = 0; lineIndex < receiptLines.length; lineIndex++) {
     const line = receiptLines[lineIndex].trim()
     
-    if (!line) {
-      console.log(`📝 Rad ${lineIndex + 1}: Tom rad, hoppar över`)
-      continue
-    }
-    
-    if (processedLines.has(line)) {
-      console.log(`📝 Rad ${lineIndex + 1}: Redan behandlad: "${line}"`)
-      continue
-    }
+    if (!line) continue
+    if (processedLines.has(line)) continue
     
     // Testa noise-filter
     const isNoise = receiptNoise.some(pattern => pattern.test(line))
     if (isNoise) {
-      console.log(`🚮 Rad ${lineIndex + 1}: Filtrerat som brus: "${line}"`)
       skippedLines.push({ line, reason: 'brus' })
       continue
     }
-    
-    console.log(`🔍 Rad ${lineIndex + 1}: Analyserar "${line}"`)
     
     // Testa butikspecifika mönster först
     let productFound = false
@@ -340,7 +329,6 @@ export function extractProductsFromReceipt(receiptLines) {
             products.push(product)
             processedLines.add(line)
             productFound = true
-            console.log(`🎯 ${storeInfo.type.toUpperCase()} mönster: "${line}" → "${product.name}"`)
             break
           }
         }
@@ -364,7 +352,6 @@ export function extractProductsFromReceipt(receiptLines) {
                   quantity: 1,
                   unit: 'st'
                 })
-                console.log(`📝 Kommalista: "${item.name}"`)
               }
             })
           } else if (result.name && isValidProductName(result.name)) {
@@ -374,7 +361,6 @@ export function extractProductsFromReceipt(receiptLines) {
               quantity: 1,
               unit: result.unit || 'st'
             })
-            console.log(`✅ Generisk: "${line}" → "${result.name}"`)
           }
           
           processedLines.add(line)
@@ -385,18 +371,6 @@ export function extractProductsFromReceipt(receiptLines) {
     }
   }
   
-  console.log(`📊 EXTRAKTION SLUTFÖRD:`)
-  console.log(`   - Totalt rader: ${receiptLines.length}`)
-  console.log(`   - Överhoppade som brus: ${skippedLines.length}`)
-  console.log(`   - Extraherade produkter: ${products.length}`)
-  
-  if (skippedLines.length > 0) {
-    console.log(`🚮 Överhoppade rader:`, skippedLines.map(s => `"${s.line}" (${s.reason})`).join(', '))
-  }
-  
-  if (products.length === 0) {
-    console.log(`❌ PROBLEM: Inga produkter extraherade! Kontrollera regex-mönster.`)
-  }
   
   return products
 }

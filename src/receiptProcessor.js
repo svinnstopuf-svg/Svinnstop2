@@ -6,13 +6,12 @@ import { extractProductsFromReceipt, identifyStoreType } from './receiptAnalysis
 export class ReceiptProcessor {
   constructor() {
     this.worker = null
-    this.debugMode = true // Sätt till false för att stänga av debug
+    this.debugMode = false // Debug avstängt för produktion
   }
 
   async initialize() {
     if (this.worker) return
 
-    console.log('🤖 Initierar OCR-worker...')
     this.worker = await createWorker()
     await this.worker.loadLanguage('swe+eng') // Svenska och engelska
     await this.worker.initialize('swe+eng')
@@ -43,15 +42,13 @@ export class ReceiptProcessor {
       tesseract_minimum_word_size: 2
     })
     
-    console.log('✅ OCR-worker redo')
   }
 
   async processReceipt(imageElement) {
     try {
       await this.initialize()
       
-      // Debug: visa att vi startar scanning
-      this.showDebugInfo('🔄 MULTI-PASS OCR STARTAR', 'Kör 3 olika OCR-strategier samtidigt')
+      // Multi-pass OCR för bästa resultat
       
       // Skapa 3 olika förbehandlade versioner av bilden
       const versions = [
@@ -65,8 +62,6 @@ export class ReceiptProcessor {
       // Kör OCR på alla versioner
       for (let i = 0; i < versions.length; i++) {
         const version = versions[i]
-        console.log(`📸 Kör OCR med ${version.name}-inställningar...`)
-        this.showDebugInfo(`📸 OCR ${i+1}/3: ${version.name}`, 'Startar...')
         
         try {
           // Sätt olika OCR-parametrar för varje version
@@ -76,9 +71,6 @@ export class ReceiptProcessor {
           const { data: { text } } = await this.worker.recognize(version.image)
           const endTime = Date.now()
           
-          console.log(`OCR ${version.name}:`, text)
-          this.showDebugInfo(`📝 ${version.name} (${endTime - startTime}ms)`, 
-            `Längd: ${text.length}\n\n${text}`)
           
           // Extrahera produkter
           const products = this.parseReceiptText(text, version.name)
@@ -90,8 +82,6 @@ export class ReceiptProcessor {
             score: this.scoreResult(text, products)
           })
           
-          this.showDebugInfo(`📦 ${version.name} resultat`, 
-            `${products.length} produkter, poäng: ${allResults[allResults.length-1].score}`)
           
         } catch (error) {
           console.error(`OCR ${version.name} misslyckades:`, error)
@@ -103,15 +93,10 @@ export class ReceiptProcessor {
       allResults.sort((a, b) => b.score - a.score)
       const bestResult = allResults[0]
       
-      this.showDebugInfo('🏆 BÄSTA RESULTAT', 
-        `${bestResult.version}: ${bestResult.products.length} produkter (poäng: ${bestResult.score})`)
-      
-      console.log(`✅ Bästa resultat: ${bestResult.version} med ${bestResult.products.length} produkter`)
       return bestResult.products
         
     } catch (error) {
-      console.error('❌ Multi-pass OCR misslyckades:', error)
-      this.showDebugInfo('❌ FEL', `OCR misslyckades: ${error.message}`)
+      console.error('OCR misslyckades:', error)
       return []
     }
   }
@@ -254,32 +239,13 @@ export class ReceiptProcessor {
     }
     
     ctx.putImageData(imageData, 0, 0)
-    console.log(`🖼️ Bildförbehandling (${mode}) klar`)
     return canvas
   }
 
   parseReceiptText(text, version = 'unknown') {
     const allLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
     
-    console.log('📄 Alla rader:', allLines)
-    
-    // Använd avancerad kvittoanalys
-    console.log('🤖 Startar avancerad kvittoanalys...')
-    this.showDebugInfo('📄 OCR RADER (totalt ' + allLines.length + '):', allLines.map((line, i) => `${i+1}: "${line}"`).join('\n'))
-    
-    // Kör extraktion med extra debug
-    console.log('📦 Startar produktextraktion...')
     const extractedProducts = extractProductsFromReceipt(allLines)
-    
-    console.log(`📊 Extraktion klar: ${extractedProducts.length} produkter hittade`)
-    this.showDebugInfo('🎯 EXTRAHERADE FRÅN OCR (' + extractedProducts.length + ' st):', 
-      extractedProducts.length > 0 
-        ? extractedProducts.map((p, i) => `${i+1}. "${p.name}" (pris: ${p.price || 'inget'})`).join('\n')
-        : 'INGA PRODUKTER EXTRAHERADE!')
-    
-    if (extractedProducts.length === 0) {
-      this.showDebugInfo('❌ VARNING!', 'Ingen produkt extraherad från OCR-text. Kontrollera mönster!')
-    }
     
     const products = []
     
@@ -292,18 +258,12 @@ export class ReceiptProcessor {
       const isDefinitelyNotFood = this.isDefinitelyNotFood(originalName)
       
       if (isDefinitelyNotFood) {
-        this.showDebugInfo(`❌ AVVISAR "${originalName}"`, 
-          `Rensat: "${cleanedName}"\nDefinitivt INTE mat: JA\nÅtgärd: Hoppar över`)
-        console.log(`🗑️ Hoppar över icke-matvara: ${originalName}`)
         continue
       }
       
       // Om det inte är definitivt icke-mat, testa AI med rensade namnet
       const isLikelyFood = this.isLikelyFoodProduct(cleanedName)
       
-      // Debug med korrekt logik (nu kan aldrig båda vara sanna)
-      this.showDebugInfo(`🔍 Analyserar "${originalName}"`, 
-        `Rensat namn: "${cleanedName}"\nDefinitivt INTE mat: NEJ\nTrolig mat (AI): ${isLikelyFood ? 'JA' : 'NEJ'}`)
       
       // Använd AI för att avgöra om detta är en matvara
       if (isLikelyFood) {
@@ -316,13 +276,9 @@ export class ReceiptProcessor {
           price: product.price
         }
         products.push(standardProduct)
-        console.log(`🍎 Lägger till matvara: ${cleanedName} (från "${originalName}")`)
-      } else {
-        console.log(`🚫 Filtrerar bort icke-matvara: ${originalName} (rensat: ${cleanedName})`)
       }
     }
     
-    console.log(`📊 Slutresultat: ${products.length} matvaror identifierade`)
     return products
   }
 
