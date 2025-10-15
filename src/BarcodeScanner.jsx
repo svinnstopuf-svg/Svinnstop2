@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { processReceiptImage } from './receiptProcessor'
 import Tesseract from 'tesseract.js'
+import RecognizedProductsModal from './components/RecognizedProductsModal'
 
 const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, isDateScanningMode = false, currentProduct = null, productProgress = null }) => {
   const videoRef = useRef(null)
@@ -17,6 +18,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
   const [isProcessingDate, setIsProcessingDate] = useState(false)
   const [ocrProgress, setOcrProgress] = useState(0)
   const [foundDates, setFoundDates] = useState([])
+  const [recognizedProducts, setRecognizedProducts] = useState([])
+  const [showRecognizedModal, setShowRecognizedModal] = useState(false)
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -203,6 +206,12 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
       
       if (products && products.length > 0) {
         console.log(`✅ Hittade ${products.length} produkter på kvittot`)
+        
+        // Spara alla produkter och visa modal
+        setRecognizedProducts(products)
+        setShowRecognizedModal(true)
+        
+        // Skicka första produkten som standard
         onReceiptScan(products)
         
         // Låt App.jsx hantera nästa steg (automatisk datumscanning)
@@ -391,12 +400,40 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
     setOcrProgress(0)
     setFocusPoint(null)
     setShowFocusRing(false)
+    setRecognizedProducts([])
+    setShowRecognizedModal(false)
     
     console.log('Scanner-state helt resetad')
     
     // Stäng modal och meddela App.jsx
     onClose()
     console.log('✅ Scanner fullständigt stängd - återvänder till huvudapp')
+  }
+  
+  const handleProductSelect = (product) => {
+    console.log('✨ Användare valde produkt:', product.name)
+    
+    // Stäng modalen
+    setShowRecognizedModal(false)
+    
+    // Skicka vald produkt till App.jsx med AI-förslag
+    onReceiptScan([product])
+  }
+  
+  const handleUseAISuggestion = () => {
+    if (!currentProduct?.aiSuggestion?.date) return
+    
+    console.log('🤖 Användare valde AI-gissning:', currentProduct.aiSuggestion.date)
+    
+    // Formatera datum till YYYY-MM-DD format
+    const aiDate = currentProduct.aiSuggestion.date.toISOString().split('T')[0]
+    
+    // Använd AI-gissningen som scannat datum
+    if (onDateScan) {
+      onDateScan(aiDate)
+    }
+    
+    console.log('AI-gissning använd och skickad till App.jsx:', aiDate)
   }
 
   if (!isOpen) return null
@@ -590,6 +627,23 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
                   >
                     {isProcessingDate ? `⚙️ Läser... ${ocrProgress}%` : '📅 Scanna datum'}
                   </button>
+                  
+                  {/* AI-gissningsknapp för när inget datum hittas */}
+                  {isDateScanningMode && currentProduct && currentProduct.aiSuggestion && (
+                    <div className="ai-suggestion-section">
+                      <div className="divider-text">eller</div>
+                      <button 
+                        onClick={() => handleUseAISuggestion()}
+                        className="ai-suggestion-btn"
+                        title={`AI föreslår: ${currentProduct.aiSuggestion.date?.toLocaleDateString('sv-SE')} (${currentProduct.aiSuggestion.confidence} säkerhet)`}
+                      >
+                        🤖 Använd AI-gissning: {currentProduct.aiSuggestion.date?.toLocaleDateString('sv-SE')}
+                        <div className="ai-confidence">
+                          {currentProduct.aiSuggestion.confidence} säkerhet • {currentProduct.aiSuggestion.daysFromNow} dagar
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -613,6 +667,14 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, is
           )}
         </div>
       </div>
+      
+      {/* Modal för att visa alla igenkända produkter */}
+      <RecognizedProductsModal
+        isOpen={showRecognizedModal}
+        onClose={() => setShowRecognizedModal(false)}
+        recognizedProducts={recognizedProducts}
+        onProductSelect={handleProductSelect}
+      />
     </div>
   )
 }

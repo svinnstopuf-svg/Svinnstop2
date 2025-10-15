@@ -4,6 +4,7 @@ import BarcodeScanner from './BarcodeScanner'
 import ExpirySettings from './ExpirySettings'
 import { lookupProduct } from './productAPI'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
+import { getExpirationDateGuess } from './expirationDateAI'
 import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
@@ -444,6 +445,7 @@ export default function App() {
           expiresAt: null, // Kommer att sättas genom datumscanning
           confidence: null,
           aiMethod: 'manual_scan',
+          aiSuggestion: product.aiSuggestion || null, // Spara AI-förslaget för senare användning
           adjustments: []
         }
       })
@@ -874,7 +876,10 @@ export default function App() {
       onReceiptScan={handleReceiptScan}
       onDateScan={handleDateScanComplete}
       isDateScanningMode={isDateScanningMode}
-      currentProduct={isDateScanningMode && pendingProducts.length > 0 ? pendingProducts[currentProductIndex] : null}
+      currentProduct={isDateScanningMode && pendingProducts.length > 0 ? {
+        ...pendingProducts[currentProductIndex],
+        aiSuggestion: getExpirationDateGuess(pendingProducts[currentProductIndex].name)
+      } : null}
       productProgress={isDateScanningMode ? `${currentProductIndex + 1}/${pendingProducts.length}` : null}
     />
     
