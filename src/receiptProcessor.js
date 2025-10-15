@@ -20,21 +20,27 @@ export class ReceiptProcessor {
     // Förbättrade OCR-inställningar för svenska kvitton
     await this.worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() ',
-      tessedit_pageseg_mode: 6, // Uniform block of text  
-      tessedit_ocr_engine_mode: 2, // Neural net LSTM only (bättre kvalitet)
-      preserve_interword_spaces: 1, // Behåll mellanslag mellan ord
-      tessedit_char_blacklist: '|[]{}~`^_=+\\"', // Filtrera bort problematiska tecken
-      classify_enable_learning: 1, // Aktivera lärning
-      classify_enable_adaptive_matcher: 1, // Adaptiv matchning
-      textord_debug_tabfind: 0, // Reducera brus
-      textord_tabfind_find_tables: 0, // Inaktivera tabelldetektering
-      load_system_dawg: 1, // Använd systemordbok
-      load_freq_dawg: 1, // Använd frekvensordbok
-      load_punc_dawg: 1, // Använd punkteringsordbok
-      load_number_dawg: 1, // Använd sifferordbok
-      load_unambig_dawg: 1, // Använd entydighetsordbok
-      load_bigram_dawg: 1, // Använd bigramordbok
-      load_fixed_length_dawgs: 1 // Använd fasta ordlängder
+      tessedit_pageseg_mode: 7, // Single text line (bättre för kvitton)
+      tessedit_ocr_engine_mode: 1, // Neural net LSTM + Legacy (hybrid för bättre resultat)
+      preserve_interword_spaces: 1,
+      tessedit_char_blacklist: '|[]{}~`^_=+\\"#@&<>',
+      classify_enable_learning: 1,
+      classify_enable_adaptive_matcher: 1,
+      textord_debug_tabfind: 0,
+      textord_tabfind_find_tables: 0,
+      load_system_dawg: 0, // Inaktivera systemordbok för bättre precision
+      load_freq_dawg: 0, // Inaktivera frekvensordbok
+      load_punc_dawg: 1,
+      load_number_dawg: 1,
+      load_unambig_dawg: 0,
+      load_bigram_dawg: 0,
+      load_fixed_length_dawgs: 0,
+      // Ytterligare inställningar för bättre kvalitet
+      tessedit_create_hocr: 0,
+      tessedit_create_tsv: 0,
+      gapmap_use_ends: 0,
+      gapmap_no_isolated_quanta: 1,
+      tesseract_minimum_word_size: 2
     })
     
     console.log('✅ OCR-worker redo')
@@ -107,35 +113,88 @@ export class ReceiptProcessor {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     
-    // Sätt canvas-storlek till bildens storlek
-    canvas.width = imageElement.naturalWidth || imageElement.width
-    canvas.height = imageElement.naturalHeight || imageElement.height
+    // Skala upp bilden 2x för bättre OCR-precision
+    const scale = 2
+    canvas.width = (imageElement.naturalWidth || imageElement.width) * scale
+    canvas.height = (imageElement.naturalHeight || imageElement.height) * scale
     
-    // Rita originalbilden
+    // Rita originalbilden uppskalad med antialiasing av
+    ctx.imageSmoothingEnabled = false
     ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
     
     // Hämta bilddata
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const data = imageData.data
+    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    let data = imageData.data
     
-    // Förbättra kontrast och skärpa
-    for (let i = 0; i < data.length; i += 4) {
-      // Konvertera till gråskala
-      const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11
-      
-      // Öka kontrast (stark svartvit effekt)
-      const enhanced = gray > 128 ? 255 : 0
-      
-      data[i] = enhanced     // R
-      data[i + 1] = enhanced // G
-      data[i + 2] = enhanced // B
-      // Alpha (i + 3) lämnas oförändrad
+    // Steg 1: Reducera brus (median filter approximation)
+    const cleanedData = new Uint8ClampedArray(data.length)
+    const width = canvas.width
+    const height = canvas.height
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const i = (y * width + x) * 4
+        
+        // Samla 3x3 område för brusminskning
+        const neighbors = []
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const ni = ((y + dy) * width + (x + dx)) * 4
+            const gray = data[ni] * 0.299 + data[ni + 1] * 0.587 + data[ni + 2] * 0.114
+            neighbors.push(gray)
+          }
+        }
+        
+        // Sortera och ta median
+        neighbors.sort((a, b) => a - b)
+        const medianGray = neighbors[4] // Mitten av 9 värden
+        
+        cleanedData[i] = medianGray
+        cleanedData[i + 1] = medianGray
+        cleanedData[i + 2] = medianGray
+        cleanedData[i + 3] = data[i + 3] // Behåll alpha
+      }
     }
     
-    // Sätt tillbaka den bearbetade bilddata
+    // Steg 2: Adaptiv tröskelvärdering (bättre än fast 128)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4
+        
+        // Beräkna lokal medel i 15x15 område
+        let sum = 0
+        let count = 0
+        const radius = 7
+        
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const ny = y + dy
+            const nx = x + dx
+            if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+              const ni = (ny * width + nx) * 4
+              sum += cleanedData[ni]
+              count++
+            }
+          }
+        }
+        
+        const localMean = sum / count
+        const threshold = localMean - 10 // Lite lägre tröskel för att fånga svag text
+        
+        // Tillämpa tröskelvärdering
+        const pixelValue = cleanedData[i] > threshold ? 255 : 0
+        
+        data[i] = pixelValue
+        data[i + 1] = pixelValue
+        data[i + 2] = pixelValue
+        // Alpha behålls
+      }
+    }
+    
+    // Sätt tillbaka bearbetad bilddata
     ctx.putImageData(imageData, 0, 0)
     
-    console.log('🖼️ Bildförbehandling klar: kontrast förbättrad')
+    console.log('🖼️ Avancerad bildförbehandling klar: skalning, brusminskning, adaptiv tröskelvärdering')
     return canvas
   }
 
