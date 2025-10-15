@@ -83,7 +83,40 @@ export const realReceiptPatterns = {
 
 // Förbättrade mönster för produktextraktion
 export const advancedProductPatterns = [
-  // Kvitton med symboler först
+  // Specifika mönster för OCR-utdatan vi ser
+  {
+    // "Avokado 25%19,90 39,80" - Produkt med procent och multipla priser
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,20})\s+\d+%\d+[.,]\d{2}\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  {
+    // "Gurka 2st15,00 30,00" - Produkt med kvantitet och två priser
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,20})\s+\d+st\d+[.,]\d{2}\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  {
+    // "LakritsMix 39,90" - Enkelt produkt med pris
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,25})\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  {
+    // "*Avokado 25%19,90 39,80" - Med asterisk
+    pattern: /^\*\s*([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,20})\s+.*?(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  // Kvitton med symboler först (original)
   {
     pattern: /^([*\-+>@#&→▪•◆≫①-⑳])\s*([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s*(\d+[.,]\d{2})?(?:\s*kr)?\s*$/i,
     extract: (match) => ({
@@ -121,7 +154,23 @@ export const advancedProductPatterns = [
     })
   },
 
-  // Produkter utan pris
+  // Enkla produktnamn ("Banan", "Svamp Champinjon")
+  {
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{1,30})\s*$/i,
+    extract: (match) => {
+      const name = match[1].trim()
+      // Extra validering för enkla produktnamn
+      if (name.length >= 3 && /^[A-Za-zÅÄÖåäö\s]+$/.test(name)) {
+        return {
+          name: name,
+          price: null
+        }
+      }
+      return null
+    }
+  },
+  
+  // Produkter utan pris (fallback)
   {
     pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s\-0-9]{2,35})\s*$/i,
     extract: (match) => ({
