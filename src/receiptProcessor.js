@@ -265,10 +265,21 @@ export class ReceiptProcessor {
     
     // Använd avancerad kvittoanalys
     console.log('🤖 Startar avancerad kvittoanalys...')
-    this.showDebugInfo('OCR Rader:', allLines.map((line, i) => `${i+1}: ${line}`).join('\n'))
+    this.showDebugInfo('📄 OCR RADER (totalt ' + allLines.length + '):', allLines.map((line, i) => `${i+1}: "${line}"`).join('\n'))
     
+    // Kör extraktion med extra debug
+    console.log('📦 Startar produktextraktion...')
     const extractedProducts = extractProductsFromReceipt(allLines)
-    this.showDebugInfo('Rå produkter från OCR:', extractedProducts.map(p => `${p.name} (${p.price})`).join('\n'))
+    
+    console.log(`📊 Extraktion klar: ${extractedProducts.length} produkter hittade`)
+    this.showDebugInfo('🎯 EXTRAHERADE FRÅN OCR (' + extractedProducts.length + ' st):', 
+      extractedProducts.length > 0 
+        ? extractedProducts.map((p, i) => `${i+1}. "${p.name}" (pris: ${p.price || 'inget'})`).join('\n')
+        : 'INGA PRODUKTER EXTRAHERADE!')
+    
+    if (extractedProducts.length === 0) {
+      this.showDebugInfo('❌ VARNING!', 'Ingen produkt extraherad från OCR-text. Kontrollera mönster!')
+    }
     
     const products = []
     
