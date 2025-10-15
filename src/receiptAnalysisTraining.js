@@ -93,8 +93,24 @@ export const advancedProductPatterns = [
     })
   },
   {
-    // "Gurka 2st15,00 30,00" - Produkt med kvantitet och två priser
+    // "Gurka 2st15,00 30,00" - Specifikt för Gurka med kvantitet och sammanklistrade priser
+    pattern: /^(Gurka|gurka)\s+\d+st\d+[.,]\d{2}\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  {
+    // Generellt mönster: "Produkt XstYY,ZZ AA,BB" 
     pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,20})\s+\d+st\d+[.,]\d{2}\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  {
+    // "Gurka 2st 15,00 30,00" - Med mellanslag efter st
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,20})\s+\d+st\s+\d+[.,]\d{2}\s+(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
     extract: (match) => ({
       name: match[1].trim(),
       price: parseFloat(match[2].replace(',', '.'))
@@ -154,6 +170,15 @@ export const advancedProductPatterns = [
     })
   },
 
+  // Fallback för produkter med "st" som vi kanske missar
+  {
+    pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{2,15}).*?st.*?(\d+[.,]\d{2})(?:\s*kr)?\s*$/i,
+    extract: (match) => ({
+      name: match[1].trim(),
+      price: parseFloat(match[2].replace(',', '.'))
+    })
+  },
+  
   // Enkla produktnamn ("Banan", "Svamp Champinjon")
   {
     pattern: /^([A-Za-zÅÄÖåäö][A-Za-zÅÄÖåäö\s]{1,30})\s*$/i,

@@ -288,20 +288,24 @@ export class ReceiptProcessor {
       const cleanedName = this.extractCoreProductName(product.name)
       const originalName = product.name
       
+      // Först: kontrollera om det definitivt INTE är mat (högsta prioritet)
       const isDefinitelyNotFood = this.isDefinitelyNotFood(originalName)
-      const isLikelyFood = this.isLikelyFoodProduct(cleanedName) // Använd det rensade namnet
       
-      // Debug varje produkt med båda namnen
-      this.showDebugInfo(`Analyserar "${originalName}"`, 
-        `Rensat namn: "${cleanedName}"\nDefinitely NOT food: ${isDefinitelyNotFood}\nLikely food: ${isLikelyFood}`)
-      
-      // Extra säkerhetskontroll - undvik icke-matvaror
       if (isDefinitelyNotFood) {
+        this.showDebugInfo(`❌ AVVISAR "${originalName}"`, 
+          `Rensat: "${cleanedName}"\nDefinitivt INTE mat: JA\nÅtgärd: Hoppar över`)
         console.log(`🗑️ Hoppar över icke-matvara: ${originalName}`)
         continue
       }
       
-      // Använd AI för att avgöra om detta är en matvara (med rensat namn)
+      // Om det inte är definitivt icke-mat, testa AI med rensade namnet
+      const isLikelyFood = this.isLikelyFoodProduct(cleanedName)
+      
+      // Debug med korrekt logik (nu kan aldrig båda vara sanna)
+      this.showDebugInfo(`🔍 Analyserar "${originalName}"`, 
+        `Rensat namn: "${cleanedName}"\nDefinitivt INTE mat: NEJ\nTrolig mat (AI): ${isLikelyFood ? 'JA' : 'NEJ'}`)
+      
+      // Använd AI för att avgöra om detta är en matvara
       if (isLikelyFood) {
         // Standardisera produktformatet med originalnamnet men rensat för display
         const standardProduct = {
