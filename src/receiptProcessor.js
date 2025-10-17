@@ -1,6 +1,7 @@
 import { createWorker } from 'tesseract.js'
 import { analyzeAgainstTrainingData, cleanReceiptProductName } from './receiptTrainingData.js'
 import { extractProductsFromReceipt, identifyStoreType } from './receiptAnalysisTraining.js'
+import { STRICT_FOOD_VALIDATOR } from './comprehensiveFoodDatabase.js'
 
 // Kvitto-processor som använder OCR för att läsa produkter från kvitton
 export class ReceiptProcessor {
@@ -509,27 +510,33 @@ export class ReceiptProcessor {
       const cleanedName = this.extractCoreProductName(product.name)
       const originalName = product.name
       
-      // Först: kontrollera om det definitivt INTE är mat (högsta prioritet)
+      // STRIKT validering mot omfattande matvarudatabas - som en människa skulle göra
+      console.log(`🔍 Validerar: "${cleanedName}" (original: "${originalName}")`)
+      
+      // Först: kontrollera om det definitivt INTE är mat (kvittobrus, betalningsinfo, etc.)
       const isDefinitelyNotFood = this.isDefinitelyNotFood(originalName)
       
       if (isDefinitelyNotFood) {
+        console.log(`🚫 Definitivt inte mat: "${originalName}"`)
         continue // Hoppa över icke-matvaror
       }
       
-      // Om det inte är definitivt icke-mat, testa AI med rensade namnet
-      const isLikelyFood = this.isLikelyFoodProduct(cleanedName)
+      // HUVUDVALIDERING: Strikt kontroll mot omfattande matvarudatabas
+      const isValidFood = STRICT_FOOD_VALIDATOR.isValidFoodProduct(cleanedName)
       
-      // Använd AI för att avgöra om detta är en matvara
-      if (isLikelyFood) {
-        // Standardisera produktformatet med originalnamnet men rensat för display
+      if (isValidFood) {
+        // Produkten finns i vår omfattande matvarudatabas - lägg till den
         const standardProduct = {
           name: cleanedName, // Använd det rensade namnet
-          originalName: originalName, // Behåll originalet
+          originalName: originalName, // Behåll originalet för debugging
           quantity: product.quantity || this.extractQuantityFromName(originalName),
           unit: product.unit || this.guessUnit(originalName),
           price: product.price
         }
         products.push(standardProduct)
+        console.log(`✅ GODKÄND MATVARA: "${cleanedName}" lagd till`)
+      } else {
+        console.log(`❌ AVVISAD: "${cleanedName}" finns inte i matvarudatabasen`)
       }
     }
     
@@ -1497,7 +1504,7 @@ export class ReceiptProcessor {
     return true
   }
   
-  // Säkerhetskontroll för att identifiera definitivt INTE matvaror
+  // UTVIDGAD säkerhetskontroll för att identifiera definitivt INTE matvaror
   isDefinitelyNotFood(productName) {
     if (!productName) return true
     
@@ -1506,7 +1513,7 @@ export class ReceiptProcessor {
     // Betalningsrelaterat
     const paymentKeywords = [
       'mottaget', 'kontokort', 'bankkort', 'kort', 'card', 'swish', 'kontant', 'cash',
-      'betalning', 'payment', 'betalt', 'paid', 'kredit', 'debit'
+      'betalning', 'payment', 'betalt', 'paid', 'kredit', 'debit', 'visa', 'mastercard'
     ]
     
     // ICA-tjänster och bonusprogram
@@ -1524,10 +1531,25 @@ export class ReceiptProcessor {
     
     // Kampanjer och erbjudanden
     const promotionKeywords = [
-      'kampanj', 'erbjudande', 'rabatt', 'spar', 'bonus', 'save', 'offer'
+      'kampanj', 'erbjudande', 'rabatt', 'spar', 'bonus', 'save', 'offer',
+      'rea', 'sale', 'extrapris', 'medlem pris'
     ]
     
-    const allKeywords = [...paymentKeywords, ...serviceKeywords, ...receiptKeywords, ...promotionKeywords]
+    // Icke-matvaror som ofta finns på kvitton
+    const nonFoodItems = [
+      'påse', 'plastpåse', 'kasse', 'bärare', 'papperspåse', 'shopping bag',
+      'diskmedel', 'tvättmedel', 'städ', 'rengöring', 'kemikalie', 'spray',
+      'tandk räm', 'tandborste', 'schampo', 'tvål', 'deodorant', 'shampoo',
+      'batterier', 'glödlampa', 'tidning', 'magasin', 'present', 'gåva',
+      'blommor', 'växt', 'leksak', 'cigaretter', 'tobak', 'lighter',
+      'verktyg', 'skruv', 'spik', 'järn', 'plast', 'metall', 'elektronik',
+      'parfym', 'kosmetika', 'nagellack', 'smink', 'mascara', 'läppstift',
+      'kondomer', 'preventivmedel', 'medicin', 'vit min', 'supplement',
+      'folie', 'plastfolie', 'bakpapper', 'servetter', 'toalettpapper',
+      'köksrullar', 'disktrasa', 'tvättlappar'
+    ]
+    
+    const allKeywords = [...paymentKeywords, ...serviceKeywords, ...receiptKeywords, ...promotionKeywords, ...nonFoodItems]
     
     // Kolla om något nyckelord finns i produktnamnet
     if (allKeywords.some(keyword => name.includes(keyword))) {
@@ -1538,6 +1560,12 @@ export class ReceiptProcessor {
     if (/^\d{3}\s*\d{2}\s*\d{5}$/.test(name)) return true // Organisationsnummer
     if (/^\d{4,}$/.test(name)) return true // Långa siffror
     if (/^\d+[.,]\d{2}\s*kr?$/.test(name)) return true // Bara priser
+    if (/^ref[\s.]*\d+/i.test(name)) return true // Referensnummer
+    
+    // Kolla för för korta eller konstiga strängar
+    if (name.length < 2) return true
+    if (/^[^a-zåäö]*$/.test(name)) return true // Ingen bokstav alls
+    if (/^[-=_*+]{2,}$/.test(name)) return true // Bara symboler
     
     return false
   }
