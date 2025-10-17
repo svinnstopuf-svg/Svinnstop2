@@ -21,6 +21,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
   const [foundDates, setFoundDates] = useState([])
   const [recognizedProducts, setRecognizedProducts] = useState([])
   const [showProductSelection, setShowProductSelection] = useState(false)
+  const [isLandscapeMode, setIsLandscapeMode] = useState(false)
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -78,14 +79,19 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       setError(null)
       setScanning(true)
       
-      // Begär kamera-tillgång
+      // Begär kamera-tillgång med dynamiska inställningar för landscape-läge
+      const videoConstraints = {
+        facingMode: 'environment', // Bakre kamera på mobil
+        width: { ideal: isLandscapeMode ? 1920 : 1280 },
+        height: { ideal: isLandscapeMode ? 1080 : 720 },
+        aspectRatio: isLandscapeMode ? 16/9 : 4/3
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment', // Bakre kamera på mobil
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+        video: videoConstraints
       })
+      
+      console.log(`📱 Kamera startad i ${isLandscapeMode ? 'LANDSCAPE' : 'PORTRAIT'}-läge (${videoConstraints.width.ideal}x${videoConstraints.height.ideal})`)
       
       setHasPermission(true)
       videoRef.current.srcObject = stream
@@ -714,6 +720,22 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
               </button>
             </div>
           )}
+          
+          {/* Landscape-växling för kvittoscanning */}
+          {scanMode === 'receipt' && (
+            <div className="landscape-toggle">
+              <button 
+                onClick={() => setIsLandscapeMode(!isLandscapeMode)}
+                className={`landscape-btn ${isLandscapeMode ? 'active' : ''}`}
+                title={isLandscapeMode ? 'Växla till portätt-läge' : 'Växla till landscape för långa kvitton'}
+              >
+                {isLandscapeMode ? '📱' : '🔄'} {isLandscapeMode ? 'Portätt' : 'Landscape'}
+              </button>
+              {isLandscapeMode && (
+                <span className="landscape-hint">💡 Håll telefonen på sidan för hela kvittot</span>
+              )}
+            </div>
+          )}
           <button 
             onClick={handleClose} 
             className="scanner-close"
@@ -744,10 +766,10 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
             </div>
           ) : (
             <>
-              <div className="scanner-video-container">
+              <div className={`scanner-video-container ${isLandscapeMode ? 'landscape' : 'portrait'}`}>
                 <video
                   ref={videoRef}
-                  className="scanner-video"
+                  className={`scanner-video ${isLandscapeMode ? 'landscape' : 'portrait'}`}
                   autoPlay
                   playsInline
                   muted
