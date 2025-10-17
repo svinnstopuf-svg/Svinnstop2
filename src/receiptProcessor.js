@@ -56,29 +56,159 @@ export class ReceiptProcessor {
     try {
       await this.initialize()
       
-      console.log('📄 Startar kvittoscanning...')
+      console.log('📄 Startar MULTI-PASS kvittoscanning...')
       
-      // Kolla om det är ett långt kvitto som kräver segmentering
-      const imageHeight = imageElement.naturalHeight || imageElement.height
-      const imageWidth = imageElement.naturalWidth || imageElement.width
-      const aspectRatio = imageHeight / imageWidth
-      
-      console.log(`📏 Kvittostorlek: ${imageWidth}x${imageHeight} (ratio: ${aspectRatio.toFixed(2)})`)
-      
-      // Om kvittot är mycket långt (ratio > 4) och stort, använd segmenterad approach
-      if (aspectRatio > 4 && imageHeight > 2000) {
-        console.log('📜 Långt kvitto detekterat - använder segmenterad bearbetning för 40-100+ produkter')
-        return await this.processLongReceiptSegmented(imageElement)
-      }
-      
-      // Standard multi-pass OCR för normala kvitton
-      console.log('📄 Standard kvitto - använder multi-pass OCR')
-      return await this.processStandardReceipt(imageElement)
+      // Använd alltid multi-pass strategi för bästa resultat
+      return await this.processReceiptMultiPass(imageElement)
         
     } catch (error) {
       console.error('OCR misslyckades:', error)
       return []
     }
+  }
+  
+  // NY MULTI-PASS STRATEGI
+  async processReceiptMultiPass(imageElement) {
+    console.log('🎯 MULTI-PASS: Startar intelligent kvittoscanning...')
+    
+    const imageHeight = imageElement.naturalHeight || imageElement.height
+    const imageWidth = imageElement.naturalWidth || imageElement.width
+    
+    console.log(`📏 Kvittostorlek: ${imageWidth}x${imageHeight}`)
+    
+    // PASS 1: Förbehandla och identifiera produktområdet
+    console.log('🔍 PASS 1: Identifierar produktområdet...')
+    const preprocessedImage = this.preprocessImage(imageElement, 'standard')
+    const productRegion = this.identifyProductRegion(preprocessedImage)
+    
+    // PASS 2: Extrahera produkter med optimal OCR
+    console.log('📝 PASS 2: Extraherar produkter...')
+    const allProductLines = await this.extractProductLines(productRegion || preprocessedImage)
+    
+    // PASS 3: Validera och rensa produkter
+    console.log('🧠 PASS 3: Validerar mot matvarudatabas...')
+    const validFoodProducts = this.validateAndCleanProducts(allProductLines)
+    
+    console.log(`✅ MULTI-PASS KLAR: ${validFoodProducts.length} giltiga matvaror funna`)
+    return validFoodProducts
+  }
+  
+  // PASS 1: Identifiera produktområdet (skippa header/footer)
+  identifyProductRegion(canvas) {
+    console.log('🎯 Letar efter produktområdet i kvittot...')
+    
+    const ctx = canvas.getContext('2d')
+    const width = canvas.width
+    const height = canvas.height
+    
+    // Skippa övre 15% (butiknamn, datum) och nedre 20% (totalsumma, betalning)
+    const skipTop = Math.floor(height * 0.15)
+    const skipBottom = Math.floor(height * 0.20)
+    const productHeight = height - skipTop - skipBottom
+    
+    if (productHeight <= 0) {
+      console.log('⚠️ För litet område - använder hela bilden')
+      return canvas
+    }
+    
+    // Skapa ny canvas med bara produktområdet
+    const productCanvas = document.createElement('canvas')
+    const productCtx = productCanvas.getContext('2d')
+    
+    productCanvas.width = width
+    productCanvas.height = productHeight
+    
+    productCtx.drawImage(canvas, 0, -skipTop)
+    
+    console.log(`✂️ Produktområde: ${width}x${productHeight} (skippa topp: ${skipTop}px, botten: ${skipBottom}px)`)
+    return productCanvas
+  }
+  
+  // PASS 2: Extrahera produktrader med strukturmedvetenhet
+  async extractProductLines(canvas) {
+    console.log('🗺 Extraherar produktrader med strukturanalys...')
+    
+    // Enkel OCR med fokus på hastighet
+    const { data: { text } } = await this.worker.recognize(canvas, {
+      tessedit_pageseg_mode: 6, // Uniform text block
+      tessedit_ocr_engine_mode: 1,
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%() '
+    })
+    
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 2)
+    console.log(`📝 Hittade ${lines.length} textrader`)
+    
+    // Analysera radstruktur: leta efter mönster som "Produktnamn ... Pris"
+    const productLines = []
+    
+    for (const line of lines) {
+      if (this.looksLikeProductLine(line)) {
+        productLines.push(line)
+      }
+    }
+    
+    console.log(`📦 ${productLines.length} rader ser ut som produkter`)
+    return productLines
+  }
+  
+  // Kontrollera om en rad ser ut som en produktrad
+  looksLikeProductLine(line) {
+    // Måste ha både text och pris för att vara en produktrad
+    const hasPrice = /\d+[.,]\d{2}\s*(kr|:-|$)/i.test(line)
+    const hasText = /[a-zåäö]{2,}/i.test(line)
+    const isNotHeader = !/^[A-ZÅÄÖ\s]{5,}$/i.test(line) // Inte bara stora bokstäver
+    const isNotTotal = !/^(summa|total|att betala|kort|kontant)/i.test(line)
+    
+    return hasPrice && hasText && isNotHeader && isNotTotal
+  }
+  
+  // PASS 3: Validera produkter mot matvarudatabas
+  validateAndCleanProducts(productLines) {
+    console.log(`🧠 Validerar ${productLines.length} produktrader...`)
+    
+    const validProducts = []
+    
+    for (const line of productLines) {
+      // Extrahera produktnamn (ta bort pris och kvantitet)
+      const cleanedName = this.extractCoreProductName(line)
+      
+      if (!cleanedName || cleanedName.length < 2) continue
+      
+      // Kontrollera om det definitivt INTE är mat
+      if (this.isDefinitelyNotFood(line)) {
+        console.log(`🚫 Skippar icke-mat: "${line}"`)
+        continue
+      }
+      
+      // Validera mot matvarudatabas
+      const isValidFood = STRICT_FOOD_VALIDATOR.isValidFoodProduct(cleanedName)
+      
+      if (isValidFood) {
+        const product = {
+          name: cleanedName,
+          originalName: line,
+          quantity: this.extractQuantityFromName(line),
+          unit: this.guessUnit(line),
+          price: this.extractPrice(line)
+        }
+        
+        validProducts.push(product)
+        console.log(`✅ GILTIG MAT: "${cleanedName}"`)
+      } else {
+        console.log(`❌ AVVISAD: "${cleanedName}" finns inte i matdatabasen`)
+      }
+    }
+    
+    return validProducts
+  }
+  
+  // Extrahera pris från produktrad
+  extractPrice(line) {
+    const priceMatch = line.match(/(\d+[.,]\d{2})\s*(kr|:-|$)/i)
+    if (priceMatch) {
+      return parseFloat(priceMatch[1].replace(',', '.'))
+    }
+    return null
   }
   
   // Standard OCR för normala kvitton
@@ -339,7 +469,7 @@ export class ReceiptProcessor {
     return score
   }
 
-  // AVANCERAD bildbehandling för långa kvitton med liten och suddig text
+  // ENKEL och SNABB bildbehandling optimerad för multi-pass strategi
   preprocessImage(imageElement, mode = 'standard') {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -347,104 +477,44 @@ export class ReceiptProcessor {
     const originalWidth = imageElement.naturalWidth || imageElement.width
     const originalHeight = imageElement.naturalHeight || imageElement.height
     
-    // Aggressiv uppskalning för små text - högre för bättre OCR
-    let scale
-    if (originalHeight > 4000) {
-      // Extremt långa kvitton - hög skalning för liten text
-      scale = mode === 'soft' ? 2.5 : 3.0
-    } else if (originalHeight > 2000) {
-      // Långa kvitton - maximal skalning för precision
-      scale = mode === 'soft' ? 2.8 : 3.5
-    } else {
-      // Normala kvitton - extremt hög skalning
-      scale = mode === 'soft' ? 3.0 : 4.0
-    }
+    // Balanserad skalning för hastighet och kvalitet
+    const scale = originalHeight > 3000 ? 2.0 : originalHeight > 1500 ? 2.5 : 3.0
     
     canvas.width = originalWidth * scale
     canvas.height = originalHeight * scale
     
-    console.log(`🔍 AVANCERAD bildförbättring: ${originalWidth}x${originalHeight} → ${canvas.width}x${canvas.height} (${scale}x)`)
+    console.log(`🔍 Snabb bildförbättring: ${originalWidth}x${originalHeight} → ${canvas.width}x${canvas.height} (${scale}x)`)
     
-    // BICUBIC interpolation för bästa uppskalning
+    // Hantverksskillnad för bästa kvalitet vid uppskalning
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
-    const width = canvas.width
-    const height = canvas.height
     
-    // Avancerad bildanalys och förbättring
-    console.log('📊 Analyserar bildkvalitet och ljusförhållanden...')
-    
-    // 1. Mät ljusstyrkefördelning och kontrast
-    let avgBrightness = 0, minBrightness = 255, maxBrightness = 0
-    const histogram = new Array(256).fill(0)
-    
+    // Enkel men effektiv bildbehandling
+    let avgBrightness = 0
     for (let i = 0; i < data.length; i += 4) {
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
       avgBrightness += gray
-      minBrightness = Math.min(minBrightness, gray)
-      maxBrightness = Math.max(maxBrightness, gray)
-      histogram[Math.floor(gray)]++
     }
     avgBrightness /= (data.length / 4)
     
-    const contrast = maxBrightness - minBrightness
-    console.log(`💡 Ljusanalys: avg=${Math.round(avgBrightness)}, kontrast=${Math.round(contrast)}, range=${Math.round(minBrightness)}-${Math.round(maxBrightness)}`)
-    
-    // 2. Detektera bildproblem
-    const isLowLight = avgBrightness < 120
-    const isLowContrast = contrast < 100
-    const isOverexposed = avgBrightness > 200 && maxBrightness > 240
-    const isUnderexposed = avgBrightness < 80 && minBrightness < 50
-    
-    console.log(`🔍 Bildproblem: ${isLowLight ? 'Dåligt ljus' : ''} ${isLowContrast ? 'Låg kontrast' : ''} ${isOverexposed ? 'Överexponerad' : ''} ${isUnderexposed ? 'Underexponerad' : ''}`)
-    
-    // 3. MULTISTEG-PROCESSERING för maximal kvalitet
-    
-    // STEG 1: Gaussian blur för att minska brus (för suddiga bilder)
-    if (mode !== 'soft') {
-      this.applyGaussianBlur(data, width, height, 0.8) // Mild blänkning
-      console.log('🌀 Tillämpade Gaussian blur för brusreducering')
+    // Minimal bearbetning för hastighet
+    const needsEnhancement = avgBrightness < 130
+    if (needsEnhancement) {
+      console.log('💡 Tillämpar ljusförbättring...')
+      
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+        const enhanced = Math.min(255, gray * 1.2) // Enkel ljusförstärkning
+        data[i] = data[i + 1] = data[i + 2] = enhanced
+      }
     }
-    
-    // STEG 2: Unsharp masking för att skärpa text
-    this.applyUnsharpMask(data, width, height, 1.5, 1.0, 0.1)
-    console.log('⚔️ Tillämpade Unsharp masking för textskärpa')
-    
-    // STEG 3: Adaptiv ljusutjämning (CLAHE-liknande)
-    this.applyCLAHE(data, width, height)
-    console.log('🌅 Tillämpade adaptiv ljusutjämning (CLAHE)')
-    
-    // STEG 4: Lägesspecifik förbättring
-    switch (mode) {
-      case 'high_contrast':
-        console.log('🔥 Hög kontrast-läge: Aggressiv textförbättring')
-        this.applyAdvancedContrast(data, width, height, isLowLight, isLowContrast)
-        this.applyMorphologicalFiltering(data, width, height, 'text_enhancement')
-        break
-        
-      case 'soft':
-        console.log('🌿 Mjukt läge: Balanserad förbättring')
-        this.applyGentleEnhancement(data, width, height, avgBrightness)
-        break
-        
-      default: // 'standard'
-        console.log('⚙️ Standard-läge: Adaptiv multistrategi')
-        this.applyAdaptiveEnhancement(data, width, height, avgBrightness, contrast, isLowLight, isLowContrast)
-        this.applyMorphologicalFiltering(data, width, height, 'noise_reduction')
-        break
-    }
-    
-    
-    // STEG 5: Slutlig bilateralt filter för kant-bevarande mjukning
-    this.applyBilateralFilter(data, width, height)
-    console.log('🌊 Slutlig bilateralt filter tillämpad')
     
     ctx.putImageData(imageData, 0, 0)
-    console.log('✨ Avancerad bildbehandling slutförd')
+    console.log('✨ Snabb bildbehandling klar')
     return canvas
   }
   
