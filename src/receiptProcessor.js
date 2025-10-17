@@ -9,40 +9,6 @@ export class ReceiptProcessor {
     this.debugMode = false // Debug avstängt för produktion
   }
 
-  // ROBUST MODE: För ogynnsamma förhållanden (dåligt ljus, suddig bild, långa kvitton, sneda vinklar)
-  async processReceiptRobust(imageElement) {
-    try {
-      await this.initialize()
-      console.log('🚀 Startar ROBUST kvittoscanning för ogynnsamma förhållanden...')
-      
-      // Steg 1: Förbättra och korrigera bilden maximalt
-      const correctedImage = this.correctImageIssues(imageElement)
-      
-      // Steg 2: Segmentera långa kvitton i mindre delar
-      const segments = this.segmentLongReceipt(correctedImage)
-      console.log(`📄 Kvitto delat i ${segments.length} segment(s)`)
-      
-      // Steg 3: Multi-pass OCR med olika strategier per segment
-      const allProducts = []
-      for (let i = 0; i < segments.length; i++) {
-        console.log(`🔍 Processar segment ${i + 1}/${segments.length}`)
-        const segmentProducts = await this.processSegmentRobust(segments[i], i)
-        allProducts.push(...segmentProducts)
-      }
-      
-      // Steg 4: Intelligent deduplicering och sammanslåning
-      const finalProducts = this.mergeDuplicateProducts(allProducts)
-      console.log(`✅ ROBUST scanning klar: ${finalProducts.length} produkter hittade`)
-      
-      return finalProducts
-      
-    } catch (error) {
-      console.error('❌ ROBUST OCR misslyckades:', error)
-      // Fallback till standard metod
-      console.log('🔄 Försöker med standard-metod som fallback...')
-      return await this.processReceipt(imageElement)
-    }
-  }
 
   async initialize() {
     if (this.worker) return
@@ -51,17 +17,17 @@ export class ReceiptProcessor {
     await this.worker.loadLanguage('swe+eng') // Svenska och engelska
     await this.worker.initialize('swe+eng')
     
-    // Förbättrade OCR-inställningar för svenska kvitton
+  // Förbättrade OCR-inställningar för svenska kvitton - optimerade för både bra och dåliga förhållanden
     await this.worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() ',
-      tessedit_pageseg_mode: 7, // Single text line (bättre för kvitton)
+      tessedit_pageseg_mode: 6, // Uniform text block - mer robust för olika kvitton
       tessedit_ocr_engine_mode: 1, // Neural net LSTM + Legacy (hybrid för bättre resultat)
       preserve_interword_spaces: 1,
-      tessedit_char_blacklist: '|[]{}~`^_=+\\"#@&<>',
+      tessedit_char_blacklist: '|[]{}~`^_=+\\\"#@&<>',
       classify_enable_learning: 1,
       classify_enable_adaptive_matcher: 1,
-      textord_debug_tabfind: 0,
-      textord_tabfind_find_tables: 0,
+      // Mer toleranta inställningar för ogynnsamma förhållanden
+      tessedit_pageseg_mode_debug: 0,
       load_system_dawg: 0, // Inaktivera systemordbok för bättre precision
       load_freq_dawg: 0, // Inaktivera frekvensordbok
       load_punc_dawg: 1,
@@ -69,12 +35,13 @@ export class ReceiptProcessor {
       load_unambig_dawg: 0,
       load_bigram_dawg: 0,
       load_fixed_length_dawgs: 0,
-      // Ytterligare inställningar för bättre kvalitet
       tessedit_create_hocr: 0,
       tessedit_create_tsv: 0,
-      gapmap_use_ends: 0,
-      gapmap_no_isolated_quanta: 1,
-      tesseract_minimum_word_size: 2
+      tesseract_minimum_word_size: 2,
+      // Förbättrad tolerans för dåliga bilder
+      textord_noise_sizelimit: 0.7,
+      textord_noise_normratio: 2,
+      textord_noise_translimit: 16.0
     })
     
   }
@@ -186,13 +153,13 @@ export class ReceiptProcessor {
     return score
   }
 
-  // Förbehandla bild för bättre OCR-resultat
+  // Förbehandla bild för bättre OCR-resultat - optimerad för alla förhållanden
   preprocessImage(imageElement, mode = 'standard') {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     
-    // Skala upp bilden för bättre OCR-precision
-    const scale = mode === 'soft' ? 1.5 : 2
+    // Ökad skalning för bättre precision även under dåliga förhållanden
+    const scale = mode === 'soft' ? 2.0 : 2.5
     canvas.width = (imageElement.naturalWidth || imageElement.width) * scale
     canvas.height = (imageElement.naturalHeight || imageElement.height) * scale
     
@@ -204,23 +171,40 @@ export class ReceiptProcessor {
     const width = canvas.width
     const height = canvas.height
     
+    // Mät genomsnittlig ljusstyrka för adaptiv förbättring
+    let avgBrightness = 0
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      avgBrightness += gray
+    }
+    avgBrightness /= (data.length / 4)
+    
+    console.log(`💡 Kvittoscanning - ljusstyrka: ${Math.round(avgBrightness)}/255`)
+    
+    // Adaptiv förbättring baserat på ljusförhållanden
+    const brightnessBoost = avgBrightness < 100 ? 2.2 : avgBrightness < 150 ? 1.6 : 1.2
+    const contrastBoost = avgBrightness < 120 ? 2.0 : 1.4
+    
     // Olika förbehandlingsstrategier
     switch (mode) {
       case 'high_contrast':
-        // Hård svartvit kontrast
+        // Hård svartvit kontrast med adaptiv förbättring
         for (let i = 0; i < data.length; i += 4) {
           const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-          const enhanced = gray > 110 ? 255 : 0 // Lägre tröskel för mer text
-          data[i] = data[i + 1] = data[i + 2] = enhanced
+          let enhanced = (gray - 128) * contrastBoost + 128
+          enhanced *= brightnessBoost
+          enhanced = enhanced > 130 ? 255 : 0 // Adaptiv tröskel
+          data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
         }
         break
         
       case 'soft':
-        // Mjuk förbättring
+        // Mjuk förbättring med ljuskompensation
         for (let i = 0; i < data.length; i += 4) {
           const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-          const enhanced = Math.min(255, gray * 1.3) // Öka kontrast mjukt
-          data[i] = data[i + 1] = data[i + 2] = enhanced
+          let enhanced = (gray - 128) * (contrastBoost * 0.7) + 128
+          enhanced *= brightnessBoost * 0.8
+          data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
         }
         break
         
@@ -1387,231 +1371,6 @@ export class ReceiptProcessor {
       .trim()
   }
   
-  // ROBUST: Maximalt bildförbättring för ogynnsamma förhållanden
-  correctImageIssues(imageElement) {
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    
-    // Stor skalning för att kompensera för dålig kvalitet
-    const scale = 3 // Högre skalning än vanligt
-    canvas.width = (imageElement.naturalWidth || imageElement.width) * scale
-    canvas.height = (imageElement.naturalHeight || imageElement.height) * scale
-    
-    ctx.imageSmoothingEnabled = false // Bevara skärpa
-    ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
-    
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const data = imageData.data
-    
-    // STEG 1: Extremt ljusförbättring för mörka bilder
-    let avgBrightness = 0
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-      avgBrightness += gray
-    }
-    avgBrightness /= (data.length / 4)
-    
-    console.log(`💡 Genomsnittlig ljusstyrka: ${Math.round(avgBrightness)}/255`)
-    
-    // Adaptiv ljusförstärkning baserat på hur mörk bilden är
-    const brightnessBoost = avgBrightness < 100 ? 2.5 : avgBrightness < 150 ? 1.8 : 1.3
-    const contrastBoost = avgBrightness < 100 ? 2.0 : 1.5
-    
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-      
-      // Extremt kontrast och ljusförbättring
-      let enhanced = (gray - 128) * contrastBoost + 128 // Kontrastförstärkning
-      enhanced *= brightnessBoost // Ljusförstärkning
-      enhanced = Math.max(0, Math.min(255, enhanced))
-      
-      // Skärpning för suddiga bilder - mer aggressiv
-      if (enhanced < 180 && enhanced > 75) {
-        enhanced = enhanced < 128 ? Math.max(0, enhanced * 0.7) : Math.min(255, enhanced * 1.4)
-      }
-      
-      data[i] = data[i + 1] = data[i + 2] = enhanced
-    }
-    
-    // STEG 2: Brusreducering för att hantera kamerafaktorer som skakningar
-    const cleanedData = new Uint8ClampedArray(data.length)
-    const width = canvas.width
-    const height = canvas.height
-    
-    for (let y = 2; y < height - 2; y++) {
-      for (let x = 2; x < width - 2; x++) {
-        const i = (y * width + x) * 4
-        const neighbors = []
-        
-        // Samla grannar i 5x5 område för stark brusreducering
-        for (let dy = -2; dy <= 2; dy++) {
-          for (let dx = -2; dx <= 2; dx++) {
-            const ni = ((y + dy) * width + (x + dx)) * 4
-            neighbors.push(data[ni])
-          }
-        }
-        
-        // Median filter för att ta bort brus
-        neighbors.sort((a, b) => a - b)
-        const medianValue = neighbors[Math.floor(neighbors.length / 2)]
-        
-        cleanedData[i] = cleanedData[i + 1] = cleanedData[i + 2] = medianValue
-        cleanedData[i + 3] = 255
-      }
-    }
-    
-    ctx.putImageData(new ImageData(cleanedData, width, height), 0, 0)
-    
-    console.log('✨ Bildförbättring för ogynnsamma förhållanden klar')
-    return canvas
-  }
-  
-  // ROBUST: Segmentera långa kvitton för att undvika OCR-minnesproblem
-  segmentLongReceipt(canvas) {
-    const segments = []
-    const maxSegmentHeight = 1500 // Mindre segment för bättre OCR-precision
-    const overlapHeight = 300 // Stort överlapp för att inte missa produkter
-    
-    if (canvas.height <= maxSegmentHeight) {
-      // Kort kvitto - returnera som det är
-      return [canvas]
-    }
-    
-    console.log(`📏 Långt kvitto (${canvas.height}px) - segmenterar...`)
-    
-    let y = 0
-    while (y < canvas.height) {
-      const segmentCanvas = document.createElement('canvas')
-      const segmentCtx = segmentCanvas.getContext('2d')
-      
-      const segmentHeight = Math.min(maxSegmentHeight, canvas.height - y)
-      segmentCanvas.width = canvas.width
-      segmentCanvas.height = segmentHeight
-      
-      // Kopiera segment från originalbilden
-      segmentCtx.drawImage(canvas, 0, y, canvas.width, segmentHeight, 0, 0, canvas.width, segmentHeight)
-      
-      segments.push(segmentCanvas)
-      
-      // Nästa segment med överlappning
-      y += maxSegmentHeight - overlapHeight
-      
-      // Undvik oändliga loopar
-      if (y >= canvas.height - 100) break
-    }
-    
-    console.log(`🔄 Skapade ${segments.length} överlappande segment`)
-    return segments
-  }
-  
-  // ROBUST: Processera segment med flera OCR-strategier
-  async processSegmentRobust(segmentCanvas, segmentIndex) {
-    const strategies = [
-      { name: 'Precision', pageseg: 6, engine: 2 },        // Bäst för tydlig text
-      { name: 'Adaptiv', pageseg: 8, engine: 1 },         // För suddiga bilder
-      { name: 'Aggressiv', pageseg: 11, engine: 3 },      // För svåra fall
-      { name: 'Uniform', pageseg: 7, engine: 1 }          // För standardkvitton
-    ]
-    
-    let bestResult = { products: [], score: 0, text: '' }
-    
-    for (const strategy of strategies) {
-      try {
-        console.log(`🎯 Testar ${strategy.name}-strategi för segment ${segmentIndex + 1}...`)
-        
-        // Konfigurera OCR för denna strategi
-        await this.worker.setParameters({
-          tessedit_pageseg_mode: strategy.pageseg,
-          tessedit_ocr_engine_mode: strategy.engine,
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() ',
-          preserve_interword_spaces: 1
-        })
-        
-        const { data } = await this.worker.recognize(segmentCanvas)
-        const text = data.text
-        
-        if (text && text.trim().length > 5) {
-          const products = this.parseReceiptText(text, `${strategy.name}-S${segmentIndex + 1}`)
-          const score = this.scoreSegmentResult(text, products)
-          
-          console.log(`📊 ${strategy.name}: ${products.length} produkter, poäng: ${score}`)
-          
-          if (score > bestResult.score) {
-            bestResult = { products, score, text, strategy: strategy.name }
-          }
-        }
-        
-      } catch (error) {
-        console.error(`❌ ${strategy.name}-strategi misslyckades:`, error)
-      }
-    }
-    
-    console.log(`🏆 Bästa resultat för segment ${segmentIndex + 1}: ${bestResult.strategy} (${bestResult.products.length} produkter)`)
-    return bestResult.products
-  }
-  
-  // Poängsättning för att välja bästa OCR-resultat
-  scoreSegmentResult(text, products) {
-    let score = 0
-    
-    // Grundpoäng för antal produkter
-    score += products.length * 15
-    
-    // Bonuspoäng för längre text (mer information lyckades läsas)
-    score += Math.min(text.length / 20, 30)
-    
-    // Bonuspoäng för vanliga svenska ord
-    const swedishWords = ['och', 'att', 'det', 'av', 'med', 'för', 'är', 'på']
-    const lowerText = text.toLowerCase()
-    swedishWords.forEach(word => {
-      if (lowerText.includes(word)) score += 5
-    })
-    
-    // Bonuspoäng för prisformat
-    const priceMatches = text.match(/\d+[.,]\d{2}\s*kr/gi)
-    if (priceMatches) score += priceMatches.length * 8
-    
-    // Bonuspoäng för svenska matvaruord
-    const foodWords = ['mjölk', 'bröd', 'ost', 'banan', 'äpple', 'kött', 'fisk', 'ris']
-    foodWords.forEach(word => {
-      if (lowerText.includes(word)) score += 10
-    })
-    
-    return score
-  }
-  
-  // Intelligent sammanslågning av produkter från olika segment
-  mergeDuplicateProducts(allProducts) {
-    const merged = []
-    const seen = new Map()
-    
-    for (const product of allProducts) {
-      const key = this.createProductKey(product)
-      
-      if (!seen.has(key)) {
-        seen.set(key, product)
-        merged.push(product)
-      } else {
-        // Sammanslå information från duplikat
-        const existing = seen.get(key)
-        if (!existing.price && product.price) {
-          existing.price = product.price
-        }
-        if (!existing.quantity && product.quantity) {
-          existing.quantity = product.quantity
-        }
-      }
-    }
-    
-    console.log(`🔄 Deduplicering: ${allProducts.length} → ${merged.length} produkter`)
-    return merged
-  }
-  
-  // Skapa unik nyckel för produkter
-  createProductKey(product) {
-    const normalizedName = product.name.toLowerCase().trim().replace(/\s+/g, ' ')
-    return `${normalizedName}_${product.unit}`
-  }
 
   async cleanup() {
     if (this.worker) {
@@ -1630,22 +1389,8 @@ export async function processReceiptImage(imageElement) {
     receiptProcessor = new ReceiptProcessor()
   }
   
-  // Försök med ursprunglig metod först (som fungerade förut)
-  try {
-    console.log('🔄 Försöker med ursprunglig kvittoscanning...')
-    const standardResult = await receiptProcessor.processReceipt(imageElement)
-    
-    if (standardResult && standardResult.length > 0) {
-      console.log(`✅ Ursprunglig metod lyckades: ${standardResult.length} produkter`)
-      return standardResult
-    } else {
-      console.log('⚠️ Ursprunglig metod hittade inga produkter, försöker robust läge...')
-      throw new Error('Inga produkter hittades med standard-metod')
-    }
-  } catch (error) {
-    console.log('🔄 Standard-metod misslyckades, försöker ROBUST-läge för ogynnsamma förhållanden...')
-    return await receiptProcessor.processReceiptRobust(imageElement)
-  }
+  // Använd bara den ursprungliga metoden som fungerade
+  return await receiptProcessor.processReceipt(imageElement)
 }
 
 // Fallback till standard-metod om robust misslyckas
