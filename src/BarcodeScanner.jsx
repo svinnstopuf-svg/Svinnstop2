@@ -750,7 +750,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
             </div>
           ) : (
             <>
-              <div className="scanner-video-container">
+              <div className={`scanner-video-container ${scanMode === 'receipt' ? 'receipt-mode' : ''}`}>
                 <video
                   ref={videoRef}
                   className="scanner-video"

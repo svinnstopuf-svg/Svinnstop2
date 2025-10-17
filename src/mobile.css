@@ -893,12 +893,18 @@ input:focus {
 .scanner-video-container {
   position: relative;
   width: 100%;
-  max-width: 280px; /* Smalare för kvitto-form */
-  aspect-ratio: 9/16; /* Mycket högre för avlånga kvitton */
+  max-width: 400px;
+  aspect-ratio: 4/3; /* Normal proportion för streckkod och datum */
   border-radius: var(--border-radius-sm);
   overflow: hidden;
   background: #000;
   margin-bottom: 16px;
+}
+
+/* Speciell layout för kvittoscanning */
+.scanner-video-container.receipt-mode {
+  max-width: 280px; /* Smalare för kvitto-form */
+  aspect-ratio: 9/16; /* Mycket högre för avlånga kvitton */
   max-height: 75vh; /* Högre för kvitton */
 }
 
@@ -1516,7 +1522,11 @@ input:focus {
   }
   
   .scanner-video-container {
-    max-width: 250px; /* Ännu smalare på mobil */
+    aspect-ratio: 16/10; /* Lägre för mobil */
+  }
+  
+  .scanner-video-container.receipt-mode {
+    max-width: 250px; /* Ännu smalare på mobil för kvitton */
     aspect-ratio: 9/16; /* Kvitto-proportioner på mobil */
     max-height: 70vh;
   }

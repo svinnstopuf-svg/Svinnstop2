@@ -18,70 +18,36 @@ export class ReceiptProcessor {
     await this.worker.loadLanguage('swe+eng') // Svenska och engelska
     await this.worker.initialize('swe+eng')
     
-  // MAXIMALT förbättrade OCR-inställningar - optimerade för alla förhållanden och långa kvitton
+  // Balanserade OCR-inställningar för både hastighet och kvalitet
     await this.worker.setParameters({
-      // Grundläggande inställningar
+      // Grundläggande inställningar - optimerade för bättre läsbarhet
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() ',
       tessedit_pageseg_mode: 6, // Uniform text block - bäst för kvitton
-      tessedit_ocr_engine_mode: 1, // LSTM + Legacy hybrid för bäst resultat
+      tessedit_ocr_engine_mode: 1, // LSTM + Legacy hybrid
       preserve_interword_spaces: 1,
-      tessedit_char_blacklist: '|[]{}~`^_=+\\"#@&<>',
       
-      // AI/ML förbättringar för bättre igenkänning
+      // Förbättrad igenkänning utan överoptimering
       classify_enable_learning: 1,
       classify_enable_adaptive_matcher: 1,
-      classify_adapt_feature_threshold: 230.0, // Lägre för bättre anpassning
-      classify_character_fragments_garbage_certainty_threshold: -3.0,
-      classify_max_certainty_margin: 5.5,
       
-      // Ordbok-optimeringar för svenska kvitton
-      load_system_dawg: 0, // Inaktivera systemordbok för precision
-      load_freq_dawg: 0, // Inaktivera frekvensordbok
-      load_punc_dawg: 1, // Behåll interpunktion
-      load_number_dawg: 1, // Viktigt för priser
-      load_unambig_dawg: 0,
-      load_bigram_dawg: 0,
-      load_fixed_length_dawgs: 0,
+      // Behåll viktiga ordböcker för bättre ordförståelse
+      load_punc_dawg: 1, // Interpunktion
+      load_number_dawg: 1, // Siffror och priser
+      load_system_dawg: 1, // Systemordbok för vanliga ord - AKTIVERAD för bättre igenkänning
+      load_freq_dawg: 1, // Frekvensordbok för svenska ord - AKTIVERAD
       
-      // Layout och struktur-optimering för kvitton
-      textord_noise_sizelimit: 0.5, // Mer aggressiv brusreducering
-      textord_noise_normratio: 1.5,
-      textord_noise_translimit: 12.0,
-      textord_noise_rejwords: 1,
-      textord_noise_rejrows: 1,
-      textord_min_linesize: 1.25, // Mindre minimistorlek för små texter
+      // Mindre aggressiv brushantering för bättre ordläsning
+      textord_noise_sizelimit: 1.0, // Mindre aggressiv brusreducering
+      textord_noise_normratio: 2.0,
+      textord_min_linesize: 1.0, // Standard storlek för text
       
-      // Gaphantering för kvittoformat
-      gapmap_use_ends: 0,
-      gapmap_no_isolated_quanta: 1,
-      gapmap_big_gaps: 1.75, // Bättre hantering av stora gap
+      // Standardinställningar för bättre stabilitet
+      tesseract_minimum_word_size: 2, // Kräv minst 2 tecken för ord
       
-      // Minimikrav för korta produktnamn
-      tesseract_minimum_word_size: 1, // Sänk för korta produktnamn
-      edges_max_children_per_outline: 40,
-      edges_max_children_layers: 5,
-      
-      // Prestanda/kvalitets-balans
+      // Deaktivera onödiga debug-funktioner
       tessedit_create_hocr: 0,
       tessedit_create_tsv: 0,
-      tessedit_dump_pageseg_images: 0,
-      
-      // Avancerade kvitto-specifika förbättringar
-      textord_force_make_prop_words: 0, // Låt Tesseract hantera proportionell text
-      textord_chopper_test: 1, // Aktivera avancerad orddelning
-      language_model_ngram_on: 1, // Aktivera n-gram för bättre ordigenkänning
-      language_model_ngram_order: 8, // Högre ordning för bättre kontext
-      language_model_viterbi_list_max_num_prunable: 10,
-      language_model_viterbi_list_max_size: 11,
-      
-      // Speciellt för långa kvitton (40-100 produkter)
-      textord_max_noise_size: 7, // Hantera mer brus i långa kvitton
-      textord_baseline_debug: 0,
-      textord_debug_tabfind: 0,
-      textord_tabfind_find_tables: 0, // Inaktivera tabelldetektering för bättre hastighet
-      wordrec_enable_assoc: 1, // Förbättrad ordassociation
-      segment_penalty_dict_nonword: 1.25,
-      segment_penalty_garbage: 1.50
+      tessedit_dump_pageseg_images: 0
     })
     
   }
@@ -417,30 +383,39 @@ export class ReceiptProcessor {
     
     console.log(`💡 Kvittoscanning - ljusstyrka: ${Math.round(avgBrightness)}/255`)
     
-    // Adaptiv förbättring baserat på ljusförhållanden
-    const brightnessBoost = avgBrightness < 100 ? 2.2 : avgBrightness < 150 ? 1.6 : 1.2
-    const contrastBoost = avgBrightness < 120 ? 2.0 : 1.4
+    // Mindre aggressiva förbättringar för bättre OCR-kvalitet
+    const brightnessBoost = avgBrightness < 80 ? 1.3 : avgBrightness < 120 ? 1.15 : 1.0
+    const contrastBoost = avgBrightness < 100 ? 1.2 : 1.1
     
-    // Olika förbehandlingsstrategier
+    // Mer konservativa förbehandlingsstrategier
     switch (mode) {
       case 'high_contrast':
-        // Hård svartvit kontrast med adaptiv förbättring
+        // Konservativ kontrastförbättring
         for (let i = 0; i < data.length; i += 4) {
           const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-          let enhanced = (gray - 128) * contrastBoost + 128
-          enhanced *= brightnessBoost
-          enhanced = enhanced > 130 ? 255 : 0 // Adaptiv tröskel
-          data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
+          
+          // Mindre aggressiv kontrastjustering
+          let enhanced = gray
+          if (gray < 128) {
+            enhanced = gray * 0.9 // Gör mörka delar något mörkare
+          } else {
+            enhanced = 128 + (gray - 128) * 1.1 // Gör ljusa delar lite ljusare
+          }
+          
+          enhanced = Math.max(0, Math.min(255, enhanced))
+          data[i] = data[i + 1] = data[i + 2] = enhanced
         }
         break
         
       case 'soft':
-        // Mjuk förbättring med ljuskompensation
+        // Minimal förbättring
         for (let i = 0; i < data.length; i += 4) {
           const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-          let enhanced = (gray - 128) * (contrastBoost * 0.7) + 128
-          enhanced *= brightnessBoost * 0.8
-          data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
+          
+          // Mycket mild förbättring
+          let enhanced = gray * brightnessBoost
+          enhanced = Math.max(0, Math.min(255, enhanced))
+          data[i] = data[i + 1] = data[i + 2] = enhanced
         }
         break
         
