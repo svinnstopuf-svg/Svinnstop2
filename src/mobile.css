@@ -893,13 +893,13 @@ input:focus {
 .scanner-video-container {
   position: relative;
   width: 100%;
-  max-width: 400px;
-  aspect-ratio: 3/4; /* Högre för längre kvitton */
+  max-width: 280px; /* Smalare för kvitto-form */
+  aspect-ratio: 9/16; /* Mycket högre för avlånga kvitton */
   border-radius: var(--border-radius-sm);
   overflow: hidden;
   background: #000;
   margin-bottom: 16px;
-  max-height: 70vh; /* Begränsning för mycket långa skärmar */
+  max-height: 75vh; /* Högre för kvitton */
 }
 
 .scanner-video {
@@ -1516,8 +1516,9 @@ input:focus {
   }
   
   .scanner-video-container {
-    aspect-ratio: 3/4; /* Högre för längre kvitton på mobil */
-    max-height: 60vh;
+    max-width: 250px; /* Ännu smalare på mobil */
+    aspect-ratio: 9/16; /* Kvitto-proportioner på mobil */
+    max-height: 70vh;
   }
 }
 
