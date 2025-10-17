@@ -1630,8 +1630,22 @@ export async function processReceiptImage(imageElement) {
     receiptProcessor = new ReceiptProcessor()
   }
   
-  // Använd ROBUST-läge som standard för att hantera ogynnsamma förhållanden
-  return await receiptProcessor.processReceiptRobust(imageElement)
+  // Försök med ursprunglig metod först (som fungerade förut)
+  try {
+    console.log('🔄 Försöker med ursprunglig kvittoscanning...')
+    const standardResult = await receiptProcessor.processReceipt(imageElement)
+    
+    if (standardResult && standardResult.length > 0) {
+      console.log(`✅ Ursprunglig metod lyckades: ${standardResult.length} produkter`)
+      return standardResult
+    } else {
+      console.log('⚠️ Ursprunglig metod hittade inga produkter, försöker robust läge...')
+      throw new Error('Inga produkter hittades med standard-metod')
+    }
+  } catch (error) {
+    console.log('🔄 Standard-metod misslyckades, försöker ROBUST-läge för ogynnsamma förhållanden...')
+    return await receiptProcessor.processReceiptRobust(imageElement)
+  }
 }
 
 // Fallback till standard-metod om robust misslyckas
