@@ -339,7 +339,7 @@ export class ReceiptProcessor {
     return score
   }
 
-  // MAXIMALT förbättrad bildbehandling - optimerad för alla förhållanden och långa kvitton
+  // AVANCERAD bildbehandling för långa kvitton med liten och suddig text
   preprocessImage(imageElement, mode = 'standard') {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -347,25 +347,27 @@ export class ReceiptProcessor {
     const originalWidth = imageElement.naturalWidth || imageElement.width
     const originalHeight = imageElement.naturalHeight || imageElement.height
     
-    // Smart skalning beroende på kvittostorlek och läge
+    // Aggressiv uppskalning för små text - högre för bättre OCR
     let scale
     if (originalHeight > 4000) {
-      // Extremt långa kvitton - mer konservativ skalning för minnet
-      scale = mode === 'soft' ? 1.8 : 2.2
+      // Extremt långa kvitton - hög skalning för liten text
+      scale = mode === 'soft' ? 2.5 : 3.0
     } else if (originalHeight > 2000) {
-      // Långa kvitton - standard förbättrad skalning
-      scale = mode === 'soft' ? 2.0 : 2.5
+      // Långa kvitton - maximal skalning för precision
+      scale = mode === 'soft' ? 2.8 : 3.5
     } else {
-      // Normala kvitton - maximal skalning för precision
-      scale = mode === 'soft' ? 2.2 : 2.8
+      // Normala kvitton - extremt hög skalning
+      scale = mode === 'soft' ? 3.0 : 4.0
     }
     
     canvas.width = originalWidth * scale
     canvas.height = originalHeight * scale
     
-    console.log(`🎨 Bildförbättring: ${originalWidth}x${originalHeight} → ${canvas.width}x${canvas.height} (${scale}x skalning)`)
+    console.log(`🔍 AVANCERAD bildförbättring: ${originalWidth}x${originalHeight} → ${canvas.width}x${canvas.height} (${scale}x)`)
     
-    ctx.imageSmoothingEnabled = mode === 'soft'
+    // BICUBIC interpolation för bästa uppskalning
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -373,103 +375,368 @@ export class ReceiptProcessor {
     const width = canvas.width
     const height = canvas.height
     
-    // Mät genomsnittlig ljusstyrka för adaptiv förbättring
-    let avgBrightness = 0
+    // Avancerad bildanalys och förbättring
+    console.log('📊 Analyserar bildkvalitet och ljusförhållanden...')
+    
+    // 1. Mät ljusstyrkefördelning och kontrast
+    let avgBrightness = 0, minBrightness = 255, maxBrightness = 0
+    const histogram = new Array(256).fill(0)
+    
     for (let i = 0; i < data.length; i += 4) {
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
       avgBrightness += gray
+      minBrightness = Math.min(minBrightness, gray)
+      maxBrightness = Math.max(maxBrightness, gray)
+      histogram[Math.floor(gray)]++
     }
     avgBrightness /= (data.length / 4)
     
-    console.log(`💡 Kvittoscanning - ljusstyrka: ${Math.round(avgBrightness)}/255`)
+    const contrast = maxBrightness - minBrightness
+    console.log(`💡 Ljusanalys: avg=${Math.round(avgBrightness)}, kontrast=${Math.round(contrast)}, range=${Math.round(minBrightness)}-${Math.round(maxBrightness)}`)
     
-    // Mindre aggressiva förbättringar för bättre OCR-kvalitet
-    const brightnessBoost = avgBrightness < 80 ? 1.3 : avgBrightness < 120 ? 1.15 : 1.0
-    const contrastBoost = avgBrightness < 100 ? 1.2 : 1.1
+    // 2. Detektera bildproblem
+    const isLowLight = avgBrightness < 120
+    const isLowContrast = contrast < 100
+    const isOverexposed = avgBrightness > 200 && maxBrightness > 240
+    const isUnderexposed = avgBrightness < 80 && minBrightness < 50
     
-    // Mer konservativa förbehandlingsstrategier
+    console.log(`🔍 Bildproblem: ${isLowLight ? 'Dåligt ljus' : ''} ${isLowContrast ? 'Låg kontrast' : ''} ${isOverexposed ? 'Överexponerad' : ''} ${isUnderexposed ? 'Underexponerad' : ''}`)
+    
+    // 3. MULTISTEG-PROCESSERING för maximal kvalitet
+    
+    // STEG 1: Gaussian blur för att minska brus (för suddiga bilder)
+    if (mode !== 'soft') {
+      this.applyGaussianBlur(data, width, height, 0.8) // Mild blänkning
+      console.log('🌀 Tillämpade Gaussian blur för brusreducering')
+    }
+    
+    // STEG 2: Unsharp masking för att skärpa text
+    this.applyUnsharpMask(data, width, height, 1.5, 1.0, 0.1)
+    console.log('⚔️ Tillämpade Unsharp masking för textskärpa')
+    
+    // STEG 3: Adaptiv ljusutjämning (CLAHE-liknande)
+    this.applyCLAHE(data, width, height)
+    console.log('🌅 Tillämpade adaptiv ljusutjämning (CLAHE)')
+    
+    // STEG 4: Lägesspecifik förbättring
     switch (mode) {
       case 'high_contrast':
-        // Konservativ kontrastförbättring
-        for (let i = 0; i < data.length; i += 4) {
-          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-          
-          // Mindre aggressiv kontrastjustering
-          let enhanced = gray
-          if (gray < 128) {
-            enhanced = gray * 0.9 // Gör mörka delar något mörkare
-          } else {
-            enhanced = 128 + (gray - 128) * 1.1 // Gör ljusa delar lite ljusare
-          }
-          
-          enhanced = Math.max(0, Math.min(255, enhanced))
-          data[i] = data[i + 1] = data[i + 2] = enhanced
-        }
+        console.log('🔥 Hög kontrast-läge: Aggressiv textförbättring')
+        this.applyAdvancedContrast(data, width, height, isLowLight, isLowContrast)
+        this.applyMorphologicalFiltering(data, width, height, 'text_enhancement')
         break
         
       case 'soft':
-        // Minimal förbättring
-        for (let i = 0; i < data.length; i += 4) {
-          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-          
-          // Mycket mild förbättring
-          let enhanced = gray * brightnessBoost
-          enhanced = Math.max(0, Math.min(255, enhanced))
-          data[i] = data[i + 1] = data[i + 2] = enhanced
-        }
+        console.log('🌿 Mjukt läge: Balanserad förbättring')
+        this.applyGentleEnhancement(data, width, height, avgBrightness)
         break
         
       default: // 'standard'
-        // Adaptiv tröskelvärdering som tidigare
-        const cleanedData = new Uint8ClampedArray(data.length)
-        
-        // Brusminskning
-        for (let y = 1; y < height - 1; y++) {
-          for (let x = 1; x < width - 1; x++) {
-            const i = (y * width + x) * 4
-            const neighbors = []
-            
-            for (let dy = -1; dy <= 1; dy++) {
-              for (let dx = -1; dx <= 1; dx++) {
-                const ni = ((y + dy) * width + (x + dx)) * 4
-                const gray = data[ni] * 0.299 + data[ni + 1] * 0.587 + data[ni + 2] * 0.114
-                neighbors.push(gray)
-              }
-            }
-            
-            neighbors.sort((a, b) => a - b)
-            const medianGray = neighbors[4]
-            cleanedData[i] = cleanedData[i + 1] = cleanedData[i + 2] = medianGray
-            cleanedData[i + 3] = data[i + 3]
-          }
-        }
-        
-        // Adaptiv tröskelvärdering
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            const i = (y * width + x) * 4
-            let sum = 0, count = 0
-            const radius = 7
-            
-            for (let dy = -radius; dy <= radius; dy++) {
-              for (let dx = -radius; dx <= radius; dx++) {
-                const ny = y + dy, nx = x + dx
-                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-                  sum += cleanedData[(ny * width + nx) * 4]
-                  count++
-                }
-              }
-            }
-            
-            const threshold = (sum / count) - 10
-            const pixelValue = cleanedData[i] > threshold ? 255 : 0
-            data[i] = data[i + 1] = data[i + 2] = pixelValue
-          }
-        }
+        console.log('⚙️ Standard-läge: Adaptiv multistrategi')
+        this.applyAdaptiveEnhancement(data, width, height, avgBrightness, contrast, isLowLight, isLowContrast)
+        this.applyMorphologicalFiltering(data, width, height, 'noise_reduction')
+        break
     }
     
+    
+    // STEG 5: Slutlig bilateralt filter för kant-bevarande mjukning
+    this.applyBilateralFilter(data, width, height)
+    console.log('🌊 Slutlig bilateralt filter tillämpad')
+    
     ctx.putImageData(imageData, 0, 0)
+    console.log('✨ Avancerad bildbehandling slutförd')
     return canvas
+  }
+  
+  // GAUSSIAN BLUR - Reducerar brus utan att förstora text för mycket
+  applyGaussianBlur(data, width, height, sigma) {
+    const kernel = this.createGaussianKernel(sigma)
+    const kernelSize = kernel.length
+    const radius = Math.floor(kernelSize / 2)
+    const original = new Uint8ClampedArray(data)
+    
+    for (let y = radius; y < height - radius; y++) {
+      for (let x = radius; x < width - radius; x++) {
+        const i = (y * width + x) * 4
+        let r = 0, g = 0, b = 0
+        
+        for (let ky = 0; ky < kernelSize; ky++) {
+          for (let kx = 0; kx < kernelSize; kx++) {
+            const pi = ((y + ky - radius) * width + (x + kx - radius)) * 4
+            const weight = kernel[ky][kx]
+            r += original[pi] * weight
+            g += original[pi + 1] * weight
+            b += original[pi + 2] * weight
+          }
+        }
+        
+        data[i] = Math.max(0, Math.min(255, r))
+        data[i + 1] = Math.max(0, Math.min(255, g))
+        data[i + 2] = Math.max(0, Math.min(255, b))
+      }
+    }
+  }
+  
+  // UNSHARP MASKING - Skärper text genom att subtrahera blänkad version
+  applyUnsharpMask(data, width, height, amount, radius, threshold) {
+    const original = new Uint8ClampedArray(data)
+    const blurred = new Uint8ClampedArray(data)
+    
+    // Skapa blänkad version
+    this.applyGaussianBlur(blurred, width, height, radius)
+    
+    // Unsharp mask: Original + Amount * (Original - Blurred)
+    for (let i = 0; i < data.length; i += 4) {
+      for (let channel = 0; channel < 3; channel++) {
+        const diff = original[i + channel] - blurred[i + channel]
+        if (Math.abs(diff) >= threshold) {
+          data[i + channel] = Math.max(0, Math.min(255, original[i + channel] + amount * diff))
+        }
+      }
+    }
+  }
+  
+  // CLAHE (Contrast Limited Adaptive Histogram Equalization) - Förbättrar lokal kontrast
+  applyCLAHE(data, width, height) {
+    const tileSize = 64 // Storlek på lokala områden
+    const clipLimit = 3.0 // Begränsa förbättringen
+    
+    for (let ty = 0; ty < height; ty += tileSize) {
+      for (let tx = 0; tx < width; tx += tileSize) {
+        const endY = Math.min(ty + tileSize, height)
+        const endX = Math.min(tx + tileSize, width)
+        
+        // Skapa histogram för denna tile
+        const hist = new Array(256).fill(0)
+        const pixelCount = (endY - ty) * (endX - tx)
+        
+        for (let y = ty; y < endY; y++) {
+          for (let x = tx; x < endX; x++) {
+            const i = (y * width + x) * 4
+            const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114)
+            hist[gray]++
+          }
+        }
+        
+        // Clip histogram
+        const clipValue = (pixelCount * clipLimit) / 256
+        let redistributed = 0
+        for (let i = 0; i < 256; i++) {
+          if (hist[i] > clipValue) {
+            redistributed += hist[i] - clipValue
+            hist[i] = clipValue
+          }
+        }
+        
+        // Redistribuera klippta värden jämnt
+        const redistPerBin = redistributed / 256
+        for (let i = 0; i < 256; i++) {
+          hist[i] += redistPerBin
+        }
+        
+        // Skapa CDF (Cumulative Distribution Function)
+        const cdf = new Array(256)
+        cdf[0] = hist[0]
+        for (let i = 1; i < 256; i++) {
+          cdf[i] = cdf[i - 1] + hist[i]
+        }
+        
+        // Normalisera CDF
+        for (let i = 0; i < 256; i++) {
+          cdf[i] = (cdf[i] * 255) / pixelCount
+        }
+        
+        // Tillämpa histogram equalization på tile
+        for (let y = ty; y < endY; y++) {
+          for (let x = tx; x < endX; x++) {
+            const i = (y * width + x) * 4
+            const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114)
+            const enhanced = Math.round(cdf[gray])
+            data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
+          }
+        }
+      }
+    }
+  }
+  
+  // AVANCERAD KONTRAST - För hög kontrast-läge
+  applyAdvancedContrast(data, width, height, isLowLight, isLowContrast) {
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      
+      let enhanced
+      if (isLowLight && isLowContrast) {
+        // Extremt aggressiv förbättring
+        enhanced = gray < 128 ? gray * 0.6 : Math.min(255, 128 + (gray - 128) * 2.0)
+      } else if (isLowLight) {
+        // Ljusförbättring
+        enhanced = Math.min(255, gray * 1.4)
+      } else if (isLowContrast) {
+        // Kontrastförbättring
+        enhanced = gray < 128 ? gray * 0.8 : 128 + (gray - 128) * 1.3
+      } else {
+        // Standard förbättring
+        enhanced = gray < 128 ? gray * 0.9 : 128 + (gray - 128) * 1.1
+      }
+      
+      data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
+    }
+  }
+  
+  // MORPHOLOGICAL FILTERING - Rengör text genom erosion/dilation
+  applyMorphologicalFiltering(data, width, height, mode) {
+    const kernel = mode === 'text_enhancement' ? 
+      [[0, 1, 0], [1, 1, 1], [0, 1, 0]] : // Kors för textförbättring
+      [[1, 1, 1], [1, 1, 1], [1, 1, 1]]   // 3x3 för brusreducering
+    
+    const temp = new Uint8ClampedArray(data)
+    const kernelRadius = 1
+    
+    // Erosion följt av dilation (Opening)
+    // Erosion
+    for (let y = kernelRadius; y < height - kernelRadius; y++) {
+      for (let x = kernelRadius; x < width - kernelRadius; x++) {
+        const i = (y * width + x) * 4
+        let minVal = 255
+        
+        for (let ky = 0; ky < 3; ky++) {
+          for (let kx = 0; kx < 3; kx++) {
+            if (kernel[ky][kx]) {
+              const pi = ((y + ky - kernelRadius) * width + (x + kx - kernelRadius)) * 4
+              const gray = data[pi] * 0.299 + data[pi + 1] * 0.587 + data[pi + 2] * 0.114
+              minVal = Math.min(minVal, gray)
+            }
+          }
+        }
+        
+        temp[i] = temp[i + 1] = temp[i + 2] = minVal
+      }
+    }
+    
+    // Dilation
+    for (let y = kernelRadius; y < height - kernelRadius; y++) {
+      for (let x = kernelRadius; x < width - kernelRadius; x++) {
+        const i = (y * width + x) * 4
+        let maxVal = 0
+        
+        for (let ky = 0; ky < 3; ky++) {
+          for (let kx = 0; kx < 3; kx++) {
+            if (kernel[ky][kx]) {
+              const pi = ((y + ky - kernelRadius) * width + (x + kx - kernelRadius)) * 4
+              const gray = temp[pi] * 0.299 + temp[pi + 1] * 0.587 + temp[pi + 2] * 0.114
+              maxVal = Math.max(maxVal, gray)
+            }
+          }
+        }
+        
+        data[i] = data[i + 1] = data[i + 2] = maxVal
+      }
+    }
+  }
+  
+  // MJUK FÖRBÄTTRING - För soft-läge
+  applyGentleEnhancement(data, width, height, avgBrightness) {
+    const factor = avgBrightness < 100 ? 1.15 : avgBrightness < 150 ? 1.08 : 1.02
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      const enhanced = gray * factor
+      data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
+    }
+  }
+  
+  // ADAPTIV FÖRBÄTTRING - För standard-läge
+  applyAdaptiveEnhancement(data, width, height, avgBrightness, contrast, isLowLight, isLowContrast) {
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      
+      let enhanced = gray
+      
+      // Ljuskorrigering
+      if (isLowLight) {
+        enhanced *= 1.2
+      }
+      
+      // Kontrastkorrigering
+      if (isLowContrast) {
+        enhanced = gray < 128 ? gray * 0.85 : 128 + (gray - 128) * 1.15
+      }
+      
+      // Gamma-korrigering för olika ljusförhållanden
+      const gamma = avgBrightness < 100 ? 0.8 : avgBrightness > 180 ? 1.2 : 1.0
+      if (gamma !== 1.0) {
+        enhanced = 255 * Math.pow(enhanced / 255, 1 / gamma)
+      }
+      
+      data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, enhanced))
+    }
+  }
+  
+  // BILATERAL FILTER - Kant-bevarande mjukning
+  applyBilateralFilter(data, width, height) {
+    const original = new Uint8ClampedArray(data)
+    const spatialSigma = 2.0
+    const intensitySigma = 20.0
+    const radius = 3
+    
+    for (let y = radius; y < height - radius; y++) {
+      for (let x = radius; x < width - radius; x++) {
+        const i = (y * width + x) * 4
+        const centerGray = original[i] * 0.299 + original[i + 1] * 0.587 + original[i + 2] * 0.114
+        
+        let sumR = 0, sumG = 0, sumB = 0, weightSum = 0
+        
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const ni = ((y + dy) * width + (x + dx)) * 4
+            const neighborGray = original[ni] * 0.299 + original[ni + 1] * 0.587 + original[ni + 2] * 0.114
+            
+            const spatialDist = Math.sqrt(dx * dx + dy * dy)
+            const intensityDist = Math.abs(centerGray - neighborGray)
+            
+            const spatialWeight = Math.exp(-(spatialDist * spatialDist) / (2 * spatialSigma * spatialSigma))
+            const intensityWeight = Math.exp(-(intensityDist * intensityDist) / (2 * intensitySigma * intensitySigma))
+            const weight = spatialWeight * intensityWeight
+            
+            sumR += original[ni] * weight
+            sumG += original[ni + 1] * weight
+            sumB += original[ni + 2] * weight
+            weightSum += weight
+          }
+        }
+        
+        data[i] = Math.max(0, Math.min(255, sumR / weightSum))
+        data[i + 1] = Math.max(0, Math.min(255, sumG / weightSum))
+        data[i + 2] = Math.max(0, Math.min(255, sumB / weightSum))
+      }
+    }
+  }
+  
+  // GAUSSIAN KERNEL - Hjälpfunktion
+  createGaussianKernel(sigma) {
+    const size = Math.ceil(6 * sigma) | 1 // Säkerställ udda storlek
+    const kernel = []
+    const center = Math.floor(size / 2)
+    let sum = 0
+    
+    for (let y = 0; y < size; y++) {
+      kernel[y] = []
+      for (let x = 0; x < size; x++) {
+        const distance = Math.sqrt((x - center) ** 2 + (y - center) ** 2)
+        const value = Math.exp(-(distance ** 2) / (2 * sigma ** 2))
+        kernel[y][x] = value
+        sum += value
+      }
+    }
+    
+    // Normalisera
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        kernel[y][x] /= sum
+      }
+    }
+    
+    return kernel
   }
 
   parseReceiptText(text, version = 'unknown') {
@@ -1609,7 +1876,6 @@ export class ReceiptProcessor {
       .trim()
   }
   
-
   async cleanup() {
     if (this.worker) {
       await this.worker.terminate()
