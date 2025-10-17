@@ -17,31 +17,70 @@ export class ReceiptProcessor {
     await this.worker.loadLanguage('swe+eng') // Svenska och engelska
     await this.worker.initialize('swe+eng')
     
-  // Förbättrade OCR-inställningar för svenska kvitton - optimerade för både bra och dåliga förhållanden
+  // MAXIMALT förbättrade OCR-inställningar - optimerade för alla förhållanden och långa kvitton
     await this.worker.setParameters({
+      // Grundläggande inställningar
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789.,:-€kr%*/() ',
-      tessedit_pageseg_mode: 6, // Uniform text block - mer robust för olika kvitton
-      tessedit_ocr_engine_mode: 1, // Neural net LSTM + Legacy (hybrid för bättre resultat)
+      tessedit_pageseg_mode: 6, // Uniform text block - bäst för kvitton
+      tessedit_ocr_engine_mode: 1, // LSTM + Legacy hybrid för bäst resultat
       preserve_interword_spaces: 1,
-      tessedit_char_blacklist: '|[]{}~`^_=+\\\"#@&<>',
+      tessedit_char_blacklist: '|[]{}~`^_=+\\"#@&<>',
+      
+      // AI/ML förbättringar för bättre igenkänning
       classify_enable_learning: 1,
       classify_enable_adaptive_matcher: 1,
-      // Mer toleranta inställningar för ogynnsamma förhållanden
-      tessedit_pageseg_mode_debug: 0,
-      load_system_dawg: 0, // Inaktivera systemordbok för bättre precision
+      classify_adapt_feature_threshold: 230.0, // Lägre för bättre anpassning
+      classify_character_fragments_garbage_certainty_threshold: -3.0,
+      classify_max_certainty_margin: 5.5,
+      
+      // Ordbok-optimeringar för svenska kvitton
+      load_system_dawg: 0, // Inaktivera systemordbok för precision
       load_freq_dawg: 0, // Inaktivera frekvensordbok
-      load_punc_dawg: 1,
-      load_number_dawg: 1,
+      load_punc_dawg: 1, // Behåll interpunktion
+      load_number_dawg: 1, // Viktigt för priser
       load_unambig_dawg: 0,
       load_bigram_dawg: 0,
       load_fixed_length_dawgs: 0,
+      
+      // Layout och struktur-optimering för kvitton
+      textord_noise_sizelimit: 0.5, // Mer aggressiv brusreducering
+      textord_noise_normratio: 1.5,
+      textord_noise_translimit: 12.0,
+      textord_noise_rejwords: 1,
+      textord_noise_rejrows: 1,
+      textord_min_linesize: 1.25, // Mindre minimistorlek för små texter
+      
+      // Gaphantering för kvittoformat
+      gapmap_use_ends: 0,
+      gapmap_no_isolated_quanta: 1,
+      gapmap_big_gaps: 1.75, // Bättre hantering av stora gap
+      
+      // Minimikrav för korta produktnamn
+      tesseract_minimum_word_size: 1, // Sänk för korta produktnamn
+      edges_max_children_per_outline: 40,
+      edges_max_children_layers: 5,
+      
+      // Prestanda/kvalitets-balans
       tessedit_create_hocr: 0,
       tessedit_create_tsv: 0,
-      tesseract_minimum_word_size: 2,
-      // Förbättrad tolerans för dåliga bilder
-      textord_noise_sizelimit: 0.7,
-      textord_noise_normratio: 2,
-      textord_noise_translimit: 16.0
+      tessedit_dump_pageseg_images: 0,
+      
+      // Avancerade kvitto-specifika förbättringar
+      textord_force_make_prop_words: 0, // Låt Tesseract hantera proportionell text
+      textord_chopper_test: 1, // Aktivera avancerad orddelning
+      language_model_ngram_on: 1, // Aktivera n-gram för bättre ordigenkänning
+      language_model_ngram_order: 8, // Högre ordning för bättre kontext
+      language_model_viterbi_list_max_num_prunable: 10,
+      language_model_viterbi_list_max_size: 11,
+      
+      // Speciellt för långa kvitton (40-100 produkter)
+      textord_max_noise_size: 7, // Hantera mer brus i långa kvitton
+      textord_baseline_debug: 0,
+      textord_debug_tabfind: 0,
+      textord_tabfind_find_tables: 0, // Inaktivera tabelldetektering för bättre hastighet
+      wordrec_enable_assoc: 1, // Förbättrad ordassociation
+      segment_penalty_dict_nonword: 1.25,
+      segment_penalty_garbage: 1.50
     })
     
   }
@@ -50,57 +89,184 @@ export class ReceiptProcessor {
     try {
       await this.initialize()
       
-      // Multi-pass OCR för bästa resultat
+      console.log('📄 Startar kvittoscanning...')
       
-      // Skapa 3 olika förbehandlade versioner av bilden
-      const versions = [
-        { name: 'Standard', image: this.preprocessImage(imageElement, 'standard') },
-        { name: 'Hög kontrast', image: this.preprocessImage(imageElement, 'high_contrast') },
-        { name: 'Mjuk', image: this.preprocessImage(imageElement, 'soft') }
-      ]
+      // Kolla om det är ett långt kvitto som kräver segmentering
+      const imageHeight = imageElement.naturalHeight || imageElement.height
+      const imageWidth = imageElement.naturalWidth || imageElement.width
+      const aspectRatio = imageHeight / imageWidth
       
-      const allResults = []
+      console.log(`📏 Kvittostorlek: ${imageWidth}x${imageHeight} (ratio: ${aspectRatio.toFixed(2)})`)
       
-      // Kör OCR på alla versioner
-      for (let i = 0; i < versions.length; i++) {
-        const version = versions[i]
-        
-        try {
-          // Sätt olika OCR-parametrar för varje version
-          await this.setOCRParameters(i)
-          
-          const startTime = Date.now()
-          const { data: { text } } = await this.worker.recognize(version.image)
-          const endTime = Date.now()
-          
-          
-          // Extrahera produkter
-          const products = this.parseReceiptText(text, version.name)
-          
-          allResults.push({
-            version: version.name,
-            text: text,
-            products: products,
-            score: this.scoreResult(text, products)
-          })
-          
-          
-        } catch (error) {
-          console.error(`OCR ${version.name} misslyckades:`, error)
-          allResults.push({ version: version.name, products: [], score: 0 })
-        }
+      // Om kvittot är mycket långt (ratio > 4) och stort, använd segmenterad approach
+      if (aspectRatio > 4 && imageHeight > 2000) {
+        console.log('📜 Långt kvitto detekterat - använder segmenterad bearbetning för 40-100+ produkter')
+        return await this.processLongReceiptSegmented(imageElement)
       }
       
-      // Välj bästa resultatet baserat på poäng
-      allResults.sort((a, b) => b.score - a.score)
-      const bestResult = allResults[0]
-      
-      return bestResult.products
+      // Standard multi-pass OCR för normala kvitton
+      console.log('📄 Standard kvitto - använder multi-pass OCR')
+      return await this.processStandardReceipt(imageElement)
         
     } catch (error) {
       console.error('OCR misslyckades:', error)
       return []
     }
+  }
+  
+  // Standard OCR för normala kvitton
+  async processStandardReceipt(imageElement) {
+    // Skapa 3 olika förbehandlade versioner av bilden
+    const versions = [
+      { name: 'Standard', image: this.preprocessImage(imageElement, 'standard') },
+      { name: 'Hög kontrast', image: this.preprocessImage(imageElement, 'high_contrast') },
+      { name: 'Mjuk', image: this.preprocessImage(imageElement, 'soft') }
+    ]
+    
+    const allResults = []
+    
+    // Kör OCR på alla versioner
+    for (let i = 0; i < versions.length; i++) {
+      const version = versions[i]
+      
+      try {
+        // Sätt olika OCR-parametrar för varje version
+        await this.setOCRParameters(i)
+        
+        const startTime = Date.now()
+        const { data: { text } } = await this.worker.recognize(version.image)
+        const endTime = Date.now()
+        
+        console.log(`⚙️ OCR ${version.name}: ${Math.round(endTime - startTime)}ms`)
+        
+        // Extrahera produkter
+        const products = this.parseReceiptText(text, version.name)
+        
+        allResults.push({
+          version: version.name,
+          text: text,
+          products: products,
+          score: this.scoreResult(text, products)
+        })
+        
+        console.log(`📋 ${version.name}: ${products.length} produkter, poäng: ${allResults[allResults.length - 1].score}`)
+        
+      } catch (error) {
+        console.error(`OCR ${version.name} misslyckades:`, error)
+        allResults.push({ version: version.name, products: [], score: 0 })
+      }
+    }
+    
+    // Välj bästa resultatet baserat på poäng
+    allResults.sort((a, b) => b.score - a.score)
+    const bestResult = allResults[0]
+    
+    console.log(`🏆 Bäst resultat: ${bestResult.version} med ${bestResult.products.length} produkter`)
+    return bestResult.products
+  }
+  
+  // Segmenterad bearbetning för långa kvitton (40-100+ produkter)
+  async processLongReceiptSegmented(imageElement) {
+    console.log('🚀 Startar segmenterad bearbetning för långt kvitto...')
+    
+    // Förbehandla hela bilden först
+    const preprocessedImage = this.preprocessImage(imageElement, 'standard')
+    
+    // Segmentera i överlappande delar
+    const segments = this.segmentLongReceipt(preprocessedImage)
+    console.log(`🔪 Kvitto uppdelat i ${segments.length} segment`)
+    
+    const allProducts = []
+    
+    // Bearbeta varje segment
+    for (let i = 0; i < segments.length; i++) {
+      console.log(`🔍 Bearbetar segment ${i + 1}/${segments.length}...`)
+      
+      try {
+        // Använd bästa OCR-inställningar för segmentet
+        await this.setOCRParameters(0) // Precision-läge
+        
+        const { data: { text } } = await this.worker.recognize(segments[i])
+        
+        if (text && text.trim().length > 10) {
+          const segmentProducts = this.parseReceiptText(text, `Segment-${i + 1}`)
+          console.log(`📊 Segment ${i + 1}: ${segmentProducts.length} produkter`)
+          allProducts.push(...segmentProducts)
+        }
+        
+      } catch (error) {
+        console.error(`❌ Segment ${i + 1} misslyckades:`, error)
+      }
+    }
+    
+    // Intelligent deduplicering för överlappande segment
+    const uniqueProducts = this.deduplicateProducts(allProducts)
+    
+    console.log(`✨ Långt kvitto klart: ${allProducts.length} → ${uniqueProducts.length} unika produkter`)
+    return uniqueProducts
+  }
+  
+  // Segmentera långa kvitton i hanterbara delar
+  segmentLongReceipt(canvas) {
+    const segments = []
+    const maxSegmentHeight = 1800 // Optimal storlek för OCR
+    const overlapHeight = 400 // Stort överlapp för att inte missa produkter
+    
+    if (canvas.height <= maxSegmentHeight) {
+      return [canvas] // Kort kvitto - returnera som det är
+    }
+    
+    let y = 0
+    let segmentIndex = 0
+    
+    while (y < canvas.height) {
+      const segmentCanvas = document.createElement('canvas')
+      const segmentCtx = segmentCanvas.getContext('2d')
+      
+      const segmentHeight = Math.min(maxSegmentHeight, canvas.height - y)
+      segmentCanvas.width = canvas.width
+      segmentCanvas.height = segmentHeight
+      
+      // Kopiera segment från förbehandlad bild
+      segmentCtx.drawImage(canvas, 0, y, canvas.width, segmentHeight, 0, 0, canvas.width, segmentHeight)
+      
+      segments.push(segmentCanvas)
+      console.log(`📌 Segment ${segmentIndex + 1}: y=${y}, höjd=${segmentHeight}px`)
+      
+      // Nästa segment med överlappning
+      y += maxSegmentHeight - overlapHeight
+      segmentIndex++
+      
+      // Säkerhetsspärr för extremt långa kvitton
+      if (segmentIndex > 20) {
+        console.log('⚠️ Extremt långt kvitto - begränsar till 20 segment för prestanda')
+        break
+      }
+      
+      // Avbryt om vi nått slutet
+      if (y >= canvas.height - 100) break
+    }
+    
+    return segments
+  }
+  
+  // Intelligent deduplicering för segment-överlappningar
+  deduplicateProducts(allProducts) {
+    const uniqueProducts = []
+    const seenProducts = new Set()
+    
+    for (const product of allProducts) {
+      // Skapa unik nyckel baserad på produktnamn och pris
+      const normalizedName = product.name.toLowerCase().trim().replace(/\s+/g, ' ')
+      const key = `${normalizedName}_${product.price || 0}_${product.unit || 'st'}`
+      
+      if (!seenProducts.has(key)) {
+        seenProducts.add(key)
+        uniqueProducts.push(product)
+      }
+    }
+    
+    return uniqueProducts
   }
 
   // Sätt olika OCR-parametrar för olika strategier
@@ -129,39 +295,108 @@ export class ReceiptProcessor {
     await this.worker.setParameters(configs[strategy])
   }
 
-  // Poängsätt resultat baserat på kvalitet
+  // Förbättrat poängsättningssystem - optimerat för både korta och långa kvitton
   scoreResult(text, products) {
     let score = 0
-    
-    // Poäng för antal produkter
-    score += products.length * 10
-    
-    // Poäng för textlängd (mer text = mer information)
-    score += Math.min(text.length / 10, 50)
-    
-    // Poäng för vanliga matvaruord
-    const foodWords = ['banan', 'svamp', 'champinjon', 'gurka', 'avokado', 'lakrits', 'bröd', 'mjölk', 'ost', 'kött']
     const lowerText = text.toLowerCase()
+    
+    // Poäng för antal produkter (skalat för långa kvitton)
+    const productCount = products.length
+    if (productCount > 20) {
+      // Långa kvitton - mindre poäng per produkt men bonus för många produkter
+      score += productCount * 8 + Math.min((productCount - 20) * 2, 100)
+    } else {
+      // Normala kvitton - standard poäng
+      score += productCount * 12
+    }
+    
+    // Poäng för textlängd (mer text = mer information) - skalat för långa kvitton
+    const textLengthScore = Math.min(text.length / 15, text.length > 5000 ? 80 : 50)
+    score += textLengthScore
+    
+    // Utökad lista med svenska matvaruord för bättre poängsättning
+    const foodWords = [
+      // Vanliga svenska matvaror
+      'banan', 'svamp', 'champinjon', 'gurka', 'avokado', 'lakrits', 'bröd', 'mjölk', 'ost', 'kött',
+      // Tillägg för bättre täckning
+      'tomat', 'potatis', 'lök', 'morot', 'sallad', 'paprika', 'äpple', 'päron', 'citron', 'apelsin',
+      'kyckling', 'fisk', 'ris', 'pasta', 'juice', 'yoghurt', 'smör', 'grädde', 'ägg', 'korv',
+      'broccoli', 'blomkål', 'spenat', 'rucola', 'dill', 'persilja', 'vitlök', 'ingefära',
+      // Vanliga ICA-varumärken
+      'basic', 'selection', 'i love eco', 'garant', 'eldorado'
+    ]
+    
+    let foodWordCount = 0
     foodWords.forEach(word => {
-      if (lowerText.includes(word)) score += 5
+      if (lowerText.includes(word)) {
+        foodWordCount++
+        score += 6
+      }
     })
     
-    // Poäng för prisformat (X.XX kr)
-    const priceMatches = text.match(/\d+[.,]\d{2}\s*kr/gi)
-    if (priceMatches) score += priceMatches.length * 3
+    // Poäng för prisformat - förbättrat för svenska kvitton
+    const pricePatterns = [
+      /\d+[.,]\d{2}\s*kr/gi,           // "12.50 kr" eller "12,50kr"
+      /\d+[.,]\d{2}\s*:-/gi,           // "12.50:-" (vanligt på kvitton)
+      /\d+[.,]\d{2}\s*$/gm             // Pris i slutet av rad
+    ]
     
+    let totalPriceMatches = 0
+    pricePatterns.forEach(pattern => {
+      const matches = text.match(pattern)
+      if (matches) totalPriceMatches += matches.length
+    })
+    
+    score += totalPriceMatches * 4
+    
+    // Bonus för kvitton med bra förhållande mellan produkter och priser
+    if (totalPriceMatches > 0 && productCount > 0) {
+      const priceToProductRatio = totalPriceMatches / productCount
+      if (priceToProductRatio >= 0.7 && priceToProductRatio <= 1.5) {
+        score += 20 // Bonus för realistisk pris/produkt-kvot
+      }
+    }
+    
+    // Extra bonus för kvitton med många matvareindikatorer
+    if (foodWordCount > 5) {
+      score += Math.min((foodWordCount - 5) * 3, 30)
+    }
+    
+    // Poäng för svenska kvittoindikatorer
+    const receiptIndicators = ['ica', 'coop', 'willys', 'hemköp', 'maxi', 'kvantum', 'supermarket']
+    receiptIndicators.forEach(indicator => {
+      if (lowerText.includes(indicator)) score += 15
+    })
+    
+    console.log(`🏆 Poängsättning: ${productCount} produkter, ${totalPriceMatches} priser, ${foodWordCount} matord → ${score} poäng`)
     return score
   }
 
-  // Förbehandla bild för bättre OCR-resultat - optimerad för alla förhållanden
+  // MAXIMALT förbättrad bildbehandling - optimerad för alla förhållanden och långa kvitton
   preprocessImage(imageElement, mode = 'standard') {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     
-    // Ökad skalning för bättre precision även under dåliga förhållanden
-    const scale = mode === 'soft' ? 2.0 : 2.5
-    canvas.width = (imageElement.naturalWidth || imageElement.width) * scale
-    canvas.height = (imageElement.naturalHeight || imageElement.height) * scale
+    const originalWidth = imageElement.naturalWidth || imageElement.width
+    const originalHeight = imageElement.naturalHeight || imageElement.height
+    
+    // Smart skalning beroende på kvittostorlek och läge
+    let scale
+    if (originalHeight > 4000) {
+      // Extremt långa kvitton - mer konservativ skalning för minnet
+      scale = mode === 'soft' ? 1.8 : 2.2
+    } else if (originalHeight > 2000) {
+      // Långa kvitton - standard förbättrad skalning
+      scale = mode === 'soft' ? 2.0 : 2.5
+    } else {
+      // Normala kvitton - maximal skalning för precision
+      scale = mode === 'soft' ? 2.2 : 2.8
+    }
+    
+    canvas.width = originalWidth * scale
+    canvas.height = originalHeight * scale
+    
+    console.log(`🎨 Bildförbättring: ${originalWidth}x${originalHeight} → ${canvas.width}x${canvas.height} (${scale}x skalning)`)
     
     ctx.imageSmoothingEnabled = mode === 'soft'
     ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
