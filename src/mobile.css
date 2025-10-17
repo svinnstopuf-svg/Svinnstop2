@@ -894,28 +894,18 @@ input:focus {
   position: relative;
   width: 100%;
   max-width: 400px;
-  aspect-ratio: 4/3;
+  aspect-ratio: 3/4; /* Högre för längre kvitton */
   border-radius: var(--border-radius-sm);
   overflow: hidden;
   background: #000;
   margin-bottom: 16px;
-}
-
-/* Landscape mode för receipt scanning */
-.scanner-video-container.landscape {
-  max-width: 85vw;
-  aspect-ratio: 16/9;
-  max-height: 60vh;
+  max-height: 70vh; /* Begränsning för mycket långa skärmar */
 }
 
 .scanner-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.scanner-video.landscape {
-  object-fit: contain;
 }
 
 .scanner-overlay-frame {
@@ -1526,19 +1516,8 @@ input:focus {
   }
   
   .scanner-video-container {
-    aspect-ratio: 16/10;
-  }
-  
-  /* Landscape optimering för mobil */
-  .scanner-video-container.landscape {
-    max-width: 95vw;
-    aspect-ratio: 16/9;
-    max-height: 50vh;
-  }
-  
-  .scanner-modal.landscape-mode {
-    max-width: 95vw;
-    max-height: 85vh;
+    aspect-ratio: 3/4; /* Högre för längre kvitton på mobil */
+    max-height: 60vh;
   }
 }
 
