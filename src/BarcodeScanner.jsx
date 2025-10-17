@@ -238,7 +238,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     }
   }
 
-  // Scanna utgångsdatum med OCR
+  // ROBUST utgångsdatumscanning - Förbättrad för ogynnsamma förhållanden
   const captureDateScan = async () => {
     if (!videoRef.current) return
     
@@ -256,35 +256,79 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       canvas.height = video.videoHeight
       ctx.drawImage(video, 0, 0)
       
-      console.log('📅 Scannar utgångsdatum med OCR...')
+      console.log('📅 Startar ROBUST utgångsdatumscanning...')
       
-      // OCR med Tesseract
-      const result = await Tesseract.recognize(
-        canvas,
-        'eng+swe', // Stöd för svenska och engelska
-        {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              setOcrProgress(Math.round(m.progress * 100))
+      // ROBUST bildförbättring för dåligt ljus och suddighet
+      const enhancedCanvas = enhanceImageForDateScanning(canvas)
+      
+      // Flera OCR-strategier för att hitta datum under alla förhållanden
+      const strategies = [
+        { name: 'Datum-fokuserad', lang: 'eng', psm: 8, whitelist: '0123456789/-.' },
+        { name: 'Text och siffror', lang: 'eng+swe', psm: 7, whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789/-.:  ' },
+        { name: 'Aggressiv siffror', lang: 'eng', psm: 6, whitelist: '0123456789/-.:' },
+        { name: 'Ord och datum', lang: 'swe+eng', psm: 11, whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789/-.: ' }
+      ]
+      
+      let allFoundDates = []
+      let strategyProgress = 0
+      
+      for (const strategy of strategies) {
+        try {
+          console.log(`🎯 Försöker ${strategy.name}-strategi...`)
+          setOcrProgress(Math.round((strategyProgress / strategies.length) * 80))
+          
+          const result = await Tesseract.recognize(
+            enhancedCanvas,
+            strategy.lang,
+            {
+              logger: m => {
+                if (m.status === 'recognizing text') {
+                  const baseProgress = (strategyProgress / strategies.length) * 80
+                  const strategySpecificProgress = (m.progress * 0.2) * 80
+                  setOcrProgress(Math.round(baseProgress + strategySpecificProgress))
+                }
+              },
+              tessedit_pageseg_mode: strategy.psm,
+              tessedit_char_whitelist: strategy.whitelist,
+              tessedit_ocr_engine_mode: 1 // LSTM + Legacy hybrid
             }
+          )
+          
+          console.log(`📝 ${strategy.name} OCR text:`, result.data.text)
+          
+          // Extrahera datum från denna strategi
+          const strategyDates = extractDatesFromTextRobust(result.data.text)
+          if (strategyDates.length > 0) {
+            console.log(`✅ ${strategy.name} hittade: ${strategyDates.join(', ')}`)
+            allFoundDates.push(...strategyDates)
           }
+          
+        } catch (strategyError) {
+          console.error(`❌ ${strategy.name} misslyckades:`, strategyError)
         }
-      )
+        
+        strategyProgress++
+      }
       
-      console.log('OCR resultat:', result.data.text)
+      setOcrProgress(90)
       
-      // Extrahera datum från OCR-text
-      const dates = extractDatesFromText(result.data.text)
+      // Deduplicera och sortera datum
+      const uniqueDates = [...new Set(allFoundDates)]
+        .filter(date => isValidFutureDate(date))
+        .sort((a, b) => new Date(a) - new Date(b))
       
-      if (dates.length > 0) {
-        console.log('✅ Hittade datum:', dates)
-        setFoundDates(dates)
+      setOcrProgress(100)
+      
+      if (uniqueDates.length > 0) {
+        console.log('🎉 ROBUST scanning hittade datum:', uniqueDates)
+        setFoundDates(uniqueDates)
       } else {
-        setError('Inga utgångsdatum hittades. Försök hålla förpackningen närmare och se till att datumet är tydligt.')
+        console.log('⚠️ Inga giltiga datum hittades med någon strategi')
+        setError('Inga utgångsdatum hittades. Kontrollera att:\n• Datumet är tydligt och välbelyst\n• Du håller kameran stabilt\n• Förpackningen är nära kameran\n• Texten inte är för liten')
       }
       
     } catch (error) {
-      console.error('❌ Datum OCR fel:', error)
+      console.error('❌ ROBUST datum OCR fel:', error)
       setError('Kunde inte läsa datumet. Kontrollera belysningen och försök igen.')
     } finally {
       setIsProcessingDate(false)
@@ -328,38 +372,211 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     return uniqueDates.sort()
   }
 
-  // Parsa och validera datum
-  const parseAndValidateDate = (dateStr) => {
-    try {
-      let date
+  // ROBUST bildförbättring specifik för datumscanning
+  const enhanceImageForDateScanning = (canvas) => {
+    const ctx = canvas.getContext('2d')
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    
+    // Mät genomsnittlig ljusstyrka för att anpassa förbättring
+    let avgBrightness = 0
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      avgBrightness += gray
+    }
+    avgBrightness /= (data.length / 4)
+    
+    console.log(`💡 Datumscanning - ljusstyrka: ${Math.round(avgBrightness)}/255`)
+    
+    // Extremt aggressiv förbättring för datumscanning
+    const brightnessBoost = avgBrightness < 120 ? 3.0 : avgBrightness < 180 ? 2.2 : 1.5
+    const contrastBoost = 2.8 // Hög kontrast för att framhäva siffror
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
       
-      // Försök olika format
-      if (dateStr.match(/^\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2}$/)) {
-        // YYYY-MM-DD format
-        date = new Date(dateStr.replace(/[\/\.]/g, '-'))
-      } else if (dateStr.match(/^\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}$/)) {
-        // DD-MM-YYYY eller MM-DD-YYYY format
-        const parts = dateStr.split(/[-\/\.]/)
-        // Anta europeiskt format (DD-MM-YYYY)
-        date = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`)
-      } else {
-        date = new Date(dateStr)
+      // Extremt kontrast för att få fram siffror
+      let enhanced = (gray - 128) * contrastBoost + 128
+      enhanced *= brightnessBoost
+      enhanced = Math.max(0, Math.min(255, enhanced))
+      
+      // Extra skärpning för att få tydliga siffror
+      if (enhanced > 60 && enhanced < 200) {
+        enhanced = enhanced < 128 ? Math.max(0, enhanced * 0.6) : Math.min(255, enhanced * 1.6)
       }
       
-      // Validera att det är ett rimligt datum
+      data[i] = data[i + 1] = data[i + 2] = enhanced
+    }
+    
+    // Skapa ny canvas med förbättrad bild
+    const enhancedCanvas = document.createElement('canvas')
+    const enhancedCtx = enhancedCanvas.getContext('2d')
+    
+    // Skalning för bättre OCR-precision på små datum
+    const scale = 2.5
+    enhancedCanvas.width = canvas.width * scale
+    enhancedCanvas.height = canvas.height * scale
+    
+    enhancedCtx.putImageData(new ImageData(data, canvas.width, canvas.height), 0, 0)
+    
+    // Skala upp den förbättrade bilden
+    const scaledCanvas = document.createElement('canvas')
+    const scaledCtx = scaledCanvas.getContext('2d')
+    scaledCanvas.width = enhancedCanvas.width
+    scaledCanvas.height = enhancedCanvas.height
+    
+    scaledCtx.imageSmoothingEnabled = false // Bevara skärpa
+    scaledCtx.drawImage(enhancedCanvas, 0, 0, enhancedCanvas.width, enhancedCanvas.height)
+    
+    console.log('✨ Bildförbättring för datumscanning klar')
+    return scaledCanvas
+  }
+  
+  // ROBUST datumextraktion med fler mönster och bättre felhantering
+  const extractDatesFromTextRobust = (text) => {
+    const dates = []
+    const cleanText = text.replace(/[^a-zA-Z0-9\s\-\/\.]/g, ' ').replace(/\s+/g, ' ')
+    
+    console.log('🔍 Robust datumextraktion från text:', cleanText)
+    
+    // Utökade datummönster för bättre igenkänning
+    const datePatterns = [
+      // Grundläggande format
+      /(\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2})/g,           // YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
+      /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4})/g,         // DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY
+      /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{2})/g,          // DD-MM-YY, DD/MM/YY, DD.MM.YY
+      
+      // Med text-indikatorer
+      /(?:best\s+före|bäst\s+före|use\s+by|exp|expiry|expires|förbruka\s+före|sista)[\s:]*([0-9]{1,2}[-\/\.][0-9]{1,2}[-\/\.][0-9]{2,4})/gi,
+      
+      // Svenska månader
+      /(\d{1,2}\s+(?:jan|feb|mar|apr|maj|jun|jul|aug|sep|okt|nov|dec)\w*\s+\d{2,4})/gi,
+      
+      // Engelska månader
+      /(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{2,4})/gi,
+      
+      // Kompakta format utan separatorer
+      /(\d{8})/g, // YYYYMMDD
+      /(\d{6})/g, // YYMMDD eller DDMMYY
+      
+      // OCR-fel vanliga format (0 som O, 1 som I, etc.)
+      /([O0]\d[-\/\.]\d{1,2}[-\/\.]\d{2,4})/g,
+      /(\d{1,2}[-\/\.][O0]\d[-\/\.]\d{2,4})/g,
+      
+      // Med mellanslag mellan siffror (OCR-fel)
+      /(\d{1,2}\s+\d{1,2}\s+\d{2,4})/g
+    ]
+    
+    for (const pattern of datePatterns) {
+      let match
+      while ((match = pattern.exec(cleanText)) !== null) {
+        const dateStr = match[1] || match[0]
+        console.log(`🎯 Hittade potentiellt datum: "${dateStr}"`)
+        
+        const parsedDate = parseAndValidateDateRobust(dateStr)
+        if (parsedDate) {
+          dates.push(parsedDate)
+          console.log(`✅ Giltigt datum: ${parsedDate}`)
+        }
+      }
+    }
+    
+    return [...new Set(dates)] // Ta bort dubletter
+  }
+  
+  // ROBUST datumparsning med bättre felhantering
+  const parseAndValidateDateRobust = (dateStr) => {
+    try {
+      let cleanDateStr = dateStr
+        .replace(/[Oo]/g, '0')  // OCR-fel: O som 0
+        .replace(/[Il|]/g, '1') // OCR-fel: I, l, | som 1
+        .replace(/\s+/g, '')    // Ta bort mellanslag
+        .trim()
+      
+      console.log(`🔧 Parsning: "${dateStr}" → "${cleanDateStr}"`)
+      
+      let date
+      
+      // Olika parsningsmetoder
+      if (cleanDateStr.match(/^\d{8}$/)) {
+        // YYYYMMDD format
+        const year = cleanDateStr.substring(0, 4)
+        const month = cleanDateStr.substring(4, 6)
+        const day = cleanDateStr.substring(6, 8)
+        date = new Date(`${year}-${month}-${day}`)
+      } else if (cleanDateStr.match(/^\d{6}$/)) {
+        // YYMMDD eller DDMMYY format - gissa baserat på värden
+        const part1 = parseInt(cleanDateStr.substring(0, 2))
+        const part2 = parseInt(cleanDateStr.substring(2, 4))
+        const part3 = parseInt(cleanDateStr.substring(4, 6))
+        
+        // Om första delen > 31, antagligen YYMMDD
+        if (part1 > 31 || (part1 < 50 && part1 > 23)) {
+          const year = part1 < 50 ? 2000 + part1 : 1900 + part1
+          date = new Date(`${year}-${part2.toString().padStart(2, '0')}-${part3.toString().padStart(2, '0')}`)
+        } else {
+          // Antagligen DDMMYY
+          const year = part3 < 50 ? 2000 + part3 : 1900 + part3
+          date = new Date(`${year}-${part2.toString().padStart(2, '0')}-${part1.toString().padStart(2, '0')}`)
+        }
+      } else if (cleanDateStr.match(/^\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2}$/)) {
+        // YYYY-MM-DD format
+        date = new Date(cleanDateStr.replace(/[\/\.]/g, '-'))
+      } else if (cleanDateStr.match(/^\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{2,4}$/)) {
+        // DD-MM-YYYY eller DD-MM-YY format
+        const parts = cleanDateStr.split(/[-\/\.]/)
+        let year = parseInt(parts[2])
+        
+        // Hantera tvåsiffriga år
+        if (year < 100) {
+          year = year < 50 ? 2000 + year : 1900 + year
+        }
+        
+        // Anta europeiskt format (DD-MM-YYYY)
+        date = new Date(`${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`)
+      } else {
+        // Fallback
+        date = new Date(cleanDateStr)
+      }
+      
+      // Grundläggande validering
+      if (isNaN(date.getTime())) {
+        console.log(`❌ Ogiltigt datum: "${dateStr}" → "${cleanDateStr}"`)
+        return null
+      }
+      
+      return isValidFutureDate(date.toISOString().split('T')[0]) ? date.toISOString().split('T')[0] : null
+      
+    } catch (error) {
+      console.log(`❌ Kunde inte parsa datum: "${dateStr}" - ${error.message}`)
+      return null
+    }
+  }
+  
+  // Kontrollera om datumet är rimligt (framtida och inom 3 år)
+  const isValidFutureDate = (dateStr) => {
+    try {
+      const date = new Date(dateStr)
       const today = new Date()
       const threeYearsFromNow = new Date()
       threeYearsFromNow.setFullYear(threeYearsFromNow.getFullYear() + 3)
       
-      if (date >= today && date <= threeYearsFromNow) {
-        return date.toISOString().split('T')[0]
+      // Datum ska vara idag eller senare, men inte mer än 3 år framåt
+      const isValid = date >= today && date <= threeYearsFromNow
+      
+      if (!isValid) {
+        console.log(`⚠️ Datum utanför giltigt intervall: ${dateStr} (${date.toLocaleDateString('sv-SE')})`)
       }
       
+      return isValid
     } catch (error) {
-      console.log('Kunde inte parsa datum:', dateStr)
+      return false
     }
-    
-    return null
+  }
+
+  // Legacy funktion för bakåtkompatibilitet
+  const parseAndValidateDate = (dateStr) => {
+    return parseAndValidateDateRobust(dateStr)
   }
 
   // Använd valt datum
