@@ -266,12 +266,14 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       // ROBUST bildförbättring för dåligt ljus och suddighet
       const enhancedCanvas = enhanceImageForDateScanning(canvas)
       
-      // Flera OCR-strategier för att hitta datum under alla förhållanden
+      // ULTRAROBUSTA OCR-strategier för datumigenkänning
       const strategies = [
-        { name: 'Datum-fokuserad', lang: 'eng', psm: 8, whitelist: '0123456789/-.' },
-        { name: 'Text och siffror', lang: 'eng+swe', psm: 7, whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789/-.:  ' },
-        { name: 'Aggressiv siffror', lang: 'eng', psm: 6, whitelist: '0123456789/-.:' },
-        { name: 'Ord och datum', lang: 'swe+eng', psm: 11, whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789/-.: ' }
+        { name: 'Datum-fokus', lang: 'eng', psm: 8, whitelist: '0123456789/-.:', config: { preserve_interword_spaces: '0' } },
+        { name: 'Siffror endast', lang: 'eng', psm: 6, whitelist: '0123456789', config: { tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' } },
+        { name: 'Blandat datum', lang: 'eng', psm: 7, whitelist: '0123456789/-.:', config: {} },
+        { name: 'Text + datum', lang: 'swe+eng', psm: 11, whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-.:', config: { preserve_interword_spaces: '1' } },
+        { name: 'Enkel rad', lang: 'eng', psm: 13, whitelist: '0123456789/-.:', config: {} },
+        { name: 'Ensamt ord', lang: 'eng', psm: 8, whitelist: '0123456789/-.:', config: { tessedit_char_whitelist: '0123456789/-.:' } }
       ]
       
       let allFoundDates = []
@@ -295,7 +297,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
               },
               tessedit_pageseg_mode: strategy.psm,
               tessedit_char_whitelist: strategy.whitelist,
-              tessedit_ocr_engine_mode: 1 // LSTM + Legacy hybrid
+              tessedit_ocr_engine_mode: 1, // LSTM + Legacy hybrid
+              ...strategy.config // Tillägg konfigurationer
             }
           )
           
@@ -444,32 +447,51 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     
     console.log('🔍 Robust datumextraktion från text:', cleanText)
     
-    // Utökade datummönster för bättre igenkänning
+    // ULTRAUTVIDGADE datummönster för maksimal igenkänning
     const datePatterns = [
-      // Grundläggande format
+      // Grundläggande format med variationer
       /(\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2})/g,           // YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
       /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4})/g,         // DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY
       /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{2})/g,          // DD-MM-YY, DD/MM/YY, DD.MM.YY
       
-      // Med text-indikatorer
-      /(?:best\s+före|bäst\s+före|use\s+by|exp|expiry|expires|förbruka\s+före|sista)[\s:]*([0-9]{1,2}[-\/\.][0-9]{1,2}[-\/\.][0-9]{2,4})/gi,
+      // OCR kan separera siffror med mellanslag
+      /(\d{2}\s+\d{2}\s+\d{2,4})/g,                    // DD MM YY/YYYY
+      /(\d{4}\s+\d{2}\s+\d{2})/g,                      // YYYY MM DD
+      /(\d{1,2}\s+\d{1,2}\s+\d{2,4})/g,                // D M YY/YYYY
       
-      // Svenska månader
-      /(\d{1,2}\s+(?:jan|feb|mar|apr|maj|jun|jul|aug|sep|okt|nov|dec)\w*\s+\d{2,4})/gi,
+      // Punkter och streck kan försvinna/läggas till av OCR
+      /(\d{8})/g,                                       // YYYYMMDD eller DDMMYYYY
+      /(\d{6})/g,                                       // YYMMDD eller DDMMYY
+      /(\d{4}\d{2})/g,                                  // YYYYMM (incomplete)
       
-      // Engelska månader
-      /(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{2,4})/gi,
+      // OCR-fel vanliga: 0/O, 1/I/l, 5/S, 6/G, 8/B
+      /([O0oQq]\d[-\/\.]\d{1,2}[-\/\.]\d{2,4})/g,
+      /(\d{1,2}[-\/\.][O0oQq]\d[-\/\.]\d{2,4})/g,
+      /([Il1|]\d[-\/\.]\d{1,2}[-\/\.]\d{2,4})/g,
+      /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]2[O0oQq]2\d)/g,    // 202X för år
       
-      // Kompakta format utan separatorer
-      /(\d{8})/g, // YYYYMMDD
-      /(\d{6})/g, // YYMMDD eller DDMMYY
+      // Med olika separator-tecken som OCR kan förväxla
+      /(\d{1,2}[._\-:\/]\d{1,2}[._\-:\/]\d{2,4})/g,
       
-      // OCR-fel vanliga format (0 som O, 1 som I, etc.)
-      /([O0]\d[-\/\.]\d{1,2}[-\/\.]\d{2,4})/g,
-      /(\d{1,2}[-\/\.][O0]\d[-\/\.]\d{2,4})/g,
+      // Text-indikatorer (flerspråkig)
+      /(?:bäst\s*före|best\s*before|use\s*by|exp\w*|utgår|expires?|förbruka\s*före)[\s:]*([0-9O]{1,2}[\s._\-:\/]+[0-9O]{1,2}[\s._\-:\/]+[0-9O]{2,4})/gi,
       
-      // Med mellanslag mellan siffror (OCR-fel)
-      /(\d{1,2}\s+\d{1,2}\s+\d{2,4})/g
+      // Månadsnamn (svenska och engelska)
+      /(\d{1,2}[\s._\-]*(?:jan|feb|mar|apr|maj|jun|jul|aug|sep|okt|nov|dec)\w*[\s._\-]*\d{2,4})/gi,
+      /(\d{1,2}[\s._\-]*(?:january|february|march|april|may|june|july|august|september|october|november|december)[\s._\-]*\d{2,4})/gi,
+      
+      // Vanliga OCR-mismärkning för svenska månader
+      /(\d{1,2}[\s._\-]*(?:ian|teb|rnaf|apr|rnai|iun|iul|aug|sep|okt|nov|dec)[\s._\-]*\d{2,4})/gi,
+      
+      // Extra aggressiva mönster för trasiga OCR
+      /([0-9O]{1,2}\s*[0-9O]{1,2}\s*[0-9O]{2,4})/g,    // Alla siffror kan vara O
+      /([12]\d{3}[^a-zA-Z]{0,2}[01]?\d[^a-zA-Z]{0,2}[0-3]?\d)/g, // YYYY?MM?DD format
+      /(20[2-4]\d[\s\-\/\.][01]?\d[\s\-\/\.][0-3]?\d)/g,  // 202X-år specifikt
+      
+      // Korta format som kan vara datum
+      /(\d{4})/g,  // Bara år (202X)
+      /(\d{2}\/\d{2})/g, // MM/DD eller DD/MM
+      /(\d{2}[-.]\d{2})/g // MM-DD eller DD-MM
     ]
     
     for (const pattern of datePatterns) {
@@ -493,9 +515,14 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
   const parseAndValidateDateRobust = (dateStr) => {
     try {
       let cleanDateStr = dateStr
-        .replace(/[Oo]/g, '0')  // OCR-fel: O som 0
-        .replace(/[Il|]/g, '1') // OCR-fel: I, l, | som 1
-        .replace(/\s+/g, '')    // Ta bort mellanslag
+        .replace(/[OoQq]/g, '0')     // OCR-fel: O, o, Q, q som 0
+        .replace(/[Il1|]/g, '1')     // OCR-fel: I, l, |, som 1
+        .replace(/[Ss\$]/g, '5')     // OCR-fel: S, $ som 5
+        .replace(/[Gg]/g, '6')       // OCR-fel: G som 6
+        .replace(/[Bb]/g, '8')       // OCR-fel: B som 8
+        .replace(/[Zz]/g, '2')       // OCR-fel: Z som 2
+        .replace(/[\s._]+/g, '')     // Ta bort mellanslag, punkt, understreck
+        .replace(/[^\d\-\/]/g, '')   // Behåll bara siffror och separatorer
         .trim()
       
       console.log(`🔧 Parsning: "${dateStr}" → "${cleanDateStr}"`)
@@ -539,8 +566,32 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
         
         // Anta europeiskt format (DD-MM-YYYY)
         date = new Date(`${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`)
+      } else if (cleanDateStr.match(/^\d{4}$/)) {
+        // Bara år - anta 31 december det året
+        const year = parseInt(cleanDateStr)
+        if (year >= 2024 && year <= 2030) {
+          date = new Date(`${year}-12-31`)
+        } else {
+          return null
+        }
+      } else if (cleanDateStr.match(/^\d{2}\d{2}$/)) {
+        // MMYY eller DDMM - anta första månaden/dagen
+        const part1 = parseInt(cleanDateStr.substring(0, 2))
+        const part2 = parseInt(cleanDateStr.substring(2, 4))
+        
+        if (part1 <= 12) {
+          // Antagligen MMYY
+          const year = part2 < 50 ? 2000 + part2 : 1900 + part2
+          date = new Date(`${year}-${part1.toString().padStart(2, '0')}-01`)
+        } else if (part2 <= 12) {
+          // Antagligen DDMM, anta innevarande år
+          const currentYear = new Date().getFullYear()
+          date = new Date(`${currentYear}-${part2.toString().padStart(2, '0')}-${part1.toString().padStart(2, '0')}`)
+        } else {
+          return null
+        }
       } else {
-        // Fallback
+        // Sista fallback
         date = new Date(cleanDateStr)
       }
       
