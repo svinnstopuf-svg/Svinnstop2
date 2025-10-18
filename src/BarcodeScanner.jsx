@@ -265,9 +265,16 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       ctx.drawImage(video, 0, 0)
       
       console.log('🚀 Startar HYBRID datum-avläsning...')
+      console.log('📊 Canvas storlek:', canvas.width, 'x', canvas.height)
+      console.log('📷 Video storlek:', video.videoWidth, 'x', video.videoHeight)
+      
+      // Debug: Spara bild för inspektion
+      const debugDataUrl = canvas.toDataURL()
+      console.log('🖼️ Debug bild (base64):', debugDataUrl.substring(0, 100) + '...')
       
       // Steg 1: Snabb OCR (max 3 sekunder)
       setOcrProgress(30)
+      console.log('⏱️ Börjar OCR-processing...')
       const ocrResult = await quickDateOCR(canvas)
       
       if (ocrResult && ocrResult.confidence > 60) {
@@ -324,7 +331,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       )
       
       const text = result.data.text.trim()
-      console.log(`📝 Snabb OCR text: "${text}"`)
+      console.log(`📝 Snabb OCR text: "${text}" (confidence: ${result.data.confidence}%)`)
+      console.log('📊 OCR result details:', {
+        text: text,
+        confidence: result.data.confidence,
+        symbols: result.data.symbols?.length || 0,
+        words: result.data.words?.length || 0
+      })
       
       // Bara de 4 vanligaste svenska formaten
       const simplePatterns = [
@@ -334,20 +347,31 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
         /(\d{2})\s+(\d{2})\s+(\d{2,4})/g      // DD MM YY/YYYY (med mellanslag)
       ]
       
-      for (let pattern of simplePatterns) {
+      for (let i = 0; i < simplePatterns.length; i++) {
+        const pattern = simplePatterns[i]
+        console.log(`🔍 Testar pattern ${i + 1}: ${pattern.source}`)
         const match = text.match(pattern)
+        
         if (match) {
+          console.log(`✅ Match hittad: "${match[0]}"`)
           const dateStr = match[0].replace(/\s+/g, '') // Ta bort mellanslag
+          console.log(`🎨 Rensad dateStr: "${dateStr}"`)
           const parsedDate = parseSimpleDate(dateStr)
+          console.log(`📅 Parsad till: "${parsedDate}"`)
           
           if (parsedDate && isValidFutureDate(parsedDate)) {
+            console.log(`✅ Giltigt framtida datum funnet!`)
             return {
               date: parsedDate,
               confidence: Math.min(result.data.confidence || 50, 95),
               method: 'ocr',
               duration: Date.now() - startTime
             }
+          } else {
+            console.log(`❌ Datum ej giltigt eller inte framtida`)
           }
+        } else {
+          console.log(`❌ Ingen match för pattern ${i + 1}`)
         }
       }
       
@@ -378,19 +402,26 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     return canvas
   }
   
-  // ENKEL DATUMPARSNING
+  // ENKEL DATUMPARSNING med debug
   const parseSimpleDate = (dateStr) => {
     try {
+      console.log(`🔧 parseSimpleDate input: "${dateStr}"`)
       const cleanStr = dateStr.replace(/[^0-9]/g, '') // Bara siffror
+      console.log(`🔧 Rensad str: "${cleanStr}" (length: ${cleanStr.length})`)
       
       if (cleanStr.length === 8) {
         // DDMMYYYY
         const day = parseInt(cleanStr.substring(0, 2))
         const month = parseInt(cleanStr.substring(2, 4))
         const year = parseInt(cleanStr.substring(4, 8))
+        console.log(`🔧 DDMMYYYY parsed: day=${day}, month=${month}, year=${year}`)
         
         if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2030) {
-          return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+          const result = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+          console.log(`✅ Giltigt 8-siffrigt datum: ${result}`)
+          return result
+        } else {
+          console.log(`❌ Ogiltigt 8-siffrigt datum: day=${day}, month=${month}, year=${year}`)
         }
       } else if (cleanStr.length === 6) {
         // DDMMYY
@@ -398,14 +429,22 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
         const month = parseInt(cleanStr.substring(2, 4))
         const year = parseInt(cleanStr.substring(4, 6))
         const fullYear = year < 30 ? 2000 + year : 1900 + year
+        console.log(`🔧 DDMMYY parsed: day=${day}, month=${month}, year=${year} -> fullYear=${fullYear}`)
         
         if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && fullYear >= 2024 && fullYear <= 2030) {
-          return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+          const result = `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+          console.log(`✅ Giltigt 6-siffrigt datum: ${result}`)
+          return result
+        } else {
+          console.log(`❌ Ogiltigt 6-siffrigt datum: day=${day}, month=${month}, fullYear=${fullYear}`)
         }
+      } else {
+        console.log(`❌ Okänd längd: ${cleanStr.length} (stödjer bara 6 och 8)`)
       }
       
       return null
     } catch (error) {
+      console.log(`❌ parseSimpleDate error:`, error)
       return null
     }
   }
