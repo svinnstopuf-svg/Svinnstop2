@@ -22,6 +22,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
   const [recognizedProducts, setRecognizedProducts] = useState([])
   const [showProductSelection, setShowProductSelection] = useState(false)
   const [torchEnabled, setTorchEnabled] = useState(false)
+  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -267,6 +268,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       console.log('🚀 Startar HYBRID datum-avläsning...')
       console.log('📊 Canvas storlek:', canvas.width, 'x', canvas.height)
       console.log('📷 Video storlek:', video.videoWidth, 'x', video.videoHeight)
+      setDebugInfo(`Canvas: ${canvas.width}x${canvas.height}, Video: ${video.videoWidth}x${video.videoHeight}`)
       
       // Debug: Spara bild för inspektion
       const debugDataUrl = canvas.toDataURL()
@@ -279,6 +281,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       
       if (ocrResult && ocrResult.confidence > 60) {
         console.log(`✅ OCR lyckades: ${ocrResult.date} (${ocrResult.confidence}% säker)`)
+        setDebugInfo(prev => prev + `\n✅ OCR SUCCESS: ${ocrResult.date.toLocaleDateString('sv-SE')} (${ocrResult.confidence}%)`)
         setFoundDates([ocrResult.date])
         setOcrProgress(100)
         return
@@ -286,6 +289,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       
       // Steg 2: AI-fallback
       console.log('🤖 OCR misslyckades, använder AI-gissning...')
+      setDebugInfo(prev => prev + `\n🤖 OCR failed -> AI fallback`)
       setOcrProgress(70)
       
       const currentProductName = (currentProduct && currentProduct.name) || 'okänd produkt'
@@ -339,6 +343,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
         words: result.data.words?.length || 0
       })
       
+      setDebugInfo(prev => prev + `\nOCR: "${text}" (${result.data.confidence}%)`)
+      
       // Bara de 4 vanligaste svenska formaten
       const simplePatterns = [
         /(\d{2})[-\/](\d{2})[-\/](\d{2,4})/g,  // DD-MM-YY/YYYY, DD/MM/YY/YYYY
@@ -356,11 +362,13 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
           console.log(`✅ Match hittad: "${match[0]}"`)
           const dateStr = match[0].replace(/\s+/g, '') // Ta bort mellanslag
           console.log(`🎨 Rensad dateStr: "${dateStr}"`)
+          setDebugInfo(prev => prev + `\nPattern ${i+1} match: "${match[0]}" -> "${dateStr}"`);
           const parsedDate = parseSimpleDate(dateStr)
           console.log(`📅 Parsad till: "${parsedDate}"`)
           
           if (parsedDate && isValidFutureDate(parsedDate)) {
             console.log(`✅ Giltigt framtida datum funnet!`)
+            setDebugInfo(prev => prev + `\n✅ SUCCESS: ${parsedDate.toLocaleDateString('sv-SE')}`);
             return {
               date: parsedDate,
               confidence: Math.min(result.data.confidence || 50, 95),
@@ -369,6 +377,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
             }
           } else {
             console.log(`❌ Datum ej giltigt eller inte framtida`)
+            setDebugInfo(prev => prev + `\n❌ Invalid/past date: ${parsedDate}`);
           }
         } else {
           console.log(`❌ Ingen match för pattern ${i + 1}`)
@@ -1774,6 +1783,26 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
                   >
                     {torchEnabled ? '🔦 Ficklampa PÅ' : '🔦 Ficklampa AV'}
                   </button>
+                  
+                  {/* Debug info panel */}
+                  {debugInfo && (
+                    <div className="debug-panel">
+                      <div className="debug-header">
+                        <span>🔍 Debug Info</span>
+                        <button 
+                          onClick={() => setDebugInfo('')}
+                          className="debug-clear-btn"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="debug-content">
+                        {debugInfo.split('\n').map((line, idx) => (
+                          <div key={idx} className="debug-line">{line}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* AI-fallback knapp när OCR misslyckas */}
                   {isDateScanningMode && currentProduct && !isProcessingDate && foundDates.length === 0 && (
