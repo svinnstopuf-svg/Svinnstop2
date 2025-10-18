@@ -240,14 +240,14 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     }
   }
 
-  // ROBUST utgångsdatumscanning - Förbättrad för ogynnsamma förhållanden
+  // 🚀 HYBRID DATUM-AVLÄSNING: Snabb OCR + AI Fallback
   const captureDateScan = async () => {
     if (!videoRef.current) return
     
     try {
       setIsProcessingDate(true)
       setFoundDates([])
-      setOcrProgress(0)
+      setOcrProgress(10)
       
       // Skapa canvas och fånga bild från video
       const canvas = canvasRef.current
@@ -258,161 +258,204 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       canvas.height = video.videoHeight
       ctx.drawImage(video, 0, 0)
       
-      console.log('📅 Startar ROBUST utgångsdatumscanning...')
+      console.log('🚀 Startar HYBRID datum-avläsning...')
       
-      // SIFFERFOKUSERAD bildförbättring - specialiserad för datumigenkanning
-      const enhancedCanvas = enhanceImageForDigitRecognition(canvas)
+      // Steg 1: Snabb OCR (max 3 sekunder)
+      setOcrProgress(30)
+      const ocrResult = await quickDateOCR(canvas)
       
-      // SPECIALISERADE SIFFERFOKUSERADE OCR-strategier för datumscanning
-      const strategies = [
-        // EXTREMT SIFFERFOKUSERADE strategier
-        { 
-          name: 'Ren sifferstrategi', 
-          lang: 'eng', 
-          psm: 8,  // Ensamt ord/siffra
-          whitelist: '0123456789', 
-          config: { 
-            tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÅÄÖåäö!@#$%^&*()_+=[]{}|\\;:"<>?,~`',
-            tessedit_ocr_engine_mode: 1,  // LSTM + Legacy hybrid
-            classify_enable_learning: 0,
-            textord_really_old_xheight: 1,
-            segment_penalty_dict_nonword: 10,
-            load_system_dawg: 0,
-            load_freq_dawg: 0  // Avaktivera ordböcker för ren sifferläsning
-          } 
-        },
-        { 
-          name: 'Siffror + separatorer', 
-          lang: 'eng', 
-          psm: 7,  // Enkel textrad
-          whitelist: '0123456789/-.:', 
-          config: { 
-            tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-            tessedit_ocr_engine_mode: 1,
-            preserve_interword_spaces: 0,
-            load_system_dawg: 0,
-            load_freq_dawg: 0
-          } 
-        },
-        { 
-          name: 'Kompakta siffror', 
-          lang: 'eng', 
-          psm: 8,  // Ensamt ord
-          whitelist: '0123456789', 
-          config: { 
-            tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/-.:  ',
-            tessedit_ocr_engine_mode: 1,
-            textord_noise_rejwords: 0,
-            textord_noise_rejrows: 0,
-            load_system_dawg: 0,
-            load_freq_dawg: 0,
-            segment_penalty_dict_nonword: 5
-          } 
-        },
-        { 
-          name: 'Lång siffersträng', 
-          lang: 'eng', 
-          psm: 6,  // Enhetligt textblock
-          whitelist: '0123456789', 
-          config: { 
-            tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/-.:  ',
-            tessedit_ocr_engine_mode: 2,  // LSTM endast
-            load_system_dawg: 0,
-            load_freq_dawg: 0,
-            textord_really_old_xheight: 0
-          } 
-        },
-        { 
-          name: 'Datum med text', 
-          lang: 'eng', 
-          psm: 11, // Sparse text
-          whitelist: 'bestäfrbuvnldxy0123456789/-.:', 
-          config: { 
-            tessedit_ocr_engine_mode: 1,
-            preserve_interword_spaces: 1,
-            load_system_dawg: 0
-          } 
-        },
-        { 
-          name: 'Fallback legacy', 
-          lang: 'eng', 
-          psm: 13, // Raw line
-          whitelist: '0123456789/-.:', 
-          config: { 
-            tessedit_ocr_engine_mode: 0,  // Legacy endast
-            tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-            load_system_dawg: 0,
-            load_freq_dawg: 0
-          } 
-        }
-      ]
-      
-      let allFoundDates = []
-      let strategyProgress = 0
-      
-      for (const strategy of strategies) {
-        try {
-          console.log(`🎯 Försöker ${strategy.name}-strategi...`)
-          setOcrProgress(Math.round((strategyProgress / strategies.length) * 80))
-          
-          const result = await Tesseract.recognize(
-            enhancedCanvas,
-            strategy.lang,
-            {
-              logger: m => {
-                if (m.status === 'recognizing text') {
-                  const baseProgress = (strategyProgress / strategies.length) * 80
-                  const strategySpecificProgress = (m.progress * 0.2) * 80
-                  setOcrProgress(Math.round(baseProgress + strategySpecificProgress))
-                }
-              },
-              tessedit_pageseg_mode: strategy.psm,
-              tessedit_char_whitelist: strategy.whitelist,
-              tessedit_ocr_engine_mode: 1, // LSTM + Legacy hybrid
-              ...strategy.config // Tillägg konfigurationer
-            }
-          )
-          
-          console.log(`📝 ${strategy.name} OCR text:`, result.data.text)
-          
-          // Extrahera datum från denna strategi
-          const strategyDates = extractDatesFromTextRobust(result.data.text)
-          if (strategyDates.length > 0) {
-            console.log(`✅ ${strategy.name} hittade: ${strategyDates.join(', ')}`)
-            allFoundDates.push(...strategyDates)
-          }
-          
-        } catch (strategyError) {
-          console.error(`❌ ${strategy.name} misslyckades:`, strategyError)
-        }
-        
-        strategyProgress++
+      if (ocrResult && ocrResult.confidence > 60) {
+        console.log(`✅ OCR lyckades: ${ocrResult.date} (${ocrResult.confidence}% säker)`)
+        setFoundDates([ocrResult.date])
+        setOcrProgress(100)
+        return
       }
       
-      setOcrProgress(90)
+      // Steg 2: AI-fallback
+      console.log('🤖 OCR misslyckades, använder AI-gissning...')
+      setOcrProgress(70)
       
-      // Deduplicera och sortera datum
-      const uniqueDates = [...new Set(allFoundDates)]
-        .filter(date => isValidFutureDate(date))
-        .sort((a, b) => new Date(a) - new Date(b))
+      const currentProductName = (currentProduct && currentProduct.name) || 'okänd produkt'
+      const aiResult = generateAIDateGuess(currentProductName)
       
+      console.log(`🤖 AI föreslår: ${aiResult.date} (${aiResult.confidence}% säker)`)
+      
+      // Visa AI-resultat till användaren
+      setFoundDates([]) // Inga OCR-datum
       setOcrProgress(100)
       
-      if (uniqueDates.length > 0) {
-        console.log('🎉 ROBUST scanning hittade datum:', uniqueDates)
-        setFoundDates(uniqueDates)
-      } else {
-        console.log('⚠️ Inga giltiga datum hittades med någon strategi')
-        setError('Inga utgångsdatum hittades. Kontrollera att:\n• Datumet är tydligt och välbelyst\n• Du håller kameran stabilt\n• Förpackningen är nära kameran\n• Texten inte är för liten')
-      }
+      // Visa AI-gissning som alternativ
+      setError(`Kunde inte läsa datumet tydligt.\n\nBaserat på "${currentProductName}" föreslår AI:\n📅 ${new Date(aiResult.date).toLocaleDateString('sv-SE')} (${aiResult.daysFromNow} dagar)\n\nAnvänd AI-gissningen nedan eller försök scanna igen.`)
       
     } catch (error) {
-      console.error('❌ ROBUST datum OCR fel:', error)
-      setError('Kunde inte läsa datumet. Kontrollera belysningen och försök igen.')
+      console.error('❌ Hybrid datum-avläsning fel:', error)
+      setError('Något gick fel. Försök igen eller välj datum manuellt.')
     } finally {
       setIsProcessingDate(false)
-      setOcrProgress(0)
     }
+  }
+  
+  // SNABB OCR - bara de vanligaste svenska formaten
+  const quickDateOCR = async (canvas) => {
+    try {
+      const startTime = Date.now()
+      
+      // Enkel bildförbättring
+      const enhancedCanvas = simpleImageEnhancement(canvas)
+      
+      // EN enda snabb OCR-strategi
+      const result = await Tesseract.recognize(
+        enhancedCanvas,
+        'eng',
+        {
+          tessedit_pageseg_mode: 8, // Ensamt ord
+          tessedit_char_whitelist: '0123456789/-.', 
+          tessedit_ocr_engine_mode: 1,
+          load_system_dawg: 0,
+          load_freq_dawg: 0,
+          timeout: 3000 // Max 3 sekunder
+        }
+      )
+      
+      const text = result.data.text.trim()
+      console.log(`📝 Snabb OCR text: "${text}"`)
+      
+      // Bara de 4 vanligaste svenska formaten
+      const simplePatterns = [
+        /(\d{2})[-\/](\d{2})[-\/](\d{2,4})/g,  // DD-MM-YY/YYYY, DD/MM/YY/YYYY
+        /(\d{8})/g,                           // DDMMYYYY
+        /(\d{6})/g,                           // DDMMYY
+        /(\d{2})\s+(\d{2})\s+(\d{2,4})/g      // DD MM YY/YYYY (med mellanslag)
+      ]
+      
+      for (let pattern of simplePatterns) {
+        const match = text.match(pattern)
+        if (match) {
+          const dateStr = match[0].replace(/\s+/g, '') // Ta bort mellanslag
+          const parsedDate = parseSimpleDate(dateStr)
+          
+          if (parsedDate && isValidFutureDate(parsedDate)) {
+            return {
+              date: parsedDate,
+              confidence: Math.min(result.data.confidence || 50, 95),
+              method: 'ocr',
+              duration: Date.now() - startTime
+            }
+          }
+        }
+      }
+      
+      return null
+      
+    } catch (error) {
+      console.log('❌ Snabb OCR misslyckades:', error.message)
+      return null
+    }
+  }
+  
+  // ENKEL BILDFÖRBÄTTRING (istället för komplex sifferfokuserad)
+  const simpleImageEnhancement = (canvas) => {
+    const ctx = canvas.getContext('2d')
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    
+    // Enkel kontrast- och ljusstyrke-förbättring
+    for (let i = 0; i < data.length; i += 4) {
+      // Konvertera till gråskala och öka kontrasten
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+      const enhanced = gray > 128 ? Math.min(255, gray * 1.3) : Math.max(0, gray * 0.7)
+      
+      data[i] = data[i + 1] = data[i + 2] = enhanced
+    }
+    
+    ctx.putImageData(imageData, 0, 0)
+    return canvas
+  }
+  
+  // ENKEL DATUMPARSNING
+  const parseSimpleDate = (dateStr) => {
+    try {
+      const cleanStr = dateStr.replace(/[^0-9]/g, '') // Bara siffror
+      
+      if (cleanStr.length === 8) {
+        // DDMMYYYY
+        const day = parseInt(cleanStr.substring(0, 2))
+        const month = parseInt(cleanStr.substring(2, 4))
+        const year = parseInt(cleanStr.substring(4, 8))
+        
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2030) {
+          return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        }
+      } else if (cleanStr.length === 6) {
+        // DDMMYY
+        const day = parseInt(cleanStr.substring(0, 2))
+        const month = parseInt(cleanStr.substring(2, 4))
+        const year = parseInt(cleanStr.substring(4, 6))
+        const fullYear = year < 30 ? 2000 + year : 1900 + year
+        
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && fullYear >= 2024 && fullYear <= 2030) {
+          return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        }
+      }
+      
+      return null
+    } catch (error) {
+      return null
+    }
+  }
+  
+  // AI DATUM-GISSNING
+  const generateAIDateGuess = (productName) => {
+    const name = productName.toLowerCase()
+    
+    // Produktkategorier och deras typiska hållbarhet
+    const shelfLife = {
+      // Mjölkprodukter
+      mjölk: 7, milk: 7, grädde: 7, cream: 7, yoghurt: 14,
+      // Kött
+      kött: 3, meat: 3, kyckling: 3, chicken: 3, fisk: 2, fish: 2,
+      // Bröd och bakning
+      bröd: 3, bread: 3, bulle: 2, bun: 2,
+      // Frukt och grönt
+      banan: 5, banana: 5, äpple: 14, apple: 14, tomat: 7, tomato: 7,
+      // Konserver och hållbara varor
+      pasta: 730, ris: 365, rice: 365, konserv: 365, can: 365,
+      // Default
+      default: 14
+    }
+    
+    let daysToAdd = shelfLife.default
+    let confidence = 50
+    
+    // Leta efter produkttyp
+    for (const [keyword, days] of Object.entries(shelfLife)) {
+      if (name.includes(keyword)) {
+        daysToAdd = days
+        confidence = keyword === 'default' ? 50 : 75
+        break
+      }
+    }
+    
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + daysToAdd)
+    
+    return {
+      date: futureDate.toISOString().split('T')[0],
+      confidence,
+      daysFromNow: daysToAdd,
+      method: 'ai'
+    }
+  }
+  
+  // Hantera AI-fallback när användaren väljer det manuellt
+  const handleUseAIFallback = () => {
+    if (!currentProduct || !currentProduct.name) return
+    
+    console.log('🤖 Användare valde AI-gissning manuellt')
+    const aiResult = generateAIDateGuess(currentProduct.name)
+    
+    // Skicka AI-resultatet till App.jsx som ett slutgiltigt datum
+    selectDate(aiResult.date)
   }
 
   // Extrahera datum från OCR-text
@@ -1563,8 +1606,8 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
                     {isDateScanningMode && currentProduct ? (
                       <>
                         <div className="auto-scan-info">
-                          <p><strong>🎯 Automatisk datumscanning aktiv</strong></p>
-                          <p>Scanna utgångsdatumet för: <strong>{currentProduct.name}</strong></p>
+                          <p><strong>🎯 Automatisk datum-avläsning aktiv</strong></p>
+                          <p>Läs av utgångsdatumet för: <strong>{currentProduct.name}</strong></p>
                           <p>Progress: {productProgress}</p>
                         </div>
                         <p>📅 Rikta kameran mot utgångsdatumet på förpackningen</p>
@@ -1600,21 +1643,20 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
                     disabled={isProcessingDate}
                     className="capture-btn"
                   >
-                    {isProcessingDate ? `⚙️ Läser... ${ocrProgress}%` : '📅 Scanna datum'}
+                    {isProcessingDate ? `⚙️ Läser av... ${ocrProgress}%` : '📅 Läs av datum'}
                   </button>
                   
-                  {/* AI-gissningsknapp för när inget datum hittas */}
-                  {isDateScanningMode && currentProduct && currentProduct.aiSuggestion && (
+                  {/* AI-fallback knapp när OCR misslyckas */}
+                  {isDateScanningMode && currentProduct && !isProcessingDate && foundDates.length === 0 && (
                     <div className="ai-suggestion-section">
                       <div className="divider-text">eller</div>
                       <button 
-                        onClick={() => handleUseAISuggestion()}
+                        onClick={() => handleUseAIFallback()}
                         className="ai-suggestion-btn"
-                        title={`AI föreslår: ${currentProduct.aiSuggestion.date?.toLocaleDateString('sv-SE')} (${currentProduct.aiSuggestion.confidence} säkerhet)`}
                       >
-                        🤖 Använd AI-gissning: {currentProduct.aiSuggestion.date?.toLocaleDateString('sv-SE')}
+                        🤖 Använd AI-gissning istället
                         <div className="ai-confidence">
-                          {currentProduct.aiSuggestion.confidence} säkerhet • {currentProduct.aiSuggestion.daysFromNow} dagar
+                          Baserat på produkttyp: {currentProduct.name}
                         </div>
                       </button>
                     </div>

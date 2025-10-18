@@ -178,7 +178,7 @@ export default function App() {
   const [showExpirySettings, setShowExpirySettings] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   
-  // Automatiskt utgångsdatum-scanning stöd
+  // Automatisk utgångsdatum-avläsning stöd
   const [pendingProducts, setPendingProducts] = useState([])
   const [currentProductIndex, setCurrentProductIndex] = useState(0)
   const [isDateScanningMode, setIsDateScanningMode] = useState(false)
@@ -384,10 +384,10 @@ export default function App() {
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
   }
   
-  // Hantera automatisk datumscanning
+  // Hantera automatisk datum-avläsning
   const handleDateScanComplete = (scannedDate) => {
     if (!isDateScanningMode || pendingProducts.length === 0) {
-      // Vanlig datumscanning (inte automatisk sekvens)
+      // Vanlig datum-avläsning (inte automatisk sekvens)
       setForm(prev => ({ ...prev, expiresAt: scannedDate }))
       setScanSuccessful(true)
       return
@@ -424,7 +424,7 @@ export default function App() {
       
       // Stäng scanner och refresha sidan när hela sekvensen är klar
       setTimeout(() => {
-        console.log('Automatisk datumscanning klar - refreshar sidan')
+        console.log('Automatisk datum-avläsning klar - refreshar sidan')
         window.location.reload()
       }, 500) // Kort delay så användaren ser att det är klart
     }
@@ -504,8 +504,8 @@ export default function App() {
       setIsDateScanningMode(true)
       
       // Inte stäng scanner - låt den växla till datumläge
-      console.log('📋 Startar automatisk datumscanning för:', preparedProducts.map(p => p.name).join(', '))
-      console.log('Scanner hålls öppen för datumscanning av', preparedProducts.length, 'produkter')
+      console.log('📋 Startar automatisk datum-avläsning för:', preparedProducts.map(p => p.name).join(', '))
+      console.log('Scanner hålls öppen för datum-avläsning av', preparedProducts.length, 'produkter')
       
     } catch (error) {
       console.error('Fel vid kvittoscanning:', error)
@@ -562,8 +562,8 @@ export default function App() {
       setIsDateScanningMode(true)
       
       // Inte stäng scanner - låt den växla till datumläge
-      console.log('📋 Startar automatisk datumscanning för:', itemName)
-      console.log('Scanner hålls öppen för datumscanning')
+      console.log('📋 Startar automatisk datum-avläsning för:', itemName)
+      console.log('Scanner hålls öppen för datum-avläsning')
       
     } catch (error) {
       console.error('Fel vid produktsökning:', error)
@@ -935,7 +935,7 @@ export default function App() {
         
         // Rensa alltid automatisk scanning-state vid manuell stängning
         if (isDateScanningMode) {
-          console.log('Avbryter automatisk datumscanning')
+          console.log('Avbryter automatisk datum-avläsning')
           setPendingProducts([])
           setCurrentProductIndex(0)
           setIsDateScanningMode(false)
