@@ -1628,6 +1628,26 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
         </div>
         
         <div className="scanner-content">
+          {/* Debug info panel - visas överst */}
+          {debugInfo && (
+            <div className="debug-panel">
+              <div className="debug-header">
+                <span>🔍 Debug Info</span>
+                <button 
+                  onClick={() => setDebugInfo('')}
+                  className="debug-clear-btn"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="debug-content">
+                {debugInfo.split('\n').map((line, idx) => (
+                  <div key={idx} className="debug-line">{line}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {error ? (
             <div className="scanner-error">
               <div className="error-icon">❌</div>
@@ -1784,25 +1804,6 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
                     {torchEnabled ? '🔦 Ficklampa PÅ' : '🔦 Ficklampa AV'}
                   </button>
                   
-                  {/* Debug info panel */}
-                  {debugInfo && (
-                    <div className="debug-panel">
-                      <div className="debug-header">
-                        <span>🔍 Debug Info</span>
-                        <button 
-                          onClick={() => setDebugInfo('')}
-                          className="debug-clear-btn"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <div className="debug-content">
-                        {debugInfo.split('\n').map((line, idx) => (
-                          <div key={idx} className="debug-line">{line}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   
                   {/* AI-fallback knapp när OCR misslyckas */}
                   {isDateScanningMode && currentProduct && !isProcessingDate && foundDates.length === 0 && (
