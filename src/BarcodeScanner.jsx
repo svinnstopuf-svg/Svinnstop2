@@ -320,19 +320,41 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       // Enkel bildförbättring
       const enhancedCanvas = simpleImageEnhancement(canvas)
       
-      // EN enda snabb OCR-strategi
-      const result = await Tesseract.recognize(
+      // Prova först med page segmentation mode 8 (single word)
+      let result = await Tesseract.recognize(
         enhancedCanvas,
         'eng',
         {
           tessedit_pageseg_mode: 8, // Ensamt ord
-          tessedit_char_whitelist: '0123456789/-.', 
+          tessedit_char_whitelist: '0123456789/-. ', 
           tessedit_ocr_engine_mode: 1,
           load_system_dawg: 0,
           load_freq_dawg: 0,
-          timeout: 3000 // Max 3 sekunder
+          timeout: 1500 // Kortare tid per försök
         }
       )
+      
+      const text1 = result.data.text.trim()
+      const hasNumbers1 = /\d/.test(text1)
+      
+      // Om första försöket misslyckades, prova mode 6 (uniform text block)
+      if (!hasNumbers1 && Date.now() - startTime < 2500) {
+        console.log('🔄 Försöker OCR mode 6...')
+        setDebugInfo(prev => prev + `\n🔄 Trying OCR mode 6...`)
+        
+        result = await Tesseract.recognize(
+          enhancedCanvas,
+          'eng',
+          {
+            tessedit_pageseg_mode: 6, // Uniform text block
+            tessedit_char_whitelist: '0123456789/-. ',
+            tessedit_ocr_engine_mode: 1,
+            load_system_dawg: 0,
+            load_freq_dawg: 0,
+            timeout: 1000
+          }
+        )
+      }
       
       const text = result.data.text.trim()
       console.log(`📝 Snabb OCR text: "${text}" (confidence: ${result.data.confidence}%)`)
@@ -344,6 +366,16 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       })
       
       setDebugInfo(prev => prev + `\nOCR: "${text}" (${result.data.confidence}%)`)
+      
+      // Validera att OCR-texten innehåller åtminstone några siffror
+      const hasNumbers = /\d/.test(text)
+      const hasOnlySymbols = /^[^a-zA-Z0-9]+$/.test(text)
+      
+      if (!hasNumbers || hasOnlySymbols) {
+        console.log('❌ OCR-text innehåller inga siffror eller bara symboler - hoppar över')
+        setDebugInfo(prev => prev + `\n❌ No numbers found - skipping OCR`)
+        return null
+      }
       
       // Bara de 4 vanligaste svenska formaten
       const simplePatterns = [
@@ -392,19 +424,22 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     }
   }
   
-  // ENKEL BILDFÖRBÄTTRING (istället för komplex sifferfokuserad)
+  // FÖRBÄTTRAD BILDBEHANDLING för datum-OCR
   const simpleImageEnhancement = (canvas) => {
     const ctx = canvas.getContext('2d')
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
     
-    // Enkel kontrast- och ljusstyrke-förbättring
+    // Starkare kontrast för att få fram text tydligare
     for (let i = 0; i < data.length; i += 4) {
-      // Konvertera till gråskala och öka kontrasten
+      // Konvertera till gråskala
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-      const enhanced = gray > 128 ? Math.min(255, gray * 1.3) : Math.max(0, gray * 0.7)
       
-      data[i] = data[i + 1] = data[i + 2] = enhanced
+      // Binär tröskel - gör allt antingen svart eller vitt
+      const threshold = 140
+      const binary = gray > threshold ? 255 : 0
+      
+      data[i] = data[i + 1] = data[i + 2] = binary
     }
     
     ctx.putImageData(imageData, 0, 0)
