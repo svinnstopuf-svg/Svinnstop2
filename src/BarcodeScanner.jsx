@@ -21,6 +21,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
   const [foundDates, setFoundDates] = useState([])
   const [recognizedProducts, setRecognizedProducts] = useState([])
   const [showProductSelection, setShowProductSelection] = useState(false)
+  const [torchEnabled, setTorchEnabled] = useState(false)
 
   useEffect(() => {
     if (isOpen && !codeReader) {
@@ -86,6 +87,11 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints
       })
+      
+      // Aktivera ficklampa för datumscanning
+      if (scanMode === 'date') {
+        await activateTorchForDateScanning(stream)
+      }
       
       console.log('📱 BASIC kamera startad - redo för scanning!')
       
@@ -444,6 +450,31 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       confidence,
       daysFromNow: daysToAdd,
       method: 'ai'
+    }
+  }
+  
+  // FICKLAMPA-AKTIVERING för datumscanning
+  const activateTorchForDateScanning = async (stream) => {
+    try {
+      const videoTracks = stream.getVideoTracks()
+      if (videoTracks.length > 0) {
+        const track = videoTracks[0]
+        const capabilities = track.getCapabilities()
+        
+        if (capabilities.torch) {
+          await track.applyConstraints({
+            advanced: [{ torch: true }]
+          })
+          console.log('🔦 Ficklampa aktiverad för bättre datumavläsning')
+          return true
+        } else {
+          console.log('⚠️ Ficklampa ej tillgänglig på denna enhet')
+          return false
+        }
+      }
+    } catch (error) {
+      console.log('❌ Kunde inte aktivera ficklampa:', error.message)
+      return false
     }
   }
   
@@ -1360,8 +1391,58 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     console.log('Datum valt och skickat till App.jsx:', date)
   }
 
+  const deactivateTorch = async () => {
+    try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getVideoTracks()
+        if (tracks.length > 0) {
+          const track = tracks[0]
+          const capabilities = track.getCapabilities()
+          
+          if (capabilities.torch) {
+            await track.applyConstraints({
+              advanced: [{ torch: false }]
+            })
+            console.log('🔦 Ficklampa avstängd')
+            setTorchEnabled(false)
+          }
+        }
+      }
+    } catch (error) {
+      console.log('❌ Kunde inte stänga av ficklampa:', error.message)
+    }
+  }
+  
+  const toggleTorch = async () => {
+    try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getVideoTracks()
+        if (tracks.length > 0) {
+          const track = tracks[0]
+          const capabilities = track.getCapabilities()
+          
+          if (capabilities.torch) {
+            const newTorchState = !torchEnabled
+            await track.applyConstraints({
+              advanced: [{ torch: newTorchState }]
+            })
+            setTorchEnabled(newTorchState)
+            console.log(`🔦 Ficklampa ${newTorchState ? 'på' : 'av'}`)
+          } else {
+            console.log('⚠️ Ficklampa ej tillgänglig på denna enhet')
+          }
+        }
+      }
+    } catch (error) {
+      console.log('❌ Kunde inte växla ficklampa:', error.message)
+    }
+  }
+
   const handleClose = () => {
     console.log('🔴 Stänger scanner fullständigt - kröss-knapp tryckt')
+    
+    // Stäng av ficklampa först
+    deactivateTorch()
     
     try {
       // Stoppa CodeReader
@@ -1644,6 +1725,15 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
                     className="capture-btn"
                   >
                     {isProcessingDate ? `⚙️ Läser av... ${ocrProgress}%` : '📅 Läs av datum'}
+                  </button>
+                  
+                  {/* Ficklampa-toggle för datumscanning */}
+                  <button 
+                    onClick={toggleTorch}
+                    className={`torch-toggle-btn ${torchEnabled ? 'torch-on' : 'torch-off'}`}
+                    title={`${torchEnabled ? 'Stäng av' : 'Aktivera'} ficklampa för bättre belysning`}
+                  >
+                    {torchEnabled ? '🔦 Ficklampa PÅ' : '🔦 Ficklampa AV'}
                   </button>
                   
                   {/* AI-fallback knapp när OCR misslyckas */}
