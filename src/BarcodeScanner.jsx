@@ -273,6 +273,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       // Debug: Spara bild för inspektion
       const debugDataUrl = canvas.toDataURL()
       console.log('🖼️ Debug bild (base64):', debugDataUrl.substring(0, 100) + '...')
+      setDebugInfo(prev => prev + `\n🖼️ Image captured: ${canvas.width}x${canvas.height}`)
       
       // Steg 1: Snabb OCR (max 3 sekunder)
       setOcrProgress(30)
@@ -367,13 +368,22 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       
       setDebugInfo(prev => prev + `\nOCR: "${text}" (${result.data.confidence}%)`)
       
-      // Validera att OCR-texten innehåller åtminstone några siffror
-      const hasNumbers = /\d/.test(text)
-      const hasOnlySymbols = /^[^a-zA-Z0-9]+$/.test(text)
+      // Debug: Visa alla tecken i texten
+      console.log('🔍 OCR characters:', text.split('').map(c => `'${c}'(${c.charCodeAt(0)})`).join(', '))
+      setDebugInfo(prev => prev + `\n🔍 Raw chars: ${text.split('').map(c => `'${c}'`).join(' ')}`)
       
-      if (!hasNumbers || hasOnlySymbols) {
-        console.log('❌ OCR-text innehåller inga siffror eller bara symboler - hoppar över')
-        setDebugInfo(prev => prev + `\n❌ No numbers found - skipping OCR`)
+      // Mjukare validering - tillåt text med åtminstone 2 tecken
+      if (text.length < 2) {
+        console.log('❌ OCR-text för kort (< 2 tecken) - hoppar över')
+        setDebugInfo(prev => prev + `\n❌ Text too short - skipping OCR`)
+        return null
+      }
+      
+      // Kontrollera om texten bara innehåller upprepade symboler
+      const uniqueChars = [...new Set(text)]
+      if (uniqueChars.length === 1 && !/[0-9a-zA-Z]/.test(uniqueChars[0])) {
+        console.log('❌ OCR-text bara upprepade symboler - hoppar över')
+        setDebugInfo(prev => prev + `\n❌ Only repeated symbols - skipping OCR`)
         return null
       }
       
@@ -435,11 +445,18 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       // Konvertera till gråskala
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
       
-      // Binär tröskel - gör allt antingen svart eller vitt
-      const threshold = 140
-      const binary = gray > threshold ? 255 : 0
+      // Mjukare kontrast-förbättring istället för hård binär tröskel
+      let enhanced
+      if (gray > 180) {
+        enhanced = 255 // Gör ljusa områden vita
+      } else if (gray < 80) {
+        enhanced = 0   // Gör mörka områden svarta
+      } else {
+        // Behåll mellantonerna men öka kontrasten
+        enhanced = gray > 130 ? Math.min(255, gray * 1.4) : Math.max(0, gray * 0.6)
+      }
       
-      data[i] = data[i + 1] = data[i + 2] = binary
+      data[i] = data[i + 1] = data[i + 2] = enhanced
     }
     
     ctx.putImageData(imageData, 0, 0)
