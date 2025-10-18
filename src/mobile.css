@@ -1604,11 +1604,12 @@ input:focus {
   background: rgba(0, 0, 0, 0.9);
   border: 1px solid #444;
   border-radius: var(--border-radius-sm);
-  max-height: 150px;
+  max-height: 250px;
   overflow: hidden;
   font-size: 11px;
   position: relative;
   z-index: 5;
+  width: 100%;
 }
 
 .debug-header {
@@ -1638,10 +1639,29 @@ input:focus {
 }
 
 .debug-content {
-  max-height: 120px;
-  overflow-y: auto;
+  max-height: 200px;
+  overflow-y: scroll;
   padding: 8px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #666 transparent;
+}
+
+.debug-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.debug-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.debug-content::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 2px;
+}
+
+.debug-content::-webkit-scrollbar-thumb:hover {
+  background: #888;
 }
 
 .debug-line {
