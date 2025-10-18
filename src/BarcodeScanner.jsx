@@ -78,61 +78,16 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       setError(null)
       setScanning(true)
       
-      // Begär kamera-tillgång med hög upplösning men kompatibla inställningar
+      // MINIMAL kamera-constraints för maximal kompatibilitet
       const videoConstraints = {
-        facingMode: 'environment', // Bakre kamera på mobil
-        width: { ideal: 1920, min: 1280 },              // Hög upplösning men inte extremt
-        height: { ideal: 1440, min: 720 },              // Balanserad kvalitet
-        aspectRatio: 4/3                                // Inga exact constraints
+        facingMode: 'environment' // Bara bakre kamera - inga storleks-constraints alls
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints
       })
       
-      // Försök optimera kamerainställningar för datumscanning (valfritt)
-      const videoTracks = stream.getVideoTracks()
-      if (videoTracks.length > 0) {
-        const track = videoTracks[0]
-        try {
-          const capabilities = track.getCapabilities()
-          console.log('📷 Kamera capabilities:', Object.keys(capabilities))
-          
-          // Försök applicera förbättringar stegvis och fånga fel
-          const improvements = []
-          
-          // 1. Kontinuerlig fokus (säkrast)
-          if (capabilities.focusMode?.includes('continuous')) {
-            try {
-              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
-              improvements.push('kontinuerlig fokus')
-            } catch (e) {
-              console.log('⚠️ Kontinuerlig fokus stöds ej')
-            }
-          }
-          
-          // 2. Ficklampa (om tillgänglig)
-          if (capabilities.torch && scanMode === 'date') {
-            try {
-              await track.applyConstraints({ advanced: [{ torch: true }] })
-              improvements.push('ficklampa')
-            } catch (e) {
-              console.log('⚠️ Ficklampa kunde inte aktiveras')
-            }
-          }
-          
-          if (improvements.length > 0) {
-            console.log(`✅ Kameraoptimering lyckades: ${improvements.join(', ')}`)
-          } else {
-            console.log('📷 Använder standard kamerainställningar')
-          }
-          
-        } catch (error) {
-          console.log('📷 Kameraoptimering överhoppad:', error.message)
-        }
-      }
-      
-      console.log(`📱 KOMPATIBEL HD-kamera startad (${videoConstraints.width.ideal}x${videoConstraints.height.ideal}) för datumscanning`)
+      console.log('📱 BASIC kamera startad - redo för scanning!')
       
       setHasPermission(true)
       videoRef.current.srcObject = stream
