@@ -78,79 +78,61 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
       setError(null)
       setScanning(true)
       
-      // Begär kamera-tillgång med maximal upplösning och fokusering för små datum
+      // Begär kamera-tillgång med hög upplösning men kompatibla inställningar
       const videoConstraints = {
         facingMode: 'environment', // Bakre kamera på mobil
-        width: { ideal: 4032, max: 4032, min: 1920 },      // EXTREMT hög upplösning för små datum
-        height: { ideal: 3024, max: 3024, min: 1440 },     // Maximal kvalitet
-        aspectRatio: { ideal: 4/3, exact: 4/3 },
-        
-        // AVGRÖRANDE för små datum - makrofokus och bildstabilisering
-        focusMode: { ideal: 'continuous', exact: 'continuous' },
-        focusDistance: { ideal: 0.1, max: 0.5 },          // Närfokus för små text
-        exposureMode: { ideal: 'continuous' },
-        whiteBalanceMode: { ideal: 'continuous' },
-        imageStabilization: { ideal: true, exact: true },  // Kritiskt för små text
-        
-        // Avancerade kontroller för små textläsning
-        sharpness: { ideal: 100, max: 100 },               // Maximal skärpa
-        saturation: { ideal: 50 },                         // Måttlig mättnad
-        contrast: { ideal: 150, max: 200 },                // Hög kontrast för textläsning
-        brightness: { ideal: 120 },                        // Optimerad ljusstyrka
-        
-        // Zoom och croppa för bättre detaljupplösning
-        zoom: { ideal: 2.0, max: 5.0, min: 1.0 }          // Zoom för små datum
+        width: { ideal: 1920, min: 1280 },              // Hög upplösning men inte extremt
+        height: { ideal: 1440, min: 720 },              // Balanserad kvalitet
+        aspectRatio: 4/3                                // Inga exact constraints
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints
       })
       
-      // Optimera kamerainställningar specifikt för sifferfokuserad datumscanning
+      // Försök optimera kamerainställningar för datumscanning (valfritt)
       const videoTracks = stream.getVideoTracks()
       if (videoTracks.length > 0) {
         const track = videoTracks[0]
-        const capabilities = track.getCapabilities()
-        console.log('📷 Kamera capabilities för datumscanning:', capabilities)
-        
         try {
-          const digitFocusedConstraints = {
-            advanced: [{}]
-          }
+          const capabilities = track.getCapabilities()
+          console.log('📷 Kamera capabilities:', Object.keys(capabilities))
           
-          // Optimera för små textläsning
+          // Försök applicera förbättringar stegvis och fånga fel
+          const improvements = []
+          
+          // 1. Kontinuerlig fokus (säkrast)
           if (capabilities.focusMode?.includes('continuous')) {
-            digitFocusedConstraints.advanced[0].focusMode = 'continuous'
-            console.log('✅ Kontinuerlig fokus aktiverad')
+            try {
+              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+              improvements.push('kontinuerlig fokus')
+            } catch (e) {
+              console.log('⚠️ Kontinuerlig fokus stöds ej')
+            }
           }
           
-          // Närfokus för små datum
-          if (capabilities.focusDistance) {
-            digitFocusedConstraints.advanced[0].focusDistance = Math.max(capabilities.focusDistance.min, 0.1)
-            console.log('✅ Närfokus inställd för små datum')
+          // 2. Ficklampa (om tillgänglig)
+          if (capabilities.torch && scanMode === 'date') {
+            try {
+              await track.applyConstraints({ advanced: [{ torch: true }] })
+              improvements.push('ficklampa')
+            } catch (e) {
+              console.log('⚠️ Ficklampa kunde inte aktiveras')
+            }
           }
           
-          // Ficklampa för bättre belysning
-          if (capabilities.torch) {
-            digitFocusedConstraints.advanced[0].torch = true
-            console.log('✅ Ficklampa aktiverad för bättre datumscanning')
+          if (improvements.length > 0) {
+            console.log(`✅ Kameraoptimering lyckades: ${improvements.join(', ')}`)
+          } else {
+            console.log('📷 Använder standard kamerainställningar')
           }
           
-          // Zoom för små detaljer
-          if (capabilities.zoom && capabilities.zoom.max > 1) {
-            digitFocusedConstraints.advanced[0].zoom = Math.min(capabilities.zoom.max, 2.5)
-            console.log('✅ Zoom aktiverad för små datum')
-          }
-          
-          await track.applyConstraints(digitFocusedConstraints)
-          console.log('✨ SIFFERFOKUSERADE kamerainställningar applicerade!')
-          
-        } catch (constraintError) {
-          console.log('⚠️ Några avancerade inställningar stöds ej:', constraintError.message)
+        } catch (error) {
+          console.log('📷 Kameraoptimering överhoppad:', error.message)
         }
       }
       
-      console.log(`📱 DIGIT-OPTIMERAD kamera startad (${videoConstraints.width.ideal}x${videoConstraints.height.ideal}) för EXTREMT små datum`)
+      console.log(`📱 KOMPATIBEL HD-kamera startad (${videoConstraints.width.ideal}x${videoConstraints.height.ideal}) för datumscanning`)
       
       setHasPermission(true)
       videoRef.current.srcObject = stream
