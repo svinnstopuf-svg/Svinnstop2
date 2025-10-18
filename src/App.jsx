@@ -1,19 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
-import BarcodeScanner from './BarcodeScanner'
 import ExpirySettings from './ExpirySettings'
-import { lookupProduct } from './productAPI'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
-import { getExpirationDateGuess } from './expirationDateAI'
 import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
 // Låt Google göra jobbet åt oss!
 
-// Enkel funktion - ingen aggressiv textmanipulering
-function justText(text) {
-  return text || ''
-}
 // Enkla svenska funktioner utan textmanipulering
 function formatDaysLeft(days) {
   return days === 1 ? '1 dag kvar' : `${days} dagar kvar`
@@ -51,15 +44,6 @@ function daysUntil(dateStr) {
   return diff
 }
 
-// Formatera antal och vara på ett naturligt sätt som Google Translate kan hantera
-function formatIngredientAmount(word, count) {
-  // Använd naturlig svenska som Google förstår bättre
-  if (count === 1) {
-    return `1 ${word}`
-  }
-  // För flera, låt Google Translate hantera grammatiken naturligt
-  return `${count} ${word}`
-}
 
 // Hämta föreslagen enhetsnyckel för antal-etikett baserat på varans namn
 function getSuggestedUnitKey(itemName) {
@@ -172,20 +156,8 @@ export default function App() {
   const [bulkMode, setBulkMode] = useState(false)
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
-  const [showScanner, setShowScanner] = useState(false)
-  const [scanningProduct, setScanningProduct] = useState(false)
-  const [scanSuccessful, setScanSuccessful] = useState(false)
   const [showExpirySettings, setShowExpirySettings] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
-  
-  // Automatisk utgångsdatum-avläsning stöd
-  const [pendingProducts, setPendingProducts] = useState([])
-  const [currentProductIndex, setCurrentProductIndex] = useState(0)
-  const [isDateScanningMode, setIsDateScanningMode] = useState(false)
-  
-  // Debug-state för kvittoscanning
-  const [debugInfo, setDebugInfo] = useState([])
-  const [showDebug, setShowDebug] = useState(true)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -384,194 +356,6 @@ export default function App() {
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
   }
   
-  // Hantera automatisk datum-avläsning
-  const handleDateScanComplete = (scannedDate) => {
-    if (!isDateScanningMode || pendingProducts.length === 0) {
-      // Vanlig datum-avläsning (inte automatisk sekvens)
-      setForm(prev => ({ ...prev, expiresAt: scannedDate }))
-      setScanSuccessful(true)
-      return
-    }
-    
-    const currentProduct = pendingProducts[currentProductIndex]
-    
-    // Uppdatera den aktuella produkten med det scannade datumet
-    const updatedProduct = {
-      ...currentProduct,
-      expiresAt: scannedDate
-    }
-    
-    // Lägg till produkten i listan
-    setItems(prev => [...prev, updatedProduct])
-    console.log(`✅ ${currentProduct.name} tillagd med utgångsdatum: ${scannedDate}`)
-    
-    // Gå till nästa produkt
-    const nextIndex = currentProductIndex + 1
-    
-    if (nextIndex < pendingProducts.length) {
-      // Det finns fler produkter att scanna
-      setCurrentProductIndex(nextIndex)
-      console.log(`🔄 Fortsatt till produkt ${nextIndex + 1}/${pendingProducts.length}: ${pendingProducts[nextIndex].name}`)
-    } else {
-      // Alla produkter är klara
-      console.log('✅ Alla produkter har fått utgångsdatum')
-      
-      // Rensa automatisk scanning-state
-      setPendingProducts([])
-      setCurrentProductIndex(0)
-      setIsDateScanningMode(false)
-      setScanSuccessful(true)
-      
-      // Stäng scanner och refresha sidan när hela sekvensen är klar
-      setTimeout(() => {
-        console.log('Automatisk datum-avläsning klar - refreshar sidan')
-        window.location.reload()
-      }, 500) // Kort delay så användaren ser att det är klart
-    }
-  }
-
-  // Debug-funktioner
-  const addDebugInfo = (title, content) => {
-    const timestamp = new Date().toLocaleTimeString()
-    setDebugInfo(prev => [...prev, { timestamp, title, content }].slice(-20)) // Behåll senaste 20
-  }
-  
-  const clearDebugInfo = () => {
-    setDebugInfo([])
-  }
-  
-  // Kvittoscanning
-  const handleReceiptScan = async (products, hasExpirationDate = false) => {
-    try {
-      console.log(`🧾 Kvittoscanning: Hittade ${products.length} produkter`)
-      addDebugInfo('🧾 Kvittoscanning resultat', `Hittade ${products.length} produkter:\n${products.map(p => `- ${p.name} (${p.price} kr)`).join('\n')}`)
-      
-      // Kolla om produkter redan har utgångsdatum (AI-gissning)
-      if (hasExpirationDate) {
-        const readyProducts = products.map(product => {
-          const categoryResult = getSmartProductCategory(product.name, null)
-          
-          return {
-            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-            name: product.name,
-            quantity: product.quantity || 1,
-            unit: product.unit || 'st',
-            price: product.price,
-            category: categoryResult.category,
-            expiresAt: product.expiresAt,
-            confidence: null,
-            aiMethod: product.aiMethod || 'ai_suggested',
-            adjustments: []
-          }
-        })
-        
-        // Lägg till produkter direkt
-        setItems(prev => [...prev, ...readyProducts])
-        setScanSuccessful(true)
-        
-        console.log('✨ Produkter med AI-datum tillagda:', readyProducts.map(p => `${p.name}: ${p.expiresAt}`).join(', '))
-        
-        // Stäng scanner efter kort fördröjning
-        setTimeout(() => {
-          setShowScanner(false)
-        }, 1000)
-        
-        return
-      }
-      
-      // Förbered produkter för automatisk utgångsdatumscanning
-      const preparedProducts = products.map(product => {
-        const categoryResult = getSmartProductCategory(product.name, null)
-        
-        return {
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-          name: product.name,
-          quantity: product.quantity || 1,
-          unit: product.unit || 'st',
-          price: product.price,
-          category: categoryResult.category,
-          expiresAt: null, // Kommer att sättas genom datumscanning
-          confidence: null,
-          aiMethod: 'manual_scan',
-          aiSuggestion: product.aiSuggestion || null, // Spara AI-förslaget för senare användning
-          adjustments: []
-        }
-      })
-      
-      // Ställ in för automatisk datumscanning
-      setPendingProducts(preparedProducts)
-      setCurrentProductIndex(0)
-      setIsDateScanningMode(true)
-      
-      // Inte stäng scanner - låt den växla till datumläge
-      console.log('📋 Startar automatisk datum-avläsning för:', preparedProducts.map(p => p.name).join(', '))
-      console.log('Scanner hålls öppen för datum-avläsning av', preparedProducts.length, 'produkter')
-      
-    } catch (error) {
-      console.error('Fel vid kvittoscanning:', error)
-      alert('Något gick fel vid kvittoscanning.')
-    }
-  }
-
-  // Streckkodsscanning
-  const handleScanBarcode = async (barcode) => {
-    try {
-      setScanningProduct(true)
-      console.log('📱 Skannad streckkod:', barcode)
-      
-      // Hämta produktinformation
-      const productInfo = await lookupProduct(barcode)
-      
-      let itemName, itemQuantity
-      
-      if (productInfo) {
-        // Känd produkt från databasen
-        itemName = productInfo.name
-        itemQuantity = productInfo.quantity || 1
-        console.log('✅ Känd produkt funnen:', itemName)
-      } else {
-        // Okänd produkt - använd streckkoden
-        itemName = `Okänd produkt ${barcode}`
-        itemQuantity = 1
-        console.log('⚠️ Okänd produkt - använder streckkod som namn')
-      }
-      
-      // 🤖 Använd smart AI för att beräkna utgångsdatum
-      const smartResult = calculateSmartExpiryDate(itemName, productInfo)
-      const categoryResult = getSmartProductCategory(itemName, productInfo)
-      
-      console.log(`🎯 Produktkategori: ${categoryResult.category} (konfidenz: ${categoryResult.confidence}%)`)
-      console.log(`📅 Smart AI-beräknat utgångsdatum: ${smartResult.date} (${smartResult.method})`)
-      
-      // Förbered produkt för automatisk utgångsdatumscanning
-      const preparedProduct = {
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        name: itemName,
-        quantity: itemQuantity,
-        unit: SV_UNITS[getSuggestedUnitKey(itemName)] || SV_UNITS.defaultUnit,
-        category: categoryResult.category,
-        expiresAt: null, // Kommer att sättas genom datumscanning
-        confidence: null,
-        aiMethod: 'manual_scan',
-        adjustments: []
-      }
-      
-      // Ställ in för automatisk datumscanning
-      setPendingProducts([preparedProduct])
-      setCurrentProductIndex(0)
-      setIsDateScanningMode(true)
-      
-      // Inte stäng scanner - låt den växla till datumläge
-      console.log('📋 Startar automatisk datum-avläsning för:', itemName)
-      console.log('Scanner hålls öppen för datum-avläsning')
-      
-    } catch (error) {
-      console.error('Fel vid produktsökning:', error)
-      alert('Något gick fel vid produktsökning. Försök igen.')
-    } finally {
-      setScanningProduct(false)
-    }
-  }
 
   const sorted = useMemo(() => {
     const copy = [...items]
@@ -653,25 +437,14 @@ export default function App() {
             <div className="form-row">
               <label>
                 <span>Namn</span>
-                <div className="name-input-container">
-                  <input 
-                    name="name" 
-                    value={form.name} 
-                    onChange={onChange} 
-                    placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
-                    autoFocus
-                    required 
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowScanner(true)}
-                    className="scan-button"
-                    title="Scanna streckkod"
-                    disabled={scanningProduct}
-                  >
-                    {scanningProduct ? '⌛' : '📱'}
-                  </button>
-                </div>
+                <input 
+                  name="name" 
+                  value={form.name} 
+                  onChange={onChange} 
+                  placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
+                  autoFocus
+                  required 
+                />
               </label>
               <label>
                 <span>Antal</span>
@@ -894,74 +667,10 @@ export default function App() {
         )}
       </section>
       
-      {showDebug && debugInfo.length > 0 && (
-        <section className="card debug-section">
-          <div className="debug-header">
-            <h2>🔍 Debug: Kvittoscanning</h2>
-            <div className="debug-controls">
-              <button onClick={clearDebugInfo} className="debug-btn">Rensa</button>
-              <button onClick={() => setShowDebug(false)} className="debug-btn">Dölj</button>
-            </div>
-          </div>
-          <div className="debug-content">
-            {debugInfo.map((info, i) => (
-              <div key={i} className="debug-item">
-                <div className="debug-time">{info.timestamp}</div>
-                <div className="debug-title">{info.title}</div>
-                <div className="debug-content-text">{info.content}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      
-      {!showDebug && (
-        <button 
-          onClick={() => setShowDebug(true)} 
-          className="show-debug-btn"
-          style={{position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000}}
-        >
-          🔍 Debug
-        </button>
-      )}
 
       <footer className="muted">Data sparas i din webbläsare (localStorage).</footer>
     </div>
     
-    <BarcodeScanner 
-      isOpen={showScanner}
-      onClose={() => {
-        console.log('🔴 Kröss-knapp tryckt - stänger scanner och återvänder till huvudapp')
-        
-        // Rensa alltid automatisk scanning-state vid manuell stängning
-        if (isDateScanningMode) {
-          console.log('Avbryter automatisk datum-avläsning')
-          setPendingProducts([])
-          setCurrentProductIndex(0)
-          setIsDateScanningMode(false)
-        }
-        
-        // Rensa scanner-state
-        setShowScanner(false)
-        setScanSuccessful(false)
-        
-        // Refresha ALLTID för att säkerställa att användaren kommer tillbaka till huvudappen
-        console.log('Refreshar sidan för att säkerställa återgång till huvudapp')
-        setTimeout(() => {
-          window.location.reload()
-        }, 100)
-      }}
-      onScan={handleScanBarcode}
-      onReceiptScan={handleReceiptScan}
-      onDateScan={handleDateScanComplete}
-      onDebug={addDebugInfo}
-      isDateScanningMode={isDateScanningMode}
-      currentProduct={isDateScanningMode && pendingProducts.length > 0 ? {
-        ...pendingProducts[currentProductIndex],
-        aiSuggestion: getExpirationDateGuess(pendingProducts[currentProductIndex].name)
-      } : null}
-      productProgress={isDateScanningMode ? `${currentProductIndex + 1}/${pendingProducts.length}` : null}
-    />
     
     {showExpirySettings && editingItem && (
       <ExpirySettings 
