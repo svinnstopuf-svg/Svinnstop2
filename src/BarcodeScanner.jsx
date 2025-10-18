@@ -318,41 +318,39 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
     try {
       const startTime = Date.now()
       
-      // Enkel bildförbättring
-      const enhancedCanvas = simpleImageEnhancement(canvas)
+      // Prova UTAN bildförbättring först
+      console.log('🎯 Försöker OCR UTAN bildförbättring...')
+      setDebugInfo(prev => prev + `\n🎯 Trying OCR without image processing...`)
       
-      // Prova först med page segmentation mode 8 (single word)
       let result = await Tesseract.recognize(
-        enhancedCanvas,
+        canvas, // Original canvas utan förbättring
         'eng',
         {
-          tessedit_pageseg_mode: 8, // Ensamt ord
-          tessedit_char_whitelist: '0123456789/-. ', 
+          tessedit_pageseg_mode: 6, // Uniform text block
+          tessedit_char_whitelist: '', // Inga begränsningar
           tessedit_ocr_engine_mode: 1,
-          load_system_dawg: 0,
-          load_freq_dawg: 0,
-          timeout: 1500 // Kortare tid per försök
+          timeout: 2000
         }
       )
       
       const text1 = result.data.text.trim()
-      const hasNumbers1 = /\d/.test(text1)
+      console.log(`📊 Första försöket: "${text1}" (${result.data.confidence}%)`)
       
-      // Om första försöket misslyckades, prova mode 6 (uniform text block)
-      if (!hasNumbers1 && Date.now() - startTime < 2500) {
-        console.log('🔄 Försöker OCR mode 6...')
-        setDebugInfo(prev => prev + `\n🔄 Trying OCR mode 6...`)
+      // Om första försöket misslyckades, prova med bildförbättring
+      if ((!text1 || text1.length < 3) && Date.now() - startTime < 2500) {
+        console.log('🔄 Försöker med bildförbättring...')
+        setDebugInfo(prev => prev + `\n🔄 Trying with image enhancement...`)
+        
+        const enhancedCanvas = simpleImageEnhancement(canvas)
         
         result = await Tesseract.recognize(
           enhancedCanvas,
           'eng',
           {
-            tessedit_pageseg_mode: 6, // Uniform text block
+            tessedit_pageseg_mode: 8, // Single word
             tessedit_char_whitelist: '0123456789/-. ',
             tessedit_ocr_engine_mode: 1,
-            load_system_dawg: 0,
-            load_freq_dawg: 0,
-            timeout: 1000
+            timeout: 1500
           }
         )
       }
