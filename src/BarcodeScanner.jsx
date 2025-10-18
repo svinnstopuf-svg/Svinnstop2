@@ -703,6 +703,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
               >
                 📱
               </button>
+              {/* Kvittoscanning-knapp döljd för beta-version
               <button 
                 onClick={() => setScanMode('receipt')}
                 className={`mode-btn ${scanMode === 'receipt' ? 'active' : ''}`}
@@ -710,6 +711,7 @@ const BarcodeScanner = ({ isOpen, onClose, onScan, onReceiptScan, onDateScan, on
               >
                 🧾
               </button>
+              */}
               <button 
                 onClick={() => setScanMode('date')}
                 className={`mode-btn ${scanMode === 'date' ? 'active' : ''}`}
