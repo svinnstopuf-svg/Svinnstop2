@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { suggestRecipes } from './recipes'
 import ExpirySettings from './ExpirySettings'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
+import { searchFoods, getFoodDefaults, SHOPPING_TEMPLATES } from './swedishFoodDatabase'
 import './mobile.css'
 
 // Pro-svenska med Google Translate samarbete
@@ -158,6 +159,20 @@ export default function App() {
   const [canUndo, setCanUndo] = useState(false)
   const [showExpirySettings, setShowExpirySettings] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  
+  // Autocomplete and mobile UX states
+  const [autocompleteResults, setAutocompleteResults] = useState([])
+  const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [bulkInputMode, setBulkInputMode] = useState(false)
+  const [lastAddedItem, setLastAddedItem] = useState(null)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [notification, setNotification] = useState(null)
+  
+  // Refs for better mobile UX
+  const nameInputRef = useRef(null)
+  const quantityInputRef = useRef(null)
+  const expiryInputRef = useRef(null)
+  const autocompleteRef = useRef(null)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -207,35 +222,166 @@ export default function App() {
     localStorage.setItem(THEME_KEY, theme)
   }, [theme])
 
+  // Smart autocomplete search
+  const handleNameInput = useCallback((e) => {
+    const value = e.target.value
+    setForm(f => ({ ...f, name: value }))
+    
+    if (value.length > 0) {
+      const results = searchFoods(value)
+      setAutocompleteResults(results)
+      setShowAutocomplete(results.length > 0)
+    } else {
+      setShowAutocomplete(false)
+      setAutocompleteResults([])
+    }
+  }, [])
+  
+  // Select from autocomplete
+  const selectFood = useCallback((foodKey) => {
+    const defaults = getFoodDefaults(foodKey)
+    if (defaults) {
+      setForm({
+        name: defaults.name,
+        quantity: defaults.quantity,
+        expiresAt: defaults.expiresAt
+      })
+      setShowAutocomplete(false)
+      // Auto-focus next field for mobile flow
+      setTimeout(() => quantityInputRef.current?.focus(), 100)
+    }
+  }, [])
+  
   const onChange = e => {
     const { name, value } = e.target
     if (name === 'quantity') {
       const numValue = parseFloat(value)
       setForm(f => ({ ...f, [name]: isNaN(numValue) ? 0 : Math.max(0, numValue) }))
+    } else if (name === 'name') {
+      handleNameInput(e)
+      return
     } else {
       setForm(f => ({ ...f, [name]: value }))
     }
   }
 
+  // Enhanced onAdd with mobile UX improvements
   const onAdd = e => {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
+    
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
     const unitKey = getSuggestedUnitKey(form.name)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
-    setItems(prev => [...prev, { id, ...form, unit }])
-    setForm({ 
-      name: '', 
-      quantity: 0, 
-      expiresAt: '' 
+    const newItem = { id, ...form, unit }
+    
+    setItems(prev => [...prev, newItem])
+    setLastAddedItem(newItem)
+    
+    // Show success notification
+    showNotification(`✅ ${form.name} tillagd!`)
+    
+    if (bulkInputMode) {
+      // In bulk mode, keep same expiry date, clear name and quantity
+      setForm({ 
+        name: '', 
+        quantity: 0, 
+        expiresAt: form.expiresAt // Keep expiry for bulk input
+      })
+    } else {
+      // Normal mode - clear everything
+      setForm({ 
+        name: '', 
+        quantity: 0, 
+        expiresAt: '' 
+      })
+    }
+    
+    // Auto-focus name field for next entry
+    setTimeout(() => nameInputRef.current?.focus(), 100)
+  }
+  
+  // Mobile keyboard handling
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      
+      if (e.target.name === 'name' && form.name) {
+        // Try autocomplete first
+        if (autocompleteResults.length > 0) {
+          selectFood(autocompleteResults[0].key)
+          return
+        }
+        quantityInputRef.current?.focus()
+      } else if (e.target.name === 'quantity' && form.quantity > 0) {
+        expiryInputRef.current?.focus()
+      } else if (e.target.name === 'expiresAt' && form.expiresAt) {
+        // Submit if all fields filled
+        if (form.name && form.quantity > 0) {
+          onAdd(e)
+        }
+      }
+    }
+    
+    // Ctrl+Enter for quick add from any field
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      if (form.name && form.quantity > 0 && form.expiresAt) {
+        onAdd(e)
+      }
+    }
+  }, [form, autocompleteResults, bulkInputMode])
+  
+  // Notification system
+  const showNotification = useCallback((message) => {
+    setNotification(message)
+    setTimeout(() => setNotification(null), 2000)
+  }, [])
+  
+  // Copy last product for quick re-entry
+  const copyLastProduct = useCallback(() => {
+    if (lastAddedItem) {
+      setForm({
+        name: lastAddedItem.name,
+        quantity: lastAddedItem.quantity,
+        expiresAt: lastAddedItem.expiresAt
+      })
+      nameInputRef.current?.focus()
+      showNotification(`📋 Kopierade ${lastAddedItem.name}`)
+    }
+  }, [lastAddedItem])
+  
+  // Quick template functions
+  const applyTemplate = useCallback((templateKey) => {
+    const template = SHOPPING_TEMPLATES[templateKey]
+    if (!template) return
+    
+    const templateItems = []
+    template.items.forEach(foodKey => {
+      const defaults = getFoodDefaults(foodKey)
+      if (defaults) {
+        const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())
+        const unitKey = getSuggestedUnitKey(defaults.name)
+        const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+        templateItems.push({ id, ...defaults, unit })
+      }
     })
     
-    // Fokusera tillbaka till namn-fältet för snabbare inmatning
-    setTimeout(() => {
-      const nameInput = document.querySelector('input[name="name"]')
-      if (nameInput) nameInput.focus()
-    }, 100)
-  }
+    setItems(prev => [...prev, ...templateItems])
+    setShowTemplates(false)
+    showNotification(`📝 ${template.name} tillagd (${templateItems.length} varor)!`)
+  }, [])
+  
+  // Hide autocomplete when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target)) {
+        setShowAutocomplete(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const onRemove = id => {
     const itemToRemove = items.find(item => item.id === id)
@@ -431,25 +577,98 @@ export default function App() {
       </header>
 
       <section className="card">
-        <h2>Lägg till vara</h2>
+        <div className="form-header">
+          <h2>Lägg till vara</h2>
+          <div className="form-quick-actions">
+            {lastAddedItem && (
+              <button 
+                type="button" 
+                onClick={copyLastProduct}
+                className="quick-action-btn"
+                title="Kopiera senaste produkten"
+              >
+                📋 Kopiera
+              </button>
+            )}
+            <button 
+              type="button" 
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="quick-action-btn"
+              title="Snabbmallar"
+            >
+              📝 Mallar
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setBulkInputMode(!bulkInputMode)}
+              className={`quick-action-btn ${bulkInputMode ? 'active' : ''}`}
+              title="Flervaruläge - lägg till flera produkter snabbt"
+            >
+              {bulkInputMode ? '✅ Bulk PÅ' : '🚀 Bulk AV'}
+            </button>
+          </div>
+        </div>
+        
+        {showTemplates && (
+          <div className="templates-section">
+            <h3>Snabbmallar</h3>
+            <div className="template-buttons">
+              {Object.entries(SHOPPING_TEMPLATES).map(([key, template]) => (
+                <button 
+                  key={key}
+                  type="button"
+                  onClick={() => applyTemplate(key)}
+                  className="template-btn"
+                >
+                  {template.emoji} {template.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={onAdd}>
           <div className="form-grid">
             <div className="form-row">
               <label>
-                <span>Namn</span>
-                <input 
-                  name="name" 
-                  value={form.name} 
-                  onChange={onChange} 
-                  placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
-                  autoFocus
-                  required 
-                />
+                <span>Namn {bulkInputMode && <small>(Bulk-läge: håll samma datum)</small>}</span>
+                <div className="name-input-container" ref={autocompleteRef}>
+                  <input 
+                    ref={nameInputRef}
+                    name="name" 
+                    value={form.name} 
+                    onChange={handleNameInput}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Vad har du köpt? (t.ex. mjölk, äpplen)"
+                    autoFocus
+                    required 
+                    autoComplete="off"
+                  />
+                  {showAutocomplete && autocompleteResults.length > 0 && (
+                    <div className="autocomplete-dropdown">
+                      {autocompleteResults.map((result, index) => (
+                        <button
+                          key={result.key}
+                          type="button"
+                          className={`autocomplete-item ${index === 0 ? 'highlighted' : ''}`}
+                          onClick={() => selectFood(result.key)}
+                        >
+                          <span className="food-emoji">{result.emoji}</span>
+                          <div className="food-details">
+                            <div className="food-name">{result.name}</div>
+                            <div className="food-meta">{result.defaultQuantity} {result.unit}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </label>
               <label>
                 <span>Antal</span>
                 <div className="quantity-input-container">
                   <input 
+                    ref={quantityInputRef}
                     type="number" 
                     name="quantity" 
                     min="0" 
@@ -457,6 +676,7 @@ export default function App() {
                     inputMode="decimal"
                     value={form.quantity} 
                     onChange={onChange}
+                    onKeyDown={handleKeyDown}
                     onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
@@ -469,29 +689,29 @@ export default function App() {
                 <span>Utgångsdatum</span>
                 <div className="expiry-input-container">
                   <input 
+                    ref={expiryInputRef}
                     type="date" 
                     name="expiresAt" 
                     value={form.expiresAt} 
                     onChange={onChange}
+                    onKeyDown={handleKeyDown}
                     min={new Date().toISOString().split('T')[0]}
                     required 
                   />
                   {form.name && (
                     <div className="expiry-helper">
                       <span className="helper-text">💡 Kolla förpackningen för exakt datum</span>
-                      {suggestedUnit && (
-                        <button 
-                          type="button"
-                          className="ai-suggestion-btn"
-                          onClick={() => {
-                            const smartResult = calculateSmartExpiryDate(form.name, null)
-                            setForm(prev => ({ ...prev, expiresAt: smartResult.date }))
-                          }}
-                          title="Använd AI-förslag som utgångspunkt"
-                        >
-                          🤖 AI-förslag
-                        </button>
-                      )}
+                      <button 
+                        type="button"
+                        className="ai-suggestion-btn"
+                        onClick={() => {
+                          const smartResult = calculateSmartExpiryDate(form.name, null)
+                          setForm(prev => ({ ...prev, expiresAt: smartResult.date }))
+                        }}
+                        title="Använd AI-förslag som utgångspunkt"
+                      >
+                        🤖 AI-förslag
+                      </button>
                     </div>
                   )}
                 </div>
@@ -499,7 +719,18 @@ export default function App() {
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit">➕ Lägg till vara</button>
+            <button type="submit" disabled={!form.name || !form.expiresAt || form.quantity <= 0}>
+              ➕ {bulkInputMode ? 'Lägg till & fortsätt' : 'Lägg till vara'}
+            </button>
+            {bulkInputMode && (
+              <button 
+                type="button" 
+                onClick={() => setBulkInputMode(false)}
+                className="secondary-btn"
+              >
+                ✅ Avsluta bulk-läge
+              </button>
+            )}
           </div>
         </form>
       </section>
@@ -669,6 +900,13 @@ export default function App() {
       
 
       <footer className="muted">Data sparas i din webbläsare (localStorage).</footer>
+      
+      {/* Notification system */}
+      {notification && (
+        <div className="notification-toast">
+          {notification}
+        </div>
+      )}
     </div>
     
     

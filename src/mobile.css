@@ -1068,3 +1068,298 @@ input:focus {
     flex-direction: column;
   }
 }
+
+/* ===== MOBILE-FIRST INPUT IMPROVEMENTS ===== */
+
+/* Form header with quick actions */
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.form-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-action-btn {
+  background: var(--bg-color);
+  border: 2px solid var(--border-color);
+  color: var(--text-color);
+  padding: 8px 12px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.quick-action-btn:hover {
+  background: var(--border-color);
+  transform: translateY(-1px);
+}
+
+.quick-action-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* Templates section */
+.templates-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-color);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.templates-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.template-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.template-btn {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  color: var(--text-color);
+  padding: 12px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+/* Smart autocomplete */
+.name-input-container {
+  position: relative;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 2px solid var(--primary-color);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 1px solid var(--border-color);
+  min-height: 56px; /* Touch-friendly */
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+  background: var(--primary-color);
+  color: white;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.food-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.food-details {
+  flex: 1;
+}
+
+.food-name {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.food-meta {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.autocomplete-item:hover .food-meta,
+.autocomplete-item.highlighted .food-meta {
+  opacity: 0.9;
+}
+
+/* Enhanced form inputs */
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+/* Notification toast */
+.notification-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-color);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  animation: slideInDown 0.3s ease-out;
+  max-width: 90vw;
+  text-align: center;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Enhanced mobile responsiveness */
+@media (max-width: 480px) {
+  .form-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .form-quick-actions {
+    justify-content: space-between;
+  }
+  
+  .quick-action-btn {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    padding: 10px 8px;
+  }
+  
+  .template-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .template-btn {
+    font-size: 12px;
+    padding: 10px 6px;
+  }
+  
+  .autocomplete-dropdown {
+    max-height: 200px;
+  }
+  
+  .autocomplete-item {
+    padding: 10px 12px;
+    min-height: 48px;
+  }
+  
+  .food-name {
+    font-size: 14px;
+  }
+  
+  .notification-toast {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+}
+
+/* Extra small mobile screens */
+@media (max-width: 320px) {
+  .quick-action-btn {
+    font-size: 11px;
+    padding: 8px 6px;
+  }
+  
+  .template-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Enhanced touch targets for mobile */
+button,
+input,
+.autocomplete-item {
+  min-height: 44px; /* iOS recommendation */
+}
+
+/* Improved focus styles for mobile */
+@media (hover: none) and (pointer: coarse) {
+  button:focus,
+  input:focus {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+/* Bulk input mode indicator */
+.card:has(.quick-action-btn.active) .form-grid {
+  border-left: 4px solid var(--primary-color);
+  background: rgba(76, 175, 80, 0.02);
+  border-radius: var(--border-radius-sm);
+  padding: 12px;
+  margin: 8px 0;
+}
+
+/* Loading states */
+.form-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.form-actions button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
+}
