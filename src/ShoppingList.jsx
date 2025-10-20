@@ -126,7 +126,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
 
   // Uppdatera kvantitet
   const updateQuantity = (itemId, newQuantity) => {
-    if (newQuantity < 1) return // Minst 1
+    if (newQuantity < 0.1) return // Minst 0.1
     
     setShoppingItems(prev => prev.map(item => 
       item.id === itemId 
@@ -241,26 +241,23 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
               </div>
               
               <div className="item-actions">
-                <div className="quantity-selector">
-                  <button 
-                    className="quantity-btn"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    disabled={item.quantity <= 1 || item.completed}
-                    title="Minska antal"
-                  >
-                    −
-                  </button>
-                  <span className="quantity-display">
-                    {item.quantity} {item.unit}
-                  </span>
-                  <button 
-                    className="quantity-btn"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                <div className="quantity-container">
+                  <input 
+                    type="number"
+                    min="0" 
+                    step="0.1"
+                    inputMode="decimal"
+                    value={item.quantity} 
+                    onChange={(e) => {
+                      const numValue = parseFloat(e.target.value)
+                      updateQuantity(item.id, isNaN(numValue) ? 1 : Math.max(0.1, numValue))
+                    }}
+                    onFocus={(e) => e.target.select()}
                     disabled={item.completed}
-                    title="Öka antal"
-                  >
-                    +
-                  </button>
+                    className="form-input quantity-input"
+                    title="Antal"
+                  />
+                  <span className="unit-display">{item.unit}</span>
                 </div>
                 
                 <button

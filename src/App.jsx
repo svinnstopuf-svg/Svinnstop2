@@ -168,6 +168,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('add')
   const [bulkEditMode, setBulkEditMode] = useState(false)
   const [bulkExpiryDate, setBulkExpiryDate] = useState('')
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -248,6 +249,20 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('svinnstop_active_tab', activeTab)
   }, [activeTab])
+  
+  // Stäng inställningsmeny när man klickar utanför
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showSettingsMenu && !event.target.closest('.settings-menu-container')) {
+        setShowSettingsMenu(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showSettingsMenu])
 
   const onChange = e => {
     const { name, value } = e.target
@@ -477,6 +492,16 @@ export default function App() {
     }
   }
   
+  // Avaktivera notifikationer
+  const disableNotifications = () => {
+    setNotificationsEnabled(false)
+    // Rensa alla schemalagda notifikationer
+    notificationService.clearScheduledNotifications()
+    
+    // Spara inställning
+    localStorage.setItem('svinnstop_notifications_enabled', 'false')
+  }
+  
   // Välja matvaruförslag
   const selectFoodSuggestion = (food) => {
     const suggestion = getExpiryDateSuggestion(food.name)
@@ -543,14 +568,46 @@ export default function App() {
   return (
     <>
       
-      <button 
-        className="theme-toggle" 
-        onClick={toggleTheme}
-        title={theme === 'dark' ? 'Växla till ljust läge' : 'Växla till mörkt läge'}
-        aria-label={theme === 'dark' ? 'Växla till ljust läge' : 'Växla till mörkt läge'}
-      >
-        {theme === 'dark' ? '☀️' : '🌙'}
-      </button>
+      <div className="settings-menu-container">
+        <button 
+          className="settings-toggle" 
+          onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+          title="Inställningar"
+          aria-label="Öppna inställningsmeny"
+        >
+          ⚙️
+        </button>
+        
+        {showSettingsMenu && (
+          <div className="settings-dropdown">
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                toggleTheme();
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+              <span className="menu-text">{theme === 'dark' ? 'Ljust läge' : 'Mörkt läge'}</span>
+            </button>
+            
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                if (notificationsEnabled) {
+                  disableNotifications();
+                } else {
+                  enableNotifications();
+                }
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
+              <span className="menu-text">{notificationsEnabled ? 'Avaktivera notiser' : 'Aktivera notiser'}</span>
+            </button>
+          </div>
+        )}
+      </div>
       
       <button 
         className="undo-btn" 
@@ -569,15 +626,6 @@ export default function App() {
             <h1 className="app-title"><span className="notranslate">Svinnstop</span></h1>
             <p>{'Spåra din inköpta mat, utgångsdatum och se receptidéer.'}</p>
           </div>
-          {!notificationsEnabled && (
-            <button 
-              onClick={enableNotifications}
-              className="notification-toggle-header"
-              title="Aktivera påminnelser om utgångsdatum"
-            >
-              🔔 Notiser
-            </button>
-          )}
         </div>
       </header>
       
