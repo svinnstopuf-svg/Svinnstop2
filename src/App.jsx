@@ -165,10 +165,10 @@ export default function App() {
   const [showFoodSuggestions, setShowFoodSuggestions] = useState(false)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [pendingShoppingItem, setPendingShoppingItem] = useState(null)
-  const [bulkAddMode, setBulkAddMode] = useState(false)
-  const [bulkItems, setBulkItems] = useState([])
-  const [bulkDate, setBulkDate] = useState('')
   const [activeTab, setActiveTab] = useState('add')
+  const [bulkEditMode, setBulkEditMode] = useState(false)
+  const [selectedItems, setSelectedItems] = useState(new Set())
+  const [bulkExpiryDate, setBulkExpiryDate] = useState('')
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -282,33 +282,23 @@ export default function App() {
     
     const newItem = { id, ...form, unit }
     
-    if (bulkAddMode) {
-      // Lägg till i bulk-listan istället för direkt i inventariet
-      setBulkItems(prev => [...prev, newItem])
-      setForm({ 
-        name: '', 
-        quantity: 0, 
-        expiresAt: bulkDate // Behåll samma datum
-      })
-    } else {
-      // Normal lägg till
-      setItems(prev => {
-        const updated = [...prev, newItem]
-        
-        // Uppdatera notifikationer för utgångsdatum
-        if (notificationsEnabled) {
-          notificationService.scheduleExpiryNotifications(updated)
-        }
-        
-        return updated
-      })
+    // Lägg till vara i inventariet
+    setItems(prev => {
+      const updated = [...prev, newItem]
       
-      setForm({ 
-        name: '', 
-        quantity: 0, 
-        expiresAt: '' 
-      })
-    }
+      // Uppdatera notifikationer för utgångsdatum
+      if (notificationsEnabled) {
+        notificationService.scheduleExpiryNotifications(updated)
+      }
+      
+      return updated
+    })
+    
+    setForm({ 
+      name: '', 
+      quantity: 0, 
+      expiresAt: '' 
+    })
     
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
@@ -389,59 +379,74 @@ export default function App() {
     
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
   }
-  
-  // Bulk add funktioner
-  const toggleBulkMode = () => {
-    if (bulkAddMode) {
-      // Avsluta bulk mode - rensa allt
-      setBulkAddMode(false)
-      setBulkItems([])
-      setBulkDate('')
-      setForm({ name: '', quantity: 0, expiresAt: '' })
-    } else {
-      // Starta bulk mode
-      setBulkAddMode(true)
-      const today = new Date()
-      const defaultDate = new Date(today)
-      defaultDate.setDate(today.getDate() + 7) // 7 dagar fram
-      const dateString = defaultDate.toISOString().split('T')[0]
-      setBulkDate(dateString)
-      setForm({ name: '', quantity: 1, expiresAt: dateString })
-    }
   }
   
-  const setBulkExpiryDate = (date) => {
-    setBulkDate(date)
-    setForm(prev => ({ ...prev, expiresAt: date }))
+  // Bulk edit funktioner för utgångsdatum
+  const toggleBulkEditMode = () => {
+    setBulkEditMode(prev => {
+      if (prev) {
+        // Avsluta bulk edit mode
+        setSelectedItems(new Set())
+        setBulkExpiryDate('')
+      } else {
+        // Starta bulk edit mode
+        const today = new Date()
+        const defaultDate = new Date(today)
+        defaultDate.setDate(today.getDate() + 7)
+        setBulkExpiryDate(defaultDate.toISOString().split('T')[0])
+      }
+      return !prev
+    })
   }
   
-  const removeBulkItem = (itemId) => {
-    setBulkItems(prev => prev.filter(item => item.id !== itemId))
+  const toggleSelectItem = (itemId) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
   }
   
-  const finalizeBulkAdd = () => {
-    if (bulkItems.length === 0) return
+  const selectAllVisible = () => {
+    const visibleIds = filtered.map(item => item.id)
+    setSelectedItems(new Set(visibleIds))
+  }
+  
+  const deselectAll = () => {
+    setSelectedItems(new Set())
+  }
+  
+  const applyBulkExpiryDate = () => {
+    if (selectedItems.size === 0 || !bulkExpiryDate) return
     
-    // Lägg till alla bulk-varor i inventariet
-    setItems(prev => {
-      const updated = [...prev, ...bulkItems]
+    const confirmed = confirm(`Ändra utgångsdatum till ${bulkExpiryDate} för ${selectedItems.size} valda varor?`)
+    if (confirmed) {
+      setItems(prev => prev.map(item => {
+        if (selectedItems.has(item.id)) {
+          return { ...item, expiresAt: bulkExpiryDate }
+        }
+        return item
+      }))
+      
+      // Rensa selection och avsluta bulk mode
+      setSelectedItems(new Set())
+      setBulkEditMode(false)
+      setBulkExpiryDate('')
       
       // Uppdatera notifikationer
       if (notificationsEnabled) {
-        notificationService.scheduleExpiryNotifications(updated)
+        const updatedItems = items.map(item => 
+          selectedItems.has(item.id) ? { ...item, expiresAt: bulkExpiryDate } : item
+        )
+        notificationService.scheduleExpiryNotifications(updatedItems)
       }
       
-      return updated
-    })
-    
-    // Rensa bulk mode
-    setBulkAddMode(false)
-    setBulkItems([])
-    setBulkDate('')
-    setForm({ name: '', quantity: 0, expiresAt: '' })
-    
-    // Visa bekräftelse
-    console.log(`✅ Lade till ${bulkItems.length} varor med utgångsdatum ${bulkDate}`)
+      console.log(`✅ Ändrade utgångsdatum för ${selectedItems.size} varor`)
+    }
   }
   
   // Hantera matvaror från inköpslista
@@ -624,68 +629,7 @@ export default function App() {
         {activeTab === 'add' && (
           <div className="tab-panel">
             <section className="card">
-        <div className="section-header">
-          <h2>{bulkAddMode ? 'Lägg till flera varor (samma datum)' : 'Lägg till vara'}</h2>
-          <button 
-            type="button"
-            onClick={toggleBulkMode}
-            className={`bulk-mode-toggle ${bulkAddMode ? 'active' : ''}`}
-            title={bulkAddMode ? 'Avsluta flervaru-läge' : 'Lägg till flera varor med samma datum'}
-          >
-            {bulkAddMode ? '✕ Avsluta' : '📦 Flera varor'}
-          </button>
-        </div>
-        {bulkAddMode && (
-          <div className="bulk-mode-info">
-            <div className="bulk-status">
-              <span>📦 Flervaru-läge aktivt • {bulkItems.length} varor redo att läggas till</span>
-              {bulkItems.length > 0 && (
-                <button 
-                  type="button"
-                  onClick={finalizeBulkAdd}
-                  className="finalize-bulk-btn"
-                >
-                  ✅ Lägg till alla {bulkItems.length} varor
-                </button>
-              )}
-            </div>
-            {bulkDate && (
-              <div className="bulk-date-control">
-                <label>
-                  <span>Gemensamt utgångsdatum för alla varor:</span>
-                  <input 
-                    type="date" 
-                    value={bulkDate} 
-                    onChange={(e) => setBulkExpiryDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="bulk-date-input"
-                  />
-                </label>
-              </div>
-            )}
-            {bulkItems.length > 0 && (
-              <div className="bulk-items-preview">
-                <h4>Varor som kommer läggas till:</h4>
-                <div className="bulk-items-list">
-                  {bulkItems.map(item => (
-                    <div key={item.id} className="bulk-item-preview">
-                      <span className="bulk-item-name">{item.name}</span>
-                      <span className="bulk-item-quantity">{item.quantity} {item.unit}</span>
-                      <button 
-                        type="button"
-                        onClick={() => removeBulkItem(item.id)}
-                        className="remove-bulk-item"
-                        title="Ta bort från listan"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <h2>Lägg till vara</h2>
         <form onSubmit={onAdd}>
           <div className="form-grid">
             <div className="form-row">
@@ -773,17 +717,8 @@ export default function App() {
           </div>
           <div className="form-actions">
             <button type="submit" disabled={!form.name || !form.expiresAt || form.quantity <= 0}>
-              {bulkAddMode ? '➕ Lägg till i listan' : '➕ Lägg till vara'}
+              ➕ Lägg till vara
             </button>
-            {bulkAddMode && bulkItems.length > 0 && (
-              <button 
-                type="button"
-                onClick={finalizeBulkAdd}
-                className="finalize-bulk-btn secondary"
-              >
-                ✅ Slutför och lägg till alla {bulkItems.length} varor
-              </button>
-            )}
           </div>
         </form>
             </section>
@@ -807,6 +742,16 @@ export default function App() {
               <div className="list-header">
                 <div className="section-title">
                   <h2>Mina varor</h2>
+                  <div className="header-actions">
+                    <button 
+                      onClick={toggleBulkEditMode}
+                      className={`bulk-edit-toggle ${bulkEditMode ? 'active' : ''}`}
+                      disabled={items.length === 0}
+                      title={bulkEditMode ? 'Avsluta redigering' : 'Ändra utgångsdatum för flera varor'}
+                    >
+                      {bulkEditMode ? '✕ Avsluta' : '📋 Redigera flera'}
+                    </button>
+                  </div>
                 </div>
                 <div className="search-and-filters">
                   <input 
@@ -822,6 +767,40 @@ export default function App() {
                     <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>❌ Utgångna</span></label>
                   </div>
                 </div>
+                {bulkEditMode && (
+                  <div className="bulk-edit-controls">
+                    <div className="bulk-edit-info">
+                      <span>📋 Redigerings-läge aktivt • {selectedItems.size} av {filtered.length} varor valda</span>
+                    </div>
+                    <div className="bulk-edit-actions">
+                      <button onClick={selectAllVisible} className="bulk-btn secondary">✓ Välj alla synliga</button>
+                      <button onClick={deselectAll} className="bulk-btn secondary">✕ Rensa urval</button>
+                    </div>
+                    {selectedItems.size > 0 && (
+                      <div className="bulk-date-editor">
+                        <label>
+                          <span>Nytt utgångsdatum för {selectedItems.size} valda varor:</span>
+                          <div className="bulk-date-input-container">
+                            <input 
+                              type="date" 
+                              value={bulkExpiryDate} 
+                              onChange={(e) => setBulkExpiryDate(e.target.value)}
+                              min={new Date().toISOString().split('T')[0]}
+                              className="bulk-date-input"
+                            />
+                            <button 
+                              onClick={applyBulkExpiryDate}
+                              className="apply-bulk-date-btn"
+                              disabled={!bulkExpiryDate}
+                            >
+                              ✅ Tillämpa på {selectedItems.size} varor
+                            </button>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {filtered.length === 0 ? (
                 <div className="empty-state">
@@ -839,7 +818,18 @@ export default function App() {
                     const d = daysUntil(i.expiresAt)
                     const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
                     return (
-                      <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''}`}>
+                      <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkEditMode ? 'bulk-edit-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
+                        {bulkEditMode && (
+                          <div className="item-checkbox">
+                            <input 
+                              type="checkbox" 
+                              checked={selectedItems.has(i.id)}
+                              onChange={() => toggleSelectItem(i.id)}
+                              id={`bulk-item-${i.id}`}
+                            />
+                            <label htmlFor={`bulk-item-${i.id}`} className="checkbox-label"></label>
+                          </div>
+                        )}
                         <div className="item-content">
                           <div className="item-main">
                             <strong>{i.name}</strong>
@@ -850,7 +840,8 @@ export default function App() {
                             <span className="status">{status}</span>
                           </div>
                         </div>
-                        <div className="item-actions">
+                        {!bulkEditMode && (
+                          <div className="item-actions">
                           <button 
                             className="edit-btn" 
                             onClick={() => handleEditExpiry(i)}
@@ -867,7 +858,8 @@ export default function App() {
                           >
                             ×
                           </button>
-                        </div>
+                          </div>
+                        )}
                       </li>
                     )
                   })}
