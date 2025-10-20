@@ -757,6 +757,27 @@ footer {
   background: rgba(33, 150, 243, 0.15);
 }
 
+/* Dark mode matvaruförslag */
+[data-theme="dark"] .food-suggestions {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  border-color: #444;
+}
+
+[data-theme="dark"] .food-suggestion:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+[data-theme="dark"] .suggestion-category {
+  background: #333;
+  color: #ccc;
+}
+
+[data-theme="dark"] .food-suggestion:hover .suggestion-category {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
 /* Focus states för accessibility */
 button:focus,
 input:focus {
