@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { searchShoppingItems, getRecommendedItems, getShoppingCategories } from './shoppingDatabase'
+import { searchShoppingItems, getShoppingCategories } from './shoppingDatabase'
 import { getExpiryDateSuggestion } from './foodDatabase'
 
 // Kategorisering av matvaror vs andra varor
@@ -15,8 +15,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [showRecommendations, setShowRecommendations] = useState(false)
-  const [recommendedItems, setRecommendedItems] = useState([])
 
   // Ladda inköpslista från localStorage och rekommendationer
   useEffect(() => {
@@ -28,9 +26,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         console.error('Failed to load shopping list:', e)
       }
     }
-    
-    // Ladda rekommenderade varor
-    setRecommendedItems(getRecommendedItems())
   }, [])
 
   // Spara inköpslista till localStorage
@@ -47,13 +42,9 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       const shoppingSuggestions = searchShoppingItems(value.trim())
       setSuggestions(shoppingSuggestions)
       setShowSuggestions(true)
-      setShowRecommendations(false)
     } else {
       setSuggestions([])
       setShowSuggestions(false)
-      if (value.trim().length === 0) {
-        setShowRecommendations(false)
-      }
     }
   }
 
@@ -73,7 +64,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     setShoppingItems(prev => [newShoppingItem, ...prev])
     setNewItem('')
     setShowSuggestions(false)
-    setShowRecommendations(false)
     setSuggestions([])
   }
 
@@ -96,7 +86,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     setShoppingItems(prev => [newShoppingItem, ...prev])
     setNewItem('')
     setShowSuggestions(false)
-    setShowRecommendations(false)
     setSuggestions([])
   }
 
@@ -176,11 +165,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
               type="text"
               value={newItem}
               onChange={handleInputChange}
-              onFocus={() => {
-                if (!newItem.trim()) {
-                  setShowRecommendations(true)
-                }
-              }}
               placeholder="Skriv varunamn för förslag... (t.ex. 'mjö' för mjölk)"
               className="shopping-input"
               autoComplete="off"
@@ -209,39 +193,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
           <button type="submit" disabled={!newItem.trim()}>
             ➥ Lägg till
           </button>
-          <button 
-            type="button"
-            onClick={() => {
-              setShowRecommendations(!showRecommendations)
-              setShowSuggestions(false)
-            }}
-            className="recommendations-toggle"
-            title="Visa rekommenderade varor"
-          >
-            💡 Förslag
-          </button>
         </div>
-        
-        {/* Rekommenderade varor */}
-        {showRecommendations && recommendedItems.length > 0 && (
-          <div className="recommendations-section">
-            <h4>Populära varor att handla:</h4>
-            <div className="recommendations-grid">
-              {recommendedItems.map(item => (
-                <button
-                  key={item.name}
-                  type="button"
-                  className="recommendation-item"
-                  onClick={() => addFromSuggestion(item)}
-                  title={`Lägg till ${item.name} i inköpslistan`}
-                >
-                  <span className="recommendation-emoji">{item.emoji}</span>
-                  <span className="recommendation-name">{item.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </form>
 
       {/* Lista över varor */}
@@ -290,7 +242,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         <ul style={{margin: '8px 0', paddingLeft: '20px'}}>
           <li><strong>🍽️ Matvaror:</strong> När du bockar av → Läggs direkt i "Mina varor" med smart utgångsdatum</li>
           <li><strong>🧼 Andra varor:</strong> När du bockar av → Stannar i listan (rensa med "🗑️ Rensa klara")</li>
-          <li><strong>🔍 Söktips:</strong> Börja skriva för förslag, eller tryck "💡 Förslag" för populära varor</li>
+          <li><strong>🔍 Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
         </ul>
       </div>
     </section>
