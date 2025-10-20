@@ -1,22 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { searchShoppingItems, getShoppingCategories } from './shoppingDatabase'
+import { searchShoppingItems } from './shoppingDatabase'
 import { getExpiryDateSuggestion } from './foodDatabase'
-
-// Kategorisering av matvaror vs andra varor
-const FOOD_CATEGORIES = ['mejeri', 'kött', 'fisk', 'grönsak', 'frukt', 'bröd', 'spannmål', 'ägg', 'krydda', 'sås', 'olja']
-
-function isFood(item) {
-  if (!item.category) return false
-  return FOOD_CATEGORIES.includes(item.category)
-}
 
 export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
   const [shoppingItems, setShoppingItems] = useState([])
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-
-  // Ladda inköpslista från localStorage och rekommendationer
+  
+  // Ladda inköpslista från localStorage
   useEffect(() => {
     const saved = localStorage.getItem('svinnstop_shopping_list')
     if (saved) {
@@ -33,7 +25,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
   }, [shoppingItems])
 
-  // Hantera sökning och förslag
+  // Hantera input-ändringar och visa förslag
   const handleInputChange = (e) => {
     const value = e.target.value
     setNewItem(value)
@@ -41,24 +33,24 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     if (value.trim().length > 0) {
       const shoppingSuggestions = searchShoppingItems(value.trim())
       setSuggestions(shoppingSuggestions)
-      setShowSuggestions(true)
+      setShowSuggestions(shoppingSuggestions.length > 0)
     } else {
       setSuggestions([])
       setShowSuggestions(false)
     }
   }
-
+  
   // Lägg till vara från förslag
   const addFromSuggestion = (item) => {
     const newShoppingItem = {
-      id: crypto.randomUUID(),
+      id: Date.now() + Math.random(), // Mer unik ID
       name: item.name,
       category: item.category,
       emoji: item.emoji,
       unit: item.unit || 'st',
       quantity: 1,
       completed: false,
-      isFood: item.isFood,
+      isFood: item.isFood || false,
       addedAt: Date.now()
     }
     
@@ -74,7 +66,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     if (!newItem.trim()) return
 
     const newShoppingItem = {
-      id: crypto.randomUUID(),
+      id: Date.now() + Math.random(),
       name: newItem.trim(),
       category: 'övrigt',
       emoji: '📦',
@@ -90,8 +82,13 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     setShowSuggestions(false)
     setSuggestions([])
   }
-
-  // Markera vara som klar
+  
+  // Ta bort vara
+  const removeItem = (itemId) => {
+    setShoppingItems(prev => prev.filter(item => item.id !== itemId))
+  }
+  
+  // Markera vara som klar/ej klar
   const toggleCompleted = (itemId) => {
     const item = shoppingItems.find(item => item.id === itemId)
     
@@ -100,46 +97,28 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         ? { ...item, completed: !item.completed }
         : item
     ))
-
+    
     // Om det är en matvara som markeras som klar, lägg direkt i inventariet
-    if (item && !item.completed && item.isFood) {
+    if (item && !item.completed && item.isFood && onDirectAddToInventory) {
       // Få föreslaget utgångsdatum från matvarudatabasen
       const suggestion = getExpiryDateSuggestion(item.name)
       
       // Skapa ett komplett inventarie-objekt
       const inventoryItem = {
-        id: crypto.randomUUID(),
+        id: Date.now() + Math.random(),
         name: item.name,
-        quantity: item.quantity || 1, // Använd den valda kvantiteten
-        unit: item.unit || suggestion.defaultUnit, // Använd enheten från shoppingDatabase först
+        quantity: item.quantity || 1,
+        unit: item.unit || suggestion.defaultUnit,
         expiresAt: suggestion.date,
         category: suggestion.category,
         emoji: suggestion.emoji
       }
       
-      // Lägg direkt i inventariet istället för att gå via "Lägg till"-fliken
-      if (onDirectAddToInventory) {
-        onDirectAddToInventory(inventoryItem)
-      }
+      // Lägg direkt i inventariet
+      onDirectAddToInventory(inventoryItem)
     }
   }
-
-  // Uppdatera kvantitet
-  const updateQuantity = (itemId, newQuantity) => {
-    if (newQuantity < 0.1) return // Minst 0.1
-    
-    setShoppingItems(prev => prev.map(item => 
-      item.id === itemId 
-        ? { ...item, quantity: newQuantity }
-        : item
-    ))
-  }
-
-  // Ta bort vara
-  const removeItem = (itemId) => {
-    setShoppingItems(prev => prev.filter(item => item.id !== itemId))
-  }
-
+  
   // Rensa alla klara varor
   const clearCompleted = () => {
     setShoppingItems(prev => prev.filter(item => !item.completed))
@@ -147,11 +126,11 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
 
   const completedCount = shoppingItems.filter(item => item.completed).length
   const totalCount = shoppingItems.length
-
+  
   return (
     <section className="card shopping-list">
       <div className="section-header">
-        <h2>🛒 Inköpslista</h2>
+        <h2>🛍️ Inköpslista</h2>
         {totalCount > 0 && (
           <div className="shopping-stats">
             <span className="progress-text">
@@ -170,7 +149,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         )}
       </div>
 
-      {/* Lägg till vara */}
       <form onSubmit={addManualItem} className="add-shopping-item">
         <div className="input-container">
           <div className="input-with-suggestions">
@@ -183,7 +161,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
               autoComplete="off"
             />
             
-            {/* Sökförslag - använder samma styling som matvaruförslagen */}
+            {/* Sökförslag */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="food-suggestions">
                 {suggestions.map(item => (
@@ -209,76 +187,86 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         </div>
       </form>
 
-      {/* Lista över varor */}
-      {shoppingItems.length === 0 ? (
-        <div className="empty-shopping-list">
-          <p>🛒 Din inköpslista är tom. Lägg till varor ovan!</p>
-        </div>
-      ) : (
-        <div className="shopping-items">
-          {shoppingItems.map(item => (
-            <div 
-              key={item.id} 
-              className={`shopping-item ${item.completed ? 'completed' : ''} ${item.isFood ? 'food-item' : 'non-food-item'}`}
-            >
+      <div className="shopping-items">
+        {shoppingItems.length === 0 ? (
+          <div className="empty-shopping-list">
+            <p>Din inköpslista är tom</p>
+          </div>
+        ) : (
+          shoppingItems.map(item => (
+            <div key={item.id} className={`shopping-item ${item.completed ? 'completed' : ''} ${item.isFood ? 'food-item' : 'non-food-item'}`}>
               <div className="item-main">
                 <input
                   type="checkbox"
-                  checked={item.completed}
+                  checked={item.completed || false}
                   onChange={() => toggleCompleted(item.id)}
                   className="shopping-checkbox"
                   id={`shopping-${item.id}`}
                 />
                 <label htmlFor={`shopping-${item.id}`} className="item-content">
-                  <span className="item-emoji">{item.emoji}</span>
+                  <span className="item-emoji">{item.emoji || '📦'}</span>
                   <div className="item-details">
                     <span className="item-name">{item.name}</span>
                     {item.isFood && (
-                      <span className="food-indicator">🍽️ Matavra → Mina varor</span>
+                      <span className="food-indicator">🍽️ Matvara → Mina varor</span>
                     )}
                   </div>
                 </label>
-              </div>
-              
-              <div className="item-actions">
-                <div className="quantity-container">
-                  <input 
-                    type="number"
-                    min="0" 
-                    step="0.1"
-                    inputMode="decimal"
-                    value={item.quantity} 
-                    onChange={(e) => {
-                      const numValue = parseFloat(e.target.value)
-                      updateQuantity(item.id, isNaN(numValue) ? 1 : Math.max(0.1, numValue))
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    disabled={item.completed}
-                    className="form-input quantity-input"
-                    title="Antal"
-                  />
-                  <span className="unit-display">{item.unit}</span>
-                </div>
-                
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="remove-shopping-item"
-                  title="Ta bort från inköpslista"
-                >
-                  ×
-                </button>
+                  <div className="item-quantity-actions">
+                    <span className="quantity-display">Antal: {item.quantity} {item.unit}</span>
+                    <div className="quantity-controls">
+                      <button 
+                        className="qty-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const newQuantity = Math.max(0.1, item.quantity - 0.5)
+                          setShoppingItems(prev => prev.map(i => 
+                            i.id === item.id ? {...i, quantity: newQuantity} : i
+                          ))
+                        }}
+                        disabled={item.completed}
+                        title="Minska"
+                      >
+                        -
+                      </button>
+                      <button 
+                        className="qty-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const newQuantity = item.quantity + 0.5
+                          setShoppingItems(prev => prev.map(i => 
+                            i.id === item.id ? {...i, quantity: newQuantity} : i
+                          ))
+                        }}
+                        disabled={item.completed}
+                        title="Öka"
+                      >
+                        +
+                      </button>
+                      <button 
+                        className="remove-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeItem(item.id)
+                        }}
+                        title="Ta bort vara"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
+          ))
+        )}
+      </div>
+      
       {/* Hjälptext */}
       <div className="shopping-help">
         <p>💡 <strong>Så funkar det:</strong></p>
         <ul style={{margin: '8px 0', paddingLeft: '20px'}}>
           <li><strong>🍽️ Matvaror:</strong> När du bockar av → Läggs direkt i "Mina varor" med smart utgångsdatum</li>
-          <li><strong>🧼 Andra varor:</strong> När du bockar av → Stannar i listan (rensa med "🗑️ Rensa klara")</li>
+          <li><strong>🧯 Andra varor:</strong> När du bockar av → Stannar i listan (rensa med "🗑️ Rensa klara")</li>
           <li><strong>🔍 Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
         </ul>
       </div>

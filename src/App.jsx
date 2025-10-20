@@ -644,7 +644,7 @@ export default function App() {
           onClick={() => setActiveTab('add')}
         >
           <span className="tab-icon">➕</span>
-          <span className="tab-label">Lägg till</span>
+          <span className="tab-label">Lägg in</span>
         </button>
         <button 
           className={`tab-button ${activeTab === 'shopping' ? 'active' : ''}`}
@@ -671,7 +671,7 @@ export default function App() {
           <div className="tab-panel">
             <section className="card add-item-card">
               <div className="card-header">
-                <h2>➕ Lägg till vara</h2>
+                <h2>➕ Lägg in vara</h2>
                 <p className="card-subtitle">Fyll i information om varan du vill lägga till</p>
               </div>
               
@@ -769,7 +769,7 @@ export default function App() {
                     disabled={!form.name || !form.expiresAt || form.quantity <= 0}
                     className="btn-primary btn-large"
                   >
-                    ➕ Lägg till i mitt kylskåp
+                    ➕ Lägg in i mitt kylskåp
                   </button>
                   {form.name && form.expiresAt && form.quantity > 0 && (
                     <div className="form-preview">
@@ -820,7 +820,6 @@ export default function App() {
               <div className="inventory-controls">
                 <div className="search-section">
                   <div className="search-container">
-                    <span className="search-icon">🔍</span>
                     <input 
                       type="text" 
                       placeholder="Sök bland dina varor..."
@@ -845,7 +844,7 @@ export default function App() {
                       className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
                       onClick={() => setFilter('all')}
                     >
-                      📦 Alla
+                      📦 Alla varor
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expiring' ? 'active' : ''}`}
