@@ -165,6 +165,9 @@ export default function App() {
   const [showFoodSuggestions, setShowFoodSuggestions] = useState(false)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [pendingShoppingItem, setPendingShoppingItem] = useState(null)
+  const [bulkAddMode, setBulkAddMode] = useState(false)
+  const [bulkItems, setBulkItems] = useState([])
+  const [bulkDate, setBulkDate] = useState('')
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -266,22 +269,35 @@ export default function App() {
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     
     const newItem = { id, ...form, unit }
-    setItems(prev => {
-      const updated = [...prev, newItem]
-      
-      // Uppdatera notifikationer för utgångsdatum
-      if (notificationsEnabled) {
-        notificationService.scheduleExpiryNotifications(updated)
-      }
-      
-      return updated
-    })
     
-    setForm({ 
-      name: '', 
-      quantity: 0, 
-      expiresAt: '' 
-    })
+    if (bulkAddMode) {
+      // Lägg till i bulk-listan istället för direkt i inventariet
+      setBulkItems(prev => [...prev, newItem])
+      setForm({ 
+        name: '', 
+        quantity: 0, 
+        expiresAt: bulkDate // Behåll samma datum
+      })
+    } else {
+      // Normal lägg till
+      setItems(prev => {
+        const updated = [...prev, newItem]
+        
+        // Uppdatera notifikationer för utgångsdatum
+        if (notificationsEnabled) {
+          notificationService.scheduleExpiryNotifications(updated)
+        }
+        
+        return updated
+      })
+      
+      setForm({ 
+        name: '', 
+        quantity: 0, 
+        expiresAt: '' 
+      })
+    }
+    
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
     
@@ -360,6 +376,60 @@ export default function App() {
     ))
     
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
+  }
+  
+  // Bulk add funktioner
+  const toggleBulkMode = () => {
+    if (bulkAddMode) {
+      // Avsluta bulk mode - rensa allt
+      setBulkAddMode(false)
+      setBulkItems([])
+      setBulkDate('')
+      setForm({ name: '', quantity: 0, expiresAt: '' })
+    } else {
+      // Starta bulk mode
+      setBulkAddMode(true)
+      const today = new Date()
+      const defaultDate = new Date(today)
+      defaultDate.setDate(today.getDate() + 7) // 7 dagar fram
+      const dateString = defaultDate.toISOString().split('T')[0]
+      setBulkDate(dateString)
+      setForm({ name: '', quantity: 1, expiresAt: dateString })
+    }
+  }
+  
+  const setBulkExpiryDate = (date) => {
+    setBulkDate(date)
+    setForm(prev => ({ ...prev, expiresAt: date }))
+  }
+  
+  const removeBulkItem = (itemId) => {
+    setBulkItems(prev => prev.filter(item => item.id !== itemId))
+  }
+  
+  const finalizeBulkAdd = () => {
+    if (bulkItems.length === 0) return
+    
+    // Lägg till alla bulk-varor i inventariet
+    setItems(prev => {
+      const updated = [...prev, ...bulkItems]
+      
+      // Uppdatera notifikationer
+      if (notificationsEnabled) {
+        notificationService.scheduleExpiryNotifications(updated)
+      }
+      
+      return updated
+    })
+    
+    // Rensa bulk mode
+    setBulkAddMode(false)
+    setBulkItems([])
+    setBulkDate('')
+    setForm({ name: '', quantity: 0, expiresAt: '' })
+    
+    // Visa bekräftelse
+    console.log(`✅ Lade till ${bulkItems.length} varor med utgångsdatum ${bulkDate}`)
   }
   
   // Hantera matvaror från inköpslista
@@ -508,7 +578,68 @@ export default function App() {
       </header>
 
       <section className="card">
-        <h2>Lägg till vara</h2>
+        <div className="section-header">
+          <h2>{bulkAddMode ? 'Lägg till flera varor (samma datum)' : 'Lägg till vara'}</h2>
+          <button 
+            type="button"
+            onClick={toggleBulkMode}
+            className={`bulk-mode-toggle ${bulkAddMode ? 'active' : ''}`}
+            title={bulkAddMode ? 'Avsluta flervaru-läge' : 'Lägg till flera varor med samma datum'}
+          >
+            {bulkAddMode ? '✕ Avsluta' : '📦 Flera varor'}
+          </button>
+        </div>
+        {bulkAddMode && (
+          <div className="bulk-mode-info">
+            <div className="bulk-status">
+              <span>📦 Flervaru-läge aktivt • {bulkItems.length} varor redo att läggas till</span>
+              {bulkItems.length > 0 && (
+                <button 
+                  type="button"
+                  onClick={finalizeBulkAdd}
+                  className="finalize-bulk-btn"
+                >
+                  ✅ Lägg till alla {bulkItems.length} varor
+                </button>
+              )}
+            </div>
+            {bulkDate && (
+              <div className="bulk-date-control">
+                <label>
+                  <span>Gemensamt utgångsdatum för alla varor:</span>
+                  <input 
+                    type="date" 
+                    value={bulkDate} 
+                    onChange={(e) => setBulkExpiryDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="bulk-date-input"
+                  />
+                </label>
+              </div>
+            )}
+            {bulkItems.length > 0 && (
+              <div className="bulk-items-preview">
+                <h4>Varor som kommer läggas till:</h4>
+                <div className="bulk-items-list">
+                  {bulkItems.map(item => (
+                    <div key={item.id} className="bulk-item-preview">
+                      <span className="bulk-item-name">{item.name}</span>
+                      <span className="bulk-item-quantity">{item.quantity} {item.unit}</span>
+                      <button 
+                        type="button"
+                        onClick={() => removeBulkItem(item.id)}
+                        className="remove-bulk-item"
+                        title="Ta bort från listan"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <form onSubmit={onAdd}>
           <div className="form-grid">
             <div className="form-row">
@@ -596,8 +727,17 @@ export default function App() {
           </div>
           <div className="form-actions">
             <button type="submit" disabled={!form.name || !form.expiresAt || form.quantity <= 0}>
-              ➕ Lägg till vara
+              {bulkAddMode ? '➕ Lägg till i listan' : '➕ Lägg till vara'}
             </button>
+            {bulkAddMode && bulkItems.length > 0 && (
+              <button 
+                type="button"
+                onClick={finalizeBulkAdd}
+                className="finalize-bulk-btn secondary"
+              >
+                ✅ Slutför och lägg till alla {bulkItems.length} varor
+              </button>
+            )}
           </div>
         </form>
       </section>
