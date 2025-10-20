@@ -581,31 +581,37 @@ export default function App() {
         </div>
       </header>
       
-      {/* Tab Navigation */}
+      {/* Enhanced Tab Navigation */}
       <nav className="tab-navigation">
+        <button 
+          className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventory')}
+        >
+          <span className="tab-icon">📦</span>
+          <span className="tab-label">Mina varor</span>
+          {items.length > 0 && <span className="tab-badge">{items.length}</span>}
+        </button>
         <button 
           className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
           onClick={() => setActiveTab('add')}
         >
-          ➕ Lägg till
+          <span className="tab-icon">➕</span>
+          <span className="tab-label">Lägg till</span>
         </button>
         <button 
           className={`tab-button ${activeTab === 'shopping' ? 'active' : ''}`}
           onClick={() => setActiveTab('shopping')}
         >
-          🛍️ Inköpslista
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
-        >
-          📦 Mina varor
+          <span className="tab-icon">🛍️</span>
+          <span className="tab-label">Inköpslista</span>
         </button>
         <button 
           className={`tab-button ${activeTab === 'recipes' ? 'active' : ''}`}
           onClick={() => setActiveTab('recipes')}
         >
-          🍳 Recept
+          <span className="tab-icon">🍳</span>
+          <span className="tab-label">Recept</span>
+          {suggestions.length > 0 && <span className="tab-badge">{suggestions.length}</span>}
         </button>
       </nav>
       
@@ -615,99 +621,115 @@ export default function App() {
         {/* Lägg till vara flik */}
         {activeTab === 'add' && (
           <div className="tab-panel">
-            <section className="card">
-        <h2>Lägg till vara</h2>
-        <form onSubmit={onAdd}>
-          <div className="form-grid">
-            <div className="form-row">
-              <label>
-                <span>Namn</span>
-                <div className="input-with-suggestions">
-                  <input 
-                    name="name" 
-                    value={form.name} 
-                    onChange={onChange} 
-                    placeholder="Skriv varans namn för förslag... (t.ex. 'mjö' för mjölk)"
-                    autoFocus
-                    required
-                    autoComplete="off"
-                  />
-                  {showFoodSuggestions && foodSuggestions.length > 0 && (
-                    <div className="food-suggestions">
-                      {foodSuggestions.map(food => (
-                        <button
-                          key={food.name}
-                          type="button"
-                          className="food-suggestion"
-                          onClick={() => selectFoodSuggestion(food)}
-                        >
-                          <span className="suggestion-emoji">{food.emoji}</span>
-                          <span className="suggestion-name">{food.name}</span>
-                          <span className="suggestion-category">{food.category}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </label>
-              <label>
-                <span>Antal</span>
-                <div className="quantity-input-container">
-                  <input 
-                    type="number" 
-                    name="quantity" 
-                    min="0" 
-                    step="0.1"
-                    inputMode="decimal"
-                    value={form.quantity} 
-                    onChange={onChange}
-                    onFocus={(e) => e.target.select()}
-                    placeholder="0"
-                  />
-                  <span className="unit-display">{suggestedUnit}</span>
-                </div>
-              </label>
-            </div>
-            <div className="form-row">
-              <label>
-                <span>Utgångsdatum</span>
-                <div className="expiry-input-container">
-                  <input 
-                    type="date" 
-                    name="expiresAt" 
-                    value={form.expiresAt} 
-                    onChange={onChange}
-                    min={new Date().toISOString().split('T')[0]}
-                    required 
-                  />
-                  {form.name && (
-                    <div className="expiry-helper">
-                      <span className="helper-text">💡 Kolla förpackningen för exakt datum</span>
-                      {suggestedUnit && (
-                        <button 
-                          type="button"
-                          className="ai-suggestion-btn"
-                          onClick={() => {
-                            const smartResult = calculateSmartExpiryDate(form.name, null)
-                            setForm(prev => ({ ...prev, expiresAt: smartResult.date }))
-                          }}
-                          title="Använd AI-förslag som utgångspunkt"
-                        >
-                          🤖 AI-förslag
-                        </button>
+            <section className="card add-item-card">
+              <div className="card-header">
+                <h2>➕ Lägg till vara</h2>
+                <p className="card-subtitle">Fyll i information om varan du vill lägga till</p>
+              </div>
+              
+              <form onSubmit={onAdd} className="add-form">
+                <div className="form-section">
+                  <label className="form-label">
+                    <span className="label-text">🏷️ Namn på vara</span>
+                    <div className="input-with-suggestions">
+                      <input 
+                        name="name" 
+                        value={form.name} 
+                        onChange={onChange} 
+                        placeholder="t.ex. mjölk, äpplen, kött..."
+                        autoFocus
+                        required
+                        autoComplete="off"
+                        className="form-input"
+                      />
+                      {showFoodSuggestions && foodSuggestions.length > 0 && (
+                        <div className="food-suggestions">
+                          <div className="suggestions-header">Förslag:</div>
+                          {foodSuggestions.map(food => (
+                            <button
+                              key={food.name}
+                              type="button"
+                              className="food-suggestion"
+                              onClick={() => selectFoodSuggestion(food)}
+                            >
+                              <span className="suggestion-emoji">{food.emoji}</span>
+                              <span className="suggestion-name">{food.name}</span>
+                              <span className="suggestion-category">{food.category}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
+                  </label>
+                </div>
+                
+                <div className="form-row">
+                  <label className="form-label">
+                    <span className="label-text">📊 Antal</span>
+                    <div className="quantity-input-container">
+                      <input 
+                        type="number" 
+                        name="quantity" 
+                        min="0" 
+                        step="0.1"
+                        inputMode="decimal"
+                        value={form.quantity} 
+                        onChange={onChange}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="1"
+                        className="form-input quantity-input"
+                        required
+                      />
+                      <span className="unit-display">{suggestedUnit}</span>
+                    </div>
+                  </label>
+                  
+                  <label className="form-label">
+                    <span className="label-text">📅 Utgångsdatum</span>
+                    <div className="expiry-input-container">
+                      <input 
+                        type="date" 
+                        name="expiresAt" 
+                        value={form.expiresAt} 
+                        onChange={onChange}
+                        min={new Date().toISOString().split('T')[0]}
+                        required 
+                        className="form-input"
+                      />
+                      {form.name && (
+                        <div className="expiry-helper">
+                          <button 
+                            type="button"
+                            className="ai-suggestion-btn"
+                            onClick={() => {
+                              const smartResult = calculateSmartExpiryDate(form.name, null)
+                              setForm(prev => ({ ...prev, expiresAt: smartResult.date }))
+                            }}
+                            title="Använd AI-förslag som utgångspunkt"
+                          >
+                            🤖 AI-förslag
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+                
+                <div className="form-actions">
+                  <button 
+                    type="submit" 
+                    disabled={!form.name || !form.expiresAt || form.quantity <= 0}
+                    className="btn-primary btn-large"
+                  >
+                    ➕ Lägg till i mitt kylskåp
+                  </button>
+                  {form.name && form.expiresAt && form.quantity > 0 && (
+                    <div className="form-preview">
+                      <small>✨ Lägger till: <strong>{form.quantity} {suggestedUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
+                    </div>
                   )}
                 </div>
-              </label>
-            </div>
-          </div>
-          <div className="form-actions">
-            <button type="submit" disabled={!form.name || !form.expiresAt || form.quantity <= 0}>
-              ➕ Lägg till vara
-            </button>
-          </div>
-        </form>
+              </form>
             </section>
           </div>
         )}
@@ -724,70 +746,121 @@ export default function App() {
         {/* Mina varor flik */}
         {activeTab === 'inventory' && (
           <div className="tab-panel">
-            <section className="card">
-              <div className="list-header">
-                <div className="section-title">
-                  <h2>Mina varor</h2>
-                  <div className="header-actions">
+            <section className="card inventory-card">
+              <div className="card-header">
+                <div className="header-main">
+                  <h2>📦 Mina varor</h2>
+                  {items.length > 0 && (
+                    <div className="inventory-stats">
+                      <span className="stat-item">{items.length} varor totalt</span>
+                      <span className="stat-item">{filtered.filter(i => daysUntil(i.expiresAt) <= 3 && daysUntil(i.expiresAt) >= 0).length} går ut snart</span>
+                    </div>
+                  )}
+                </div>
+                <div className="header-actions">
+                  {items.length > 0 && (
                     <button 
                       onClick={toggleBulkEditMode}
                       className={`bulk-edit-toggle ${bulkEditMode ? 'active' : ''}`}
-                      disabled={items.length === 0}
                       title={bulkEditMode ? 'Avsluta redigering' : 'Ändra utgångsdatum för flera varor'}
                     >
-                      {bulkEditMode ? '✕ Avsluta' : '📋 Redigera flera'}
+                      {bulkEditMode ? '✕ Avsluta redigering' : '📋 Redigera flera'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="inventory-controls">
+                <div className="search-section">
+                  <div className="search-container">
+                    <span className="search-icon">🔍</span>
+                    <input 
+                      type="text" 
+                      placeholder="Sök bland dina varor..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="search-input"
+                    />
+                    {searchQuery && (
+                      <button 
+                        className="search-clear"
+                        onClick={() => setSearchQuery('')}
+                        title="Rensa sökning"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="filter-section">
+                  <div className="filter-tabs">
+                    <button 
+                      className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
+                      onClick={() => setFilter('all')}
+                    >
+                      📦 Alla
+                    </button>
+                    <button 
+                      className={`filter-tab ${filter === 'expiring' ? 'active' : ''}`}
+                      onClick={() => setFilter('expiring')}
+                    >
+                      ⚠️ Går ut snart
+                    </button>
+                    <button 
+                      className={`filter-tab ${filter === 'expired' ? 'active' : ''}`}
+                      onClick={() => setFilter('expired')}
+                    >
+                      ❌ Utgångna
                     </button>
                   </div>
                 </div>
-                <div className="search-and-filters">
-                  <input 
-                    type="text" 
-                    placeholder="Sök bland dina varor..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                  />
-                  <div className="filters">
-                    <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span>📦 Alla varor</span></label>
-                    <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span>⚠️ Går ut snart (3 dagar)</span></label>
-                    <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>❌ Utgångna</span></label>
-                  </div>
-                </div>
-                {bulkEditMode && (
-                  <div className="bulk-edit-controls">
-                    <div className="bulk-edit-info">
-                      <span>📋 Redigerings-läge aktivt • {selectedItems.size} av {filtered.length} varor valda</span>
-                    </div>
-                    <div className="bulk-edit-actions">
-                      <button onClick={selectAllVisible} className="bulk-btn secondary">✓ Välj alla synliga</button>
-                      <button onClick={deselectAll} className="bulk-btn secondary">✕ Rensa urval</button>
-                    </div>
-                    {selectedItems.size > 0 && (
-                      <div className="bulk-date-editor">
-                        <label>
-                          <span>Nytt utgångsdatum för {selectedItems.size} valda varor:</span>
-                          <div className="bulk-date-input-container">
-                            <input 
-                              type="date" 
-                              value={bulkExpiryDate} 
-                              onChange={(e) => setBulkExpiryDate(e.target.value)}
-                              min={new Date().toISOString().split('T')[0]}
-                              className="bulk-date-input"
-                            />
-                            <button 
-                              onClick={applyBulkExpiryDate}
-                              className="apply-bulk-date-btn"
-                              disabled={!bulkExpiryDate}
-                            >
-                              ✅ Tillämpa på {selectedItems.size} varor
-                            </button>
-                          </div>
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
+              {bulkEditMode && (
+                <div className="bulk-edit-panel">
+                  <div className="bulk-edit-header">
+                    <div className="bulk-status">
+                      <span className="bulk-icon">📋</span>
+                      <span className="bulk-text">Redigerings-läge</span>
+                      <span className="bulk-count">{selectedItems.size} av {filtered.length} valda</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bulk-actions-row">
+                    <button onClick={selectAllVisible} className="bulk-action-btn">
+                      ✓ Välj alla synliga
+                    </button>
+                    <button onClick={deselectAll} className="bulk-action-btn">
+                      ✕ Rensa urval
+                    </button>
+                  </div>
+                  
+                  {selectedItems.size > 0 && (
+                    <div className="bulk-date-section">
+                      <div className="bulk-date-header">
+                        <h4>📅 Ändra utgångsdatum</h4>
+                        <span className="selected-count">{selectedItems.size} varor valda</span>
+                      </div>
+                      <div className="bulk-date-controls">
+                        <input 
+                          type="date" 
+                          value={bulkExpiryDate} 
+                          onChange={(e) => setBulkExpiryDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="bulk-date-input"
+                          placeholder="Välj nytt datum"
+                        />
+                        <button 
+                          onClick={applyBulkExpiryDate}
+                          className="bulk-apply-btn"
+                          disabled={!bulkExpiryDate}
+                        >
+                          ✅ Uppdatera {selectedItems.size} varor
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {filtered.length === 0 ? (
                 <div className="empty-state">
                   <p>
