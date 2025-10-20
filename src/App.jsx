@@ -168,6 +168,7 @@ export default function App() {
   const [bulkAddMode, setBulkAddMode] = useState(false)
   const [bulkItems, setBulkItems] = useState([])
   const [bulkDate, setBulkDate] = useState('')
+  const [activeTab, setActiveTab] = useState('add')
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -190,7 +191,7 @@ export default function App() {
     }
   }, [])
 
-  // Initiera tema från localStorage eller systempreferens
+  // Initiera tema och aktiv tab från localStorage eller systempreferens
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -204,6 +205,12 @@ export default function App() {
       // Kolla systempreferens
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setTheme(prefersDark ? 'dark' : 'light')
+    }
+    
+    // Ladda senaste aktiva tab
+    const savedTab = localStorage.getItem('svinnstop_active_tab')
+    if (savedTab && ['add', 'shopping', 'inventory', 'recipes'].includes(savedTab)) {
+      setActiveTab(savedTab)
     }
   }, [])
 
@@ -237,6 +244,11 @@ export default function App() {
       notificationService.scheduleExpiryNotifications(items)
     }
   }, [items, notificationsEnabled])
+  
+  // Spara aktiv tab när den ändras
+  useEffect(() => {
+    localStorage.setItem('svinnstop_active_tab', activeTab)
+  }, [activeTab])
 
   const onChange = e => {
     const { name, value } = e.target
@@ -576,8 +588,42 @@ export default function App() {
           </div>
         </div>
       </header>
-
-      <section className="card">
+      
+      {/* Tab Navigation */}
+      <nav className="tab-navigation">
+        <button 
+          className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
+          onClick={() => setActiveTab('add')}
+        >
+          ➕ Lägg till
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'shopping' ? 'active' : ''}`}
+          onClick={() => setActiveTab('shopping')}
+        >
+          🛍️ Inköpslista
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventory')}
+        >
+          📦 Mina varor
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'recipes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('recipes')}
+        >
+          🍳 Recept
+        </button>
+      </nav>
+      
+      {/* Tab Content */}
+      <div className="tab-content">
+        
+        {/* Lägg till vara flik */}
+        {activeTab === 'add' && (
+          <div className="tab-panel">
+            <section className="card">
         <div className="section-header">
           <h2>{bulkAddMode ? 'Lägg till flera varor (samma datum)' : 'Lägg till vara'}</h2>
           <button 
@@ -740,134 +786,174 @@ export default function App() {
             )}
           </div>
         </form>
-      </section>
-
-      {/* Inköpslista */}
-      <ShoppingList onAddToInventory={handleShoppingItemToInventory} />
-
-      <section className="card">
-        <div className="list-header">
-          <div className="section-title">
-            <h2>Varor</h2>
+            </section>
           </div>
-          <div className="search-and-filters">
-            <input 
-              type="text" 
-              placeholder="Sök bland dina varor..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            <div className="filters">
-              <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span>📦 Alla varor</span></label>
-              <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span>⚠️ Går ut snart (3 dagar)</span></label>
-              <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>❌ Utgångna</span></label>
-            </div>
-            
-          </div>
-        </div>
-        {filtered.length === 0 ? (
-          <div className="empty-state">
-            <p>
-              <span>{items.length === 0 
-                ? '🍽️ Inga varor ännu. Börja genom att lägga till din första vara ovan!'
-                : searchQuery.trim() 
-                  ? `🔍 Inga varor hittades för "${searchQuery}". Försök med andra sökord.`
-                  : '📋 Inga varor matchar det valda filtret. Försök med ett annat filter.'}</span>
-            </p>
-          </div>
-        ) : (
-          <ul className="items">
-            {filtered.map(i => {
-              const d = daysUntil(i.expiresAt)
-              const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
-              return (
-                <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''}`}>
-                  <div className="item-content">
-                    <div className="item-main">
-                      <strong>{i.name}</strong>
-                      <span className="muted">{i.quantity} {i.unit}</span>
-                    </div>
-                    <div className="item-sub">
-                      <span>Utgång: {i.expiresAt || '—'}</span>
-                      <span className="status">{status}</span>
-                    </div>
-                  </div>
-                  {(
-                    <div className="item-actions">
-                      <button 
-                        className="edit-btn" 
-                        onClick={() => handleEditExpiry(i)}
-                        title="Justera utgångsdatum"
-                        aria-label="Justera utgångsdatum"
-                      >
-                        📝
-                      </button>
-                      <button 
-                        className="remove-btn" 
-                        onClick={() => onRemove(i.id)}
-                        title="Ta bort denna vara"
-                        aria-label="Ta bort denna vara"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
         )}
-      </section>
-
-      <section className="card">
-        <h2>🍳 Receptförslag</h2>
-        {suggestions.length === 0 ? (
-          <div className="empty-recipes">
-            <p>{items.length === 0 
-              ? '📦 Lägg till varor i ditt kölskåp för att få skräddarsydda receptförslag!' 
-              : '🔍 Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
-            </p>
+        
+        {/* Inköpslista flik */}
+        {activeTab === 'shopping' && (
+          <div className="tab-panel">
+            <ShoppingList onAddToInventory={(item) => {
+              handleShoppingItemToInventory(item)
+              setActiveTab('add') // Växla till lägg till-fliken när vara skickas från inköpslista
+            }} />
           </div>
-        ) : (
-          <div className="recipes">
-            {suggestions.map(r => (
-              <div key={r.id} className="recipe-card">
-                <div className="recipe-header">
-                  <h3>{r.name}</h3>
-                  <div className="recipe-meta">
-                    <span className="servings">👥 {r.servings} portioner</span>
-                    <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
-                    <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
+        )}
+        
+        {/* Mina varor flik */}
+        {activeTab === 'inventory' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="list-header">
+                <div className="section-title">
+                  <h2>Mina varor</h2>
+                </div>
+                <div className="search-and-filters">
+                  <input 
+                    type="text" 
+                    placeholder="Sök bland dina varor..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
+                  />
+                  <div className="filters">
+                    <label><input type="radio" name="f" checked={filter === 'all'} onChange={() => setFilter('all')} /> <span>📦 Alla varor</span></label>
+                    <label><input type="radio" name="f" checked={filter === 'expiring'} onChange={() => setFilter('expiring')} /> <span>⚠️ Går ut snart (3 dagar)</span></label>
+                    <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>❌ Utgångna</span></label>
                   </div>
-                </div>
-                
-                <div className="recipe-ingredients">
-                  <h4>Ingredienser som behövs:</h4>
-                  <ul>
-                    {r.usedIngredients.map((ingredient, idx) => (
-                      <li key={idx} className="ingredient-item">
-                        <span className="ingredient-amount">
-                          {ingredient.quantity} {ingredient.unit}
-                        </span>
-                        <span className="ingredient-name">{ingredient.name}</span>
-                        <span className="ingredient-available">
-                          <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="recipe-instructions">
-                  <h4>Instruktioner:</h4>
-                  <p>{r.instructions}</p>
                 </div>
               </div>
-            ))}
+              {filtered.length === 0 ? (
+                <div className="empty-state">
+                  <p>
+                    <span>{items.length === 0 
+                      ? '🍽️ Inga varor ännu. Börja genom att lägga till din första vara i "Lägg till"-fliken!'
+                      : searchQuery.trim() 
+                        ? `🔍 Inga varor hittades för "${searchQuery}". Försök med andra sökord.`
+                        : '📋 Inga varor matchar det valda filtret. Försök med ett annat filter.'}</span>
+                  </p>
+                </div>
+              ) : (
+                <ul className="items">
+                  {filtered.map(i => {
+                    const d = daysUntil(i.expiresAt)
+                    const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
+                    return (
+                      <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''}`}>
+                        <div className="item-content">
+                          <div className="item-main">
+                            <strong>{i.name}</strong>
+                            <span className="muted">{i.quantity} {i.unit}</span>
+                          </div>
+                          <div className="item-sub">
+                            <span>Utgång: {i.expiresAt || '—'}</span>
+                            <span className="status">{status}</span>
+                          </div>
+                        </div>
+                        <div className="item-actions">
+                          <button 
+                            className="edit-btn" 
+                            onClick={() => handleEditExpiry(i)}
+                            title="Justera utgångsdatum"
+                            aria-label="Justera utgångsdatum"
+                          >
+                            📝
+                          </button>
+                          <button 
+                            className="remove-btn" 
+                            onClick={() => onRemove(i.id)}
+                            title="Ta bort denna vara"
+                            aria-label="Ta bort denna vara"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
           </div>
         )}
-      </section>
+        
+        {/* Recept flik */}
+        {activeTab === 'recipes' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="section-header">
+                <h2>🍳 Receptförslag</h2>
+                {notificationsEnabled && (
+                  <span className="notifications-active">🔔 Notiser aktiva</span>
+                )}
+              </div>
+              {suggestions.length === 0 ? (
+                <div className="empty-recipes">
+                  <p>{items.length === 0 
+                    ? '📦 Lägg till varor i ditt kölskåp för att få skräddarsydda receptförslag!' 
+                    : '🔍 Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
+                  </p>
+                </div>
+              ) : (
+                <div className="recipes">
+                  {suggestions.map(r => (
+                    <div key={r.id} className={`recipe-card ${r.hasExpiringIngredients ? 'urgent-recipe' : ''}`}>
+                      <div className="recipe-header">
+                        <h3>{r.name}</h3>
+                        <div className="recipe-meta">
+                          <span className="servings">👥 {r.servings} portioner</span>
+                          <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
+                          <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
+                          {r.hasExpiringIngredients && (
+                            <span className="urgency-badge">⚠️ Snart utgånget ({r.expiringIngredientsCount})</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="recipe-ingredients">
+                        <h4>Ingredienser som behövs:</h4>
+                        <ul>
+                          {r.usedIngredients.map((ingredient, idx) => (
+                            <li key={idx} className={`ingredient-item ${ingredient.isExpiring ? 'expiring-ingredient' : ''} ${ingredient.isExpired ? 'expired-ingredient' : ''}`}>
+                              <span className="ingredient-amount">
+                                {ingredient.quantity} {ingredient.unit}
+                              </span>
+                              <span className="ingredient-name">{ingredient.name}</span>
+                              <span className="ingredient-available">
+                                <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
+                                {ingredient.isExpiring && (
+                                  <span className="expiry-warning">⚠️ Går ut om {ingredient.daysLeft} dag{ingredient.daysLeft !== 1 ? 'ar' : ''}</span>
+                                )}
+                                {ingredient.isExpired && (
+                                  <span className="expired-warning">🚨 Utgången</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="recipe-instructions">
+                        <h4>Instruktioner:</h4>
+                        <p>{r.instructions}</p>
+                      </div>
+                      
+                      {r.tags && (
+                        <div className="recipe-tags">
+                          {r.tags.map(tag => (
+                            <span key={tag} className="recipe-tag">#{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+      
+      </div>
       
 
       <footer className="muted">Data sparas i din webbläsare (localStorage).</footer>
