@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { searchShoppingItems, getRecommendedItems, getShoppingCategories } from './shoppingDatabase'
+import { getExpiryDateSuggestion } from './foodDatabase'
 
 // Kategorisering av matvaror vs andra varor
 const FOOD_CATEGORIES = ['mejeri', 'kött', 'fisk', 'grönsak', 'frukt', 'bröd', 'spannmål', 'ägg', 'krydda', 'sås', 'olja']
@@ -9,7 +10,7 @@ function isFood(item) {
   return FOOD_CATEGORIES.includes(item.category)
 }
 
-export default function ShoppingList({ onAddToInventory }) {
+export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
   const [shoppingItems, setShoppingItems] = useState([])
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -109,14 +110,26 @@ export default function ShoppingList({ onAddToInventory }) {
         : item
     ))
 
-    // Om det är en matvara som markeras som klar, skicka till inventarie
+    // Om det är en matvara som markeras som klar, lägg direkt i inventariet
     if (item && !item.completed && item.isFood) {
-      onAddToInventory({
+      // Få föreslaget utgångsdatum från matvarudatabasen
+      const suggestion = getExpiryDateSuggestion(item.name)
+      
+      // Skapa ett komplett inventarie-objekt
+      const inventoryItem = {
+        id: crypto.randomUUID(),
         name: item.name,
-        category: item.category,
-        emoji: item.emoji,
-        unit: item.unit
-      })
+        quantity: 1, // Standard kvantitet
+        unit: suggestion.defaultUnit,
+        expiresAt: suggestion.date,
+        category: suggestion.category,
+        emoji: suggestion.emoji
+      }
+      
+      // Lägg direkt i inventariet istället för att gå via "Lägg till"-fliken
+      if (onDirectAddToInventory) {
+        onDirectAddToInventory(inventoryItem)
+      }
     }
   }
 
@@ -252,7 +265,7 @@ export default function ShoppingList({ onAddToInventory }) {
                   <span className="item-emoji">{item.emoji}</span>
                   <span className="item-name">{item.name}</span>
                   {item.isFood && (
-                    <span className="food-indicator">🍽️ Matavra</span>
+                    <span className="food-indicator">🍽️ Matavra → Mina varor</span>
                   )}
                 </label>
               </div>
@@ -270,7 +283,7 @@ export default function ShoppingList({ onAddToInventory }) {
 
       {/* Hjälptext */}
       <div className="shopping-help">
-        <p>💡 <strong>Tips:</strong> Matvaror som markeras som klara flyttas automatiskt till "Lägg till vara" för att ange utgångsdatum.</p>
+        <p>💡 <strong>Tips:</strong> Matvaror som markeras som klara läggs automatiskt in i "Mina varor" med föreslaget utgångsdatum. Andra varor stannar i listan tills du rensar dem.</p>
       </div>
     </section>
   )

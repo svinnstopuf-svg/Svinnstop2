@@ -449,32 +449,21 @@ export default function App() {
     }
   }
   
-  // Hantera matvaror från inköpslista
-  const handleShoppingItemToInventory = (shoppingItem) => {
-    const suggestion = getExpiryDateSuggestion(shoppingItem.name)
-    
-    setPendingShoppingItem({
-      name: shoppingItem.name,
-      suggestedDate: suggestion.date,
-      unit: suggestion.defaultUnit,
-      emoji: suggestion.emoji,
-      category: suggestion.category
-    })
-    
-    // Förifyll formuläret
-    setForm({
-      name: shoppingItem.name,
-      quantity: 1,
-      expiresAt: suggestion.date
-    })
-    
-    // Scrolla till lägg till vara-sektionen
-    setTimeout(() => {
-      const addSection = document.querySelector('.add-item-form')
-      if (addSection) {
-        addSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  // Lägg matvaror direkt i inventariet från inköpslistan
+  const handleDirectAddToInventory = (inventoryItem) => {
+    setItems(prev => {
+      const updated = [...prev, inventoryItem]
+      
+      // Uppdatera notifikationer för utgångsdatum
+      if (notificationsEnabled) {
+        notificationService.scheduleExpiryNotifications(updated)
       }
-    }, 100)
+      
+      return updated
+    })
+    
+    // Visa bekräftelse
+    console.log(`✅ ${inventoryItem.name} lades till i ditt kölskåp med utgångsdatum ${inventoryItem.expiresAt}`)
   }
   
   // Aktivera notifikationer
@@ -728,10 +717,9 @@ export default function App() {
         {/* Inköpslista flik */}
         {activeTab === 'shopping' && (
           <div className="tab-panel">
-            <ShoppingList onAddToInventory={(item) => {
-              handleShoppingItemToInventory(item)
-              setActiveTab('add') // Växla till lägg till-fliken när vara skickas från inköpslista
-            }} />
+            <ShoppingList 
+              onDirectAddToInventory={handleDirectAddToInventory}
+            />
           </div>
         )}
         
