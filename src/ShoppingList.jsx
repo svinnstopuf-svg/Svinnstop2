@@ -171,21 +171,43 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       {/* Lägg till vara */}
       <form onSubmit={addManualItem} className="add-shopping-item">
         <div className="input-container">
-          <input
-            type="text"
-            value={newItem}
-            onChange={handleInputChange}
-            onFocus={() => {
-              if (!newItem.trim()) {
-                setShowRecommendations(true)
-              }
-            }}
-            placeholder="Skriv varunamn eller bläddra bland förslag..."
-            className="shopping-input"
-            autoComplete="off"
-          />
+          <div className="input-with-suggestions">
+            <input
+              type="text"
+              value={newItem}
+              onChange={handleInputChange}
+              onFocus={() => {
+                if (!newItem.trim()) {
+                  setShowRecommendations(true)
+                }
+              }}
+              placeholder="Skriv varunamn för förslag... (t.ex. 'mjö' för mjölk)"
+              className="shopping-input"
+              autoComplete="off"
+            />
+            
+            {/* Sökförslag - använder samma styling som matvaruförslagen */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="food-suggestions">
+                {suggestions.map(item => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    className="food-suggestion"
+                    onClick={() => addFromSuggestion(item)}
+                  >
+                    <span className="suggestion-emoji">{item.emoji}</span>
+                    <span className="suggestion-name">{item.name}</span>
+                    <span className="suggestion-category">{item.category}</span>
+                    {!item.isFood && <span className="non-food-badge">Ej mat</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          
           <button type="submit" disabled={!newItem.trim()}>
-            ➕ Lägg till
+            ➥ Lägg till
           </button>
           <button 
             type="button"
@@ -199,25 +221,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
             💡 Förslag
           </button>
         </div>
-
-        {/* Sökförslag */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="suggestions-dropdown">
-            {suggestions.map(item => (
-              <button
-                key={item.name}
-                type="button"
-                className="suggestion-item"
-                onClick={() => addFromSuggestion(item)}
-              >
-                <span className="suggestion-emoji">{item.emoji}</span>
-                <span className="suggestion-name">{item.name}</span>
-                <span className="suggestion-category">{item.category}</span>
-                {!item.isFood && <span className="non-food-badge">Ej matavara</span>}
-              </button>
-            ))}
-          </div>
-        )}
         
         {/* Rekommenderade varor */}
         {showRecommendations && recommendedItems.length > 0 && (
@@ -283,7 +286,12 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
 
       {/* Hjälptext */}
       <div className="shopping-help">
-        <p>💡 <strong>Tips:</strong> Matvaror som markeras som klara läggs automatiskt in i "Mina varor" med föreslaget utgångsdatum. Andra varor stannar i listan tills du rensar dem.</p>
+        <p>💡 <strong>Så funkar det:</strong></p>
+        <ul style={{margin: '8px 0', paddingLeft: '20px'}}>
+          <li><strong>🍽️ Matvaror:</strong> När du bockar av → Läggs direkt i "Mina varor" med smart utgångsdatum</li>
+          <li><strong>🧼 Andra varor:</strong> När du bockar av → Stannar i listan (rensa med "🗑️ Rensa klara")</li>
+          <li><strong>🔍 Söktips:</strong> Börja skriva för förslag, eller tryck "💡 Förslag" för populära varor</li>
+        </ul>
       </div>
     </section>
   )

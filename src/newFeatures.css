@@ -480,11 +480,19 @@
 
 .non-food-badge {
   font-size: 10px;
-  background: var(--warning-bg);
-  color: var(--warning-color);
-  padding: 2px 4px;
-  border-radius: 8px;
+  background: var(--warning-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
   margin-left: auto;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Non-food badge i hover state */
+.food-suggestion:hover .non-food-badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--warning-color);
 }
 
 /* Responsiv design för rekommendationer */
