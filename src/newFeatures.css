@@ -251,23 +251,26 @@
 }
 
 /* Notifikationer */
-.notification-toggle {
-  position: fixed;
-  top: 20px;
-  right: 80px;
-  padding: 8px 12px;
+.notification-toggle-header {
+  padding: 6px 12px;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: 16px;
+  font-size: 12px;
   cursor: pointer;
-  z-index: 1000;
   transition: background-color 0.2s;
+  margin-left: auto;
 }
 
-.notification-toggle:hover {
+.notification-toggle-header:hover {
   background: var(--primary-hover);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .notifications-active {
@@ -375,6 +378,112 @@
   
   .shopping-input {
     font-size: 16px; /* Förhindra zoom på iOS */
+  }
+}
+
+/* Rekommendationer för inköpslista */
+.recommendations-toggle {
+  padding: 8px 12px;
+  background: var(--secondary-bg);
+  color: var(--secondary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.recommendations-toggle:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.recommendations-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.recommendations-section h4 {
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.recommendation-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.recommendation-item:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary-color);
+}
+
+.recommendation-emoji {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.recommendation-name {
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.non-food-badge {
+  font-size: 10px;
+  background: var(--warning-bg);
+  color: var(--warning-color);
+  padding: 2px 4px;
+  border-radius: 8px;
+  margin-left: auto;
+}
+
+/* Responsiv design för rekommendationer */
+@media (max-width: 768px) {
+  .input-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .recommendations-toggle {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  
+  .recommendations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 6px;
+  }
+  
+  .recommendation-item {
+    padding: 6px;
+  }
+  
+  .recommendation-name {
+    font-size: 10px;
   }
 }
 

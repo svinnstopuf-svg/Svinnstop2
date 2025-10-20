@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { searchFoods } from './foodDatabase'
+import { searchShoppingItems, getRecommendedItems, getShoppingCategories } from './shoppingDatabase'
 
 // Kategorisering av matvaror vs andra varor
 const FOOD_CATEGORIES = ['mejeri', 'kött', 'fisk', 'grönsak', 'frukt', 'bröd', 'spannmål', 'ägg', 'krydda', 'sås', 'olja']
@@ -14,8 +14,10 @@ export default function ShoppingList({ onAddToInventory }) {
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showRecommendations, setShowRecommendations] = useState(false)
+  const [recommendedItems, setRecommendedItems] = useState([])
 
-  // Ladda inköpslista från localStorage
+  // Ladda inköpslista från localStorage och rekommendationer
   useEffect(() => {
     const saved = localStorage.getItem('svinnstop_shopping_list')
     if (saved) {
@@ -25,6 +27,9 @@ export default function ShoppingList({ onAddToInventory }) {
         console.error('Failed to load shopping list:', e)
       }
     }
+    
+    // Ladda rekommenderade varor
+    setRecommendedItems(getRecommendedItems())
   }, [])
 
   // Spara inköpslista till localStorage
@@ -38,31 +43,36 @@ export default function ShoppingList({ onAddToInventory }) {
     setNewItem(value)
     
     if (value.trim().length > 0) {
-      const foodSuggestions = searchFoods(value.trim())
-      setSuggestions(foodSuggestions)
+      const shoppingSuggestions = searchShoppingItems(value.trim())
+      setSuggestions(shoppingSuggestions)
       setShowSuggestions(true)
+      setShowRecommendations(false)
     } else {
       setSuggestions([])
       setShowSuggestions(false)
+      if (value.trim().length === 0) {
+        setShowRecommendations(false)
+      }
     }
   }
 
   // Lägg till vara från förslag
-  const addFromSuggestion = (food) => {
+  const addFromSuggestion = (item) => {
     const newShoppingItem = {
       id: crypto.randomUUID(),
-      name: food.name,
-      category: food.category,
-      emoji: food.emoji,
-      unit: food.unit,
+      name: item.name,
+      category: item.category,
+      emoji: item.emoji,
+      unit: item.unit || 'st',
       completed: false,
-      isFood: true,
+      isFood: item.isFood,
       addedAt: Date.now()
     }
     
     setShoppingItems(prev => [newShoppingItem, ...prev])
     setNewItem('')
     setShowSuggestions(false)
+    setShowRecommendations(false)
     setSuggestions([])
   }
 
@@ -85,6 +95,7 @@ export default function ShoppingList({ onAddToInventory }) {
     setShoppingItems(prev => [newShoppingItem, ...prev])
     setNewItem('')
     setShowSuggestions(false)
+    setShowRecommendations(false)
     setSuggestions([])
   }
 
@@ -151,30 +162,68 @@ export default function ShoppingList({ onAddToInventory }) {
             type="text"
             value={newItem}
             onChange={handleInputChange}
-            placeholder="Lägg till vara i inköpslistan..."
+            onFocus={() => {
+              if (!newItem.trim()) {
+                setShowRecommendations(true)
+              }
+            }}
+            placeholder="Skriv varunamn eller bläddra bland förslag..."
             className="shopping-input"
             autoComplete="off"
           />
           <button type="submit" disabled={!newItem.trim()}>
             ➕ Lägg till
           </button>
+          <button 
+            type="button"
+            onClick={() => {
+              setShowRecommendations(!showRecommendations)
+              setShowSuggestions(false)
+            }}
+            className="recommendations-toggle"
+            title="Visa rekommenderade varor"
+          >
+            💡 Förslag
+          </button>
         </div>
 
-        {/* Förslag */}
+        {/* Sökförslag */}
         {showSuggestions && suggestions.length > 0 && (
           <div className="suggestions-dropdown">
-            {suggestions.map(food => (
+            {suggestions.map(item => (
               <button
-                key={food.name}
+                key={item.name}
                 type="button"
                 className="suggestion-item"
-                onClick={() => addFromSuggestion(food)}
+                onClick={() => addFromSuggestion(item)}
               >
-                <span className="suggestion-emoji">{food.emoji}</span>
-                <span className="suggestion-name">{food.name}</span>
-                <span className="suggestion-category">{food.category}</span>
+                <span className="suggestion-emoji">{item.emoji}</span>
+                <span className="suggestion-name">{item.name}</span>
+                <span className="suggestion-category">{item.category}</span>
+                {!item.isFood && <span className="non-food-badge">Ej matavara</span>}
               </button>
             ))}
+          </div>
+        )}
+        
+        {/* Rekommenderade varor */}
+        {showRecommendations && recommendedItems.length > 0 && (
+          <div className="recommendations-section">
+            <h4>Populära varor att handla:</h4>
+            <div className="recommendations-grid">
+              {recommendedItems.map(item => (
+                <button
+                  key={item.name}
+                  type="button"
+                  className="recommendation-item"
+                  onClick={() => addFromSuggestion(item)}
+                  title={`Lägg till ${item.name} i inköpslistan`}
+                >
+                  <span className="recommendation-emoji">{item.emoji}</span>
+                  <span className="recommendation-name">{item.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </form>

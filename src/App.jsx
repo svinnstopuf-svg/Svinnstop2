@@ -555,15 +555,6 @@ export default function App() {
 
   return (
     <>
-      {!notificationsEnabled && (
-        <button 
-          onClick={enableNotifications}
-          className="notification-toggle"
-          title="Aktivera påminnelser om utgångsdatum"
-        >
-          🔔 Aktivera notiser
-        </button>
-      )}
       
       <button 
         className="theme-toggle" 
@@ -591,6 +582,15 @@ export default function App() {
             <h1 className="app-title"><span className="notranslate">Svinnstop</span></h1>
             <p>{'Spåra din inköpta mat, utgångsdatum och se receptidéer.'}</p>
           </div>
+          {!notificationsEnabled && (
+            <button 
+              onClick={enableNotifications}
+              className="notification-toggle-header"
+              title="Aktivera påminnelser om utgångsdatum"
+            >
+              🔔 Notiser
+            </button>
+          )}
         </div>
       </header>
       
@@ -640,7 +640,7 @@ export default function App() {
                     name="name" 
                     value={form.name} 
                     onChange={onChange} 
-                    placeholder="Börja skriv... (t.ex. 'm' för mjölk)"
+                    placeholder="Skriv varans namn för förslag... (t.ex. 'mjö' för mjölk)"
                     autoFocus
                     required
                     autoComplete="off"
