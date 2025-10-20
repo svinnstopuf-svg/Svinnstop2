@@ -109,7 +109,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         id: crypto.randomUUID(),
         name: item.name,
         quantity: 1, // Standard kvantitet
-        unit: suggestion.defaultUnit,
+        unit: item.unit || suggestion.defaultUnit, // Använd enheten från shoppingDatabase först
         expiresAt: suggestion.date,
         category: suggestion.category,
         emoji: suggestion.emoji
