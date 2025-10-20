@@ -892,10 +892,10 @@ export default function App() {
                         <div className="item-content">
                           <div className="item-main">
                             <strong>{i.name}</strong>
-                            <span className="muted">{i.quantity} {i.unit}</span>
+                            <span className="item-quantity">{i.quantity} {i.unit}</span>
                           </div>
                           <div className="item-sub">
-                            <span>Utgång: {i.expiresAt || '—'}</span>
+                            <span className="item-expiry">Utgång: {i.expiresAt || '—'}</span>
                             <span className="status">{status}</span>
                           </div>
                         </div>
