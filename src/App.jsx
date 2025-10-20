@@ -153,7 +153,6 @@ export default function App() {
   const [theme, setTheme] = useState('dark')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItems, setSelectedItems] = useState(new Set())
-  const [bulkMode, setBulkMode] = useState(false)
   const [actionHistory, setActionHistory] = useState([])
   const [canUndo, setCanUndo] = useState(false)
   const [showExpirySettings, setShowExpirySettings] = useState(false)
@@ -265,52 +264,6 @@ export default function App() {
   }
 
 
-  // Massoperationer
-  const toggleBulkMode = () => {
-    setBulkMode(prev => !prev)
-    setSelectedItems(new Set())
-  }
-
-  const toggleSelectItem = (itemId) => {
-    setSelectedItems(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId)
-      } else {
-        newSet.add(itemId)
-      }
-      return newSet
-    })
-  }
-
-  const selectAllVisible = () => {
-    const visibleIds = filtered.map(item => item.id)
-    setSelectedItems(new Set(visibleIds))
-  }
-
-  const deselectAll = () => {
-    setSelectedItems(new Set())
-  }
-
-  const bulkDelete = () => {
-    if (selectedItems.size === 0) return
-    
-    const confirmed = confirm(`Ta bort ${selectedItems.size} valda varor?`)
-    if (confirmed) {
-      const itemsToDelete = items.filter(item => selectedItems.has(item.id))
-      
-      // Spara åtgärd för att ångra
-      saveAction({
-        type: 'DELETE_BULK',
-        data: { items: itemsToDelete },
-        timestamp: Date.now()
-      })
-      
-      setItems(prev => prev.filter(item => !selectedItems.has(item.id)))
-      setSelectedItems(new Set())
-      setBulkMode(false)
-    }
-  }
 
   const undoLastAction = () => {
     if (actionHistory.length === 0) return
@@ -320,9 +273,6 @@ export default function App() {
     if (lastAction.type === 'DELETE_SINGLE') {
       // Återställ enskild raderad vara
       setItems(prev => [...prev, lastAction.data.item])
-    } else if (lastAction.type === 'DELETE_BULK') {
-      // Återställ massraderade varor
-      setItems(prev => [...prev, ...lastAction.data.items])
     }
     
     // Ta bort åtgärden från historiken
@@ -508,16 +458,6 @@ export default function App() {
         <div className="list-header">
           <div className="section-title">
             <h2>Varor</h2>
-            <div className="header-actions">
-              <button 
-                onClick={toggleBulkMode}
-                className={`bulk-toggle-btn ${bulkMode ? 'active' : ''}`}
-                disabled={items.length === 0}
-                title={bulkMode ? '✕ Avsluta markering' : '☑️ Markera flera'}
-              >
-                {bulkMode ? '✕ Klar' : '☑️ Markera flera'}
-              </button>
-            </div>
           </div>
           <div className="search-and-filters">
             <input 
@@ -533,24 +473,6 @@ export default function App() {
               <label><input type="radio" name="f" checked={filter === 'expired'} onChange={() => setFilter('expired')} /> <span>❌ Utgångna</span></label>
             </div>
             
-            {bulkMode && (
-            <div className="bulk-actions">
-                <div className="bulk-info">
-                  <span>📋 {selectedItems.size} av {filtered.length} varor valda</span>
-                </div>
-                <div className="bulk-buttons">
-                  <button onClick={selectAllVisible} className="bulk-btn secondary">✓ Välj alla synliga</button>
-                  <button onClick={deselectAll} className="bulk-btn secondary">✕ Rensa urval</button>
-                  <button 
-                    onClick={bulkDelete} 
-                    className="bulk-btn danger"
-                    disabled={selectedItems.size === 0}
-                  >
-                    <span>🗑️ Ta bort ({selectedItems.size})</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
         {filtered.length === 0 ? (
@@ -569,18 +491,7 @@ export default function App() {
               const d = daysUntil(i.expiresAt)
               const status = d < 0 ? 'Utgången' : d === 0 ? 'Går ut idag' : formatDaysLeft(d)
               return (
-                <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''} ${bulkMode ? 'bulk-mode' : ''} ${selectedItems.has(i.id) ? 'selected' : ''}`}>
-                  {bulkMode && (
-                    <div className="item-checkbox">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedItems.has(i.id)}
-                        onChange={() => toggleSelectItem(i.id)}
-                        id={`item-${i.id}`}
-                      />
-                      <label htmlFor={`item-${i.id}`} className="checkbox-label"></label>
-                    </div>
-                  )}
+                <li key={i.id} className={`${d < 0 ? 'expired' : d <= 3 ? 'expiring' : ''}`}>
                   <div className="item-content">
                     <div className="item-main">
                       <strong>{i.name}</strong>
@@ -591,7 +502,7 @@ export default function App() {
                       <span className="status">{status}</span>
                     </div>
                   </div>
-                  {!bulkMode && (
+                  {(
                     <div className="item-actions">
                       <button 
                         className="edit-btn" 
