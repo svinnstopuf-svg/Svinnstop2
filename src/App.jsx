@@ -167,7 +167,6 @@ export default function App() {
   const [pendingShoppingItem, setPendingShoppingItem] = useState(null)
   const [activeTab, setActiveTab] = useState('add')
   const [bulkEditMode, setBulkEditMode] = useState(false)
-  const [selectedItems, setSelectedItems] = useState(new Set())
   const [bulkExpiryDate, setBulkExpiryDate] = useState('')
 
   // Enkelt setup - låt Google Translate göra sitt jobb
@@ -378,7 +377,6 @@ export default function App() {
     ))
     
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
-  }
   }
   
   // Bulk edit funktioner för utgångsdatum
