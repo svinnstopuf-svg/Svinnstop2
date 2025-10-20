@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes } from './recipes'
 import ExpirySettings from './ExpirySettings'
+import ShoppingList from './ShoppingList'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
+import { searchFoods, getExpiryDateSuggestion } from './foodDatabase'
+import { notificationService } from './notificationService'
 import './mobile.css'
+import './newFeatures.css'
 
 // Pro-svenska med Google Translate samarbete
 // Låt Google göra jobbet åt oss!
@@ -157,6 +161,10 @@ export default function App() {
   const [canUndo, setCanUndo] = useState(false)
   const [showExpirySettings, setShowExpirySettings] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [foodSuggestions, setFoodSuggestions] = useState([])
+  const [showFoodSuggestions, setShowFoodSuggestions] = useState(false)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [pendingShoppingItem, setPendingShoppingItem] = useState(null)
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -205,12 +213,45 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem(THEME_KEY, theme)
   }, [theme])
+  
+  // Ladda notifikationsinställningar vid start
+  useEffect(() => {
+    const notificationsWereEnabled = localStorage.getItem('svinnstop_notifications_enabled') === 'true'
+    if (notificationsWereEnabled) {
+      // Försök återaktivera notifikationer
+      notificationService.requestPermission().then(success => {
+        if (success) {
+          setNotificationsEnabled(true)
+          notificationService.scheduleExpiryNotifications(items)
+        }
+      })
+    }
+  }, [])
+  
+  // Uppdatera notifikationer när varor ändras
+  useEffect(() => {
+    if (notificationsEnabled && items.length > 0) {
+      notificationService.scheduleExpiryNotifications(items)
+    }
+  }, [items, notificationsEnabled])
 
   const onChange = e => {
     const { name, value } = e.target
     if (name === 'quantity') {
       const numValue = parseFloat(value)
       setForm(f => ({ ...f, [name]: isNaN(numValue) ? 0 : Math.max(0, numValue) }))
+    } else if (name === 'name') {
+      setForm(f => ({ ...f, [name]: value }))
+      
+      // Visa matvaruförslag när användaren skriver
+      if (value.trim().length > 0) {
+        const suggestions = searchFoods(value.trim())
+        setFoodSuggestions(suggestions)
+        setShowFoodSuggestions(suggestions.length > 0)
+      } else {
+        setFoodSuggestions([])
+        setShowFoodSuggestions(false)
+      }
     } else {
       setForm(f => ({ ...f, [name]: value }))
     }
@@ -219,15 +260,30 @@ export default function App() {
   const onAdd = e => {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
+    
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
     const unitKey = getSuggestedUnitKey(form.name)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
-    setItems(prev => [...prev, { id, ...form, unit }])
+    
+    const newItem = { id, ...form, unit }
+    setItems(prev => {
+      const updated = [...prev, newItem]
+      
+      // Uppdatera notifikationer för utgångsdatum
+      if (notificationsEnabled) {
+        notificationService.scheduleExpiryNotifications(updated)
+      }
+      
+      return updated
+    })
+    
     setForm({ 
       name: '', 
       quantity: 0, 
       expiresAt: '' 
     })
+    setFoodSuggestions([])
+    setShowFoodSuggestions(false)
     
     // Fokusera tillbaka till namn-fältet för snabbare inmatning
     setTimeout(() => {
@@ -306,6 +362,67 @@ export default function App() {
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
   }
   
+  // Hantera matvaror från inköpslista
+  const handleShoppingItemToInventory = (shoppingItem) => {
+    const suggestion = getExpiryDateSuggestion(shoppingItem.name)
+    
+    setPendingShoppingItem({
+      name: shoppingItem.name,
+      suggestedDate: suggestion.date,
+      unit: suggestion.defaultUnit,
+      emoji: suggestion.emoji,
+      category: suggestion.category
+    })
+    
+    // Förifyll formuläret
+    setForm({
+      name: shoppingItem.name,
+      quantity: 1,
+      expiresAt: suggestion.date
+    })
+    
+    // Scrolla till lägg till vara-sektionen
+    setTimeout(() => {
+      const addSection = document.querySelector('.add-item-form')
+      if (addSection) {
+        addSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+  }
+  
+  // Aktivera notifikationer
+  const enableNotifications = async () => {
+    const success = await notificationService.requestPermission()
+    if (success) {
+      setNotificationsEnabled(true)
+      notificationService.scheduleExpiryNotifications(items)
+      notificationService.showTestNotification()
+      
+      // Spara inställning
+      localStorage.setItem('svinnstop_notifications_enabled', 'true')
+    }
+  }
+  
+  // Välja matvaruförslag
+  const selectFoodSuggestion = (food) => {
+    const suggestion = getExpiryDateSuggestion(food.name)
+    
+    setForm({
+      name: food.name,
+      quantity: 1,
+      expiresAt: suggestion.date
+    })
+    
+    setFoodSuggestions([])
+    setShowFoodSuggestions(false)
+    
+    // Fokusera på quantity-fältet
+    setTimeout(() => {
+      const quantityInput = document.querySelector('input[name="quantity"]')
+      if (quantityInput) quantityInput.focus()
+    }, 100)
+  }
+  
 
   const sorted = useMemo(() => {
     const copy = [...items]
@@ -351,6 +468,16 @@ export default function App() {
 
   return (
     <>
+      {!notificationsEnabled && (
+        <button 
+          onClick={enableNotifications}
+          className="notification-toggle"
+          title="Aktivera påminnelser om utgångsdatum"
+        >
+          🔔 Aktivera notiser
+        </button>
+      )}
+      
       <button 
         className="theme-toggle" 
         onClick={toggleTheme}
@@ -387,14 +514,33 @@ export default function App() {
             <div className="form-row">
               <label>
                 <span>Namn</span>
-                <input 
-                  name="name" 
-                  value={form.name} 
-                  onChange={onChange} 
-                  placeholder="Vad har du köpt? (t.ex. mjölk, äpplen, bröd)"
-                  autoFocus
-                  required 
-                />
+                <div className="input-with-suggestions">
+                  <input 
+                    name="name" 
+                    value={form.name} 
+                    onChange={onChange} 
+                    placeholder="Börja skriv... (t.ex. 'm' för mjölk)"
+                    autoFocus
+                    required
+                    autoComplete="off"
+                  />
+                  {showFoodSuggestions && foodSuggestions.length > 0 && (
+                    <div className="food-suggestions">
+                      {foodSuggestions.map(food => (
+                        <button
+                          key={food.name}
+                          type="button"
+                          className="food-suggestion"
+                          onClick={() => selectFoodSuggestion(food)}
+                        >
+                          <span className="suggestion-emoji">{food.emoji}</span>
+                          <span className="suggestion-name">{food.name}</span>
+                          <span className="suggestion-category">{food.category}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </label>
               <label>
                 <span>Antal</span>
@@ -449,10 +595,15 @@ export default function App() {
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit">➕ Lägg till vara</button>
+            <button type="submit" disabled={!form.name || !form.expiresAt || form.quantity <= 0}>
+              ➕ Lägg till vara
+            </button>
           </div>
         </form>
       </section>
+
+      {/* Inköpslista */}
+      <ShoppingList onAddToInventory={handleShoppingItemToInventory} />
 
       <section className="card">
         <div className="list-header">

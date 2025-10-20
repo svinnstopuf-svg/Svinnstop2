@@ -1,0 +1,394 @@
+/* Nya funktioner CSS */
+
+/* Autocomplete/Food suggestions */
+.input-with-suggestions {
+  position: relative;
+}
+
+.food-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.food-suggestion {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.2s;
+}
+
+.food-suggestion:hover {
+  background: var(--hover-bg);
+}
+
+.food-suggestion:focus {
+  background: var(--hover-bg);
+  outline: 2px solid var(--primary-color);
+}
+
+.suggestion-emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.suggestion-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.suggestion-category {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--secondary-bg);
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: capitalize;
+  margin-left: auto;
+}
+
+/* Inköpslista */
+.shopping-list {
+  margin-top: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.shopping-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.clear-completed-btn {
+  padding: 4px 8px;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-completed-btn:hover {
+  background: var(--danger-hover);
+}
+
+.add-shopping-item {
+  margin-bottom: 20px;
+}
+
+.input-container {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.shopping-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.shopping-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.suggestion-item {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+  background: var(--hover-bg);
+}
+
+.shopping-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopping-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: var(--item-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.shopping-item.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.shopping-item.food-item {
+  border-left: 4px solid var(--success-color);
+}
+
+.shopping-item.non-food-item {
+  border-left: 4px solid var(--secondary-color);
+}
+
+.item-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shopping-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.item-emoji {
+  font-size: 18px;
+}
+
+.item-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.food-indicator {
+  font-size: 12px;
+  background: var(--success-bg);
+  color: var(--success-color);
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+.remove-shopping-item {
+  padding: 4px 8px;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.remove-shopping-item:hover {
+  background: var(--danger-hover);
+}
+
+.empty-shopping-list {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.shopping-help {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--info-bg);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Notifikationer */
+.notification-toggle {
+  position: fixed;
+  top: 20px;
+  right: 80px;
+  padding: 8px 12px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 1000;
+  transition: background-color 0.2s;
+}
+
+.notification-toggle:hover {
+  background: var(--primary-hover);
+}
+
+.notifications-active {
+  font-size: 12px;
+  color: var(--success-color);
+  background: var(--success-bg);
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+/* Förbättrade recept med urgency */
+.recipe-card.urgent-recipe {
+  border-left: 4px solid var(--warning-color);
+  background: linear-gradient(135deg, var(--card-bg) 0%, var(--warning-bg) 100%);
+}
+
+.urgency-badge {
+  font-size: 12px;
+  background: var(--warning-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.ingredient-item.expiring-ingredient {
+  background: var(--warning-bg);
+  border-left: 3px solid var(--warning-color);
+  padding-left: 12px;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
+.ingredient-item.expired-ingredient {
+  background: var(--danger-bg);
+  border-left: 3px solid var(--danger-color);
+  padding-left: 12px;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
+.expiry-warning {
+  font-size: 11px;
+  color: var(--warning-color);
+  font-weight: bold;
+  background: var(--warning-bg);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.expired-warning {
+  font-size: 11px;
+  color: var(--danger-color);
+  font-weight: bold;
+  background: var(--danger-bg);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.recipe-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.recipe-tag {
+  font-size: 11px;
+  background: var(--secondary-bg);
+  color: var(--secondary-color);
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: lowercase;
+}
+
+/* Responsiv design */
+@media (max-width: 768px) {
+  .notification-toggle {
+    top: 10px;
+    right: 10px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  
+  .food-suggestions {
+    font-size: 14px;
+  }
+  
+  .suggestion-item {
+    padding: 10px 12px;
+  }
+  
+  .shopping-item {
+    padding: 10px;
+  }
+  
+  .input-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .shopping-input {
+    font-size: 16px; /* Förhindra zoom på iOS */
+  }
+}
+
+/* Färgvariabler för nya funktioner */
+:root {
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --success-color: #22c55e;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --warning-color: #f59e0b;
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --danger-color: #ef4444;
+  --danger-hover: #dc2626;
+  --info-bg: rgba(59, 130, 246, 0.1);
+  --secondary-bg: rgba(156, 163, 175, 0.1);
+  --secondary-color: #6b7280;
+  --primary-hover: #3b82f6;
+}
