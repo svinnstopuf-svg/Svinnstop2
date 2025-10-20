@@ -56,6 +56,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       category: item.category,
       emoji: item.emoji,
       unit: item.unit || 'st',
+      quantity: 1,
       completed: false,
       isFood: item.isFood,
       addedAt: Date.now()
@@ -78,6 +79,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       category: 'övrigt',
       emoji: '📦',
       unit: 'st',
+      quantity: 1,
       completed: false,
       isFood: false,
       addedAt: Date.now()
@@ -108,7 +110,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       const inventoryItem = {
         id: crypto.randomUUID(),
         name: item.name,
-        quantity: 1, // Standard kvantitet
+        quantity: item.quantity || 1, // Använd den valda kvantiteten
         unit: item.unit || suggestion.defaultUnit, // Använd enheten från shoppingDatabase först
         expiresAt: suggestion.date,
         category: suggestion.category,
@@ -120,6 +122,17 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         onDirectAddToInventory(inventoryItem)
       }
     }
+  }
+
+  // Uppdatera kvantitet
+  const updateQuantity = (itemId, newQuantity) => {
+    if (newQuantity < 1) return // Minst 1
+    
+    setShoppingItems(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, quantity: newQuantity }
+        : item
+    ))
   }
 
   // Ta bort vara
@@ -190,7 +203,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
             )}
           </div>
           
-          <button type="submit" disabled={!newItem.trim()}>
+          <button type="submit" disabled={!newItem.trim()} className="btn-glass">
             ➥ Lägg till
           </button>
         </div>
@@ -218,19 +231,46 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                 />
                 <label htmlFor={`shopping-${item.id}`} className="item-content">
                   <span className="item-emoji">{item.emoji}</span>
-                  <span className="item-name">{item.name}</span>
-                  {item.isFood && (
-                    <span className="food-indicator">🍽️ Matavra → Mina varor</span>
-                  )}
+                  <div className="item-details">
+                    <span className="item-name">{item.name}</span>
+                    {item.isFood && (
+                      <span className="food-indicator">🍽️ Matavra → Mina varor</span>
+                    )}
+                  </div>
                 </label>
               </div>
-              <button
-                onClick={() => removeItem(item.id)}
-                className="remove-shopping-item"
-                title="Ta bort från inköpslista"
-              >
-                ×
-              </button>
+              
+              <div className="item-actions">
+                <div className="quantity-selector">
+                  <button 
+                    className="quantity-btn"
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    disabled={item.quantity <= 1 || item.completed}
+                    title="Minska antal"
+                  >
+                    −
+                  </button>
+                  <span className="quantity-display">
+                    {item.quantity} {item.unit}
+                  </span>
+                  <button 
+                    className="quantity-btn"
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    disabled={item.completed}
+                    title="Öka antal"
+                  >
+                    +
+                  </button>
+                </div>
+                
+                <button
+                  onClick={() => removeItem(item.id)}
+                  className="remove-shopping-item"
+                  title="Ta bort från inköpslista"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>
