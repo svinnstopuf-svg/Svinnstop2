@@ -2,7 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
-const CACHE_VERSION = 'v7' // Öka denna för att ogiltigförklara gammal cache
+const CACHE_VERSION = 'v8' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -124,10 +124,22 @@ const translateMeasure = (measure) => {
     'clove': 'klyfta',
     'cloves': 'klyftor',
     'piece': 'stycke',
-    'pieces': 'stycken'
+    'pieces': 'stycken',
+    'to taste': 'efter smak',
+    'goz': 'g',  // Felstavning av oz
+    'grams': 'g',
+    'gram': 'g'
   }
   
   const lower = measure.toLowerCase().trim()
+  
+  // Försök hitta enhet i strängen
+  for (const [eng, swe] of Object.entries(translations)) {
+    if (lower.includes(eng)) {
+      return swe
+    }
+  }
+  
   return translations[lower] || measure
 }
 
@@ -136,6 +148,11 @@ const parseMeasurement = (measureStr) => {
   if (!measureStr || measureStr.trim() === '') return { quantity: 1, unit: 'st' }
   
   const str = measureStr.trim().toLowerCase()
+  
+  // Hantera "to taste" och andra beskrivningar
+  if (str.includes('taste') || str.includes('garnish') || str.includes('serve')) {
+    return { quantity: 1, unit: 'efter smak' }
+  }
   
   // Hantera bråk (1/2, 1/4, etc)
   const fractionMatch = str.match(/(\d+)\/(\d+)/)
@@ -150,8 +167,12 @@ const parseMeasurement = (measureStr) => {
   const numberMatch = str.match(/(\d+\.?\d*|\d*\.?\d+)/)
   const quantity = numberMatch ? parseFloat(numberMatch[1]) : 1
   
-  // Extrahera enhet
-  const unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
+  // Extrahera enhet (hantera sammansatta som "6oz" -> "6" och "oz")
+  let unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
+  
+  // Rensa bort vanliga felstavningar och konstigheter
+  unitMatch = unitMatch.replace(/goz/g, 'oz').replace(/^g(?!ram)/g, 'g')
+  
   const unit = unitMatch ? translateMeasure(unitMatch) : 'st'
   
   return { quantity, unit }
