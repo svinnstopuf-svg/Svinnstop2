@@ -1240,7 +1240,17 @@ export default function App() {
                     </div>
                   ) : recommendedRecipes.length === 0 ? (
                     <div className="empty-recipes">
-                      <p>😔 Inga recept hittades i kategorin "{recipeCategory}". Försök en annan kategori!</p>
+                      <p>😔 Inga recept hittades i kategorin "{
+                        recipeCategory === 'alla' ? 'Alla' :
+                        recipeCategory === 'thai' ? 'Thai' :
+                        recipeCategory === 'italienskt' ? 'Italienskt' :
+                        recipeCategory === 'husmanskost' ? 'Husmanskost' :
+                        recipeCategory === 'vegetariskt' ? 'Vegetariskt' :
+                        recipeCategory === 'kyckling' ? 'Kyckling' :
+                        recipeCategory === 'fisk' ? 'Fisk & Skaldjur' :
+                        recipeCategory === 'snabbt' ? 'Snabbt' :
+                        recipeCategory === 'dessert' ? 'Dessert' : recipeCategory
+                      }". Försök en annan kategori!</p>
                     </div>
                   ) : (
                   <div className="recipes">
