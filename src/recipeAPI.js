@@ -2,7 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
-const CACHE_VERSION = 'v5' // Öka denna för att ogiltigförklara gammal cache
+const CACHE_VERSION = 'v6' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -186,7 +186,6 @@ const translateRecipeName = (englishName, category, area) => {
     'Pasta and Beans': 'Italiensk Pasta e Fagioli',
     'Seafood fideuà': 'Spansk Skaldjurspasta',
     'Fettuccine Alfredo': 'Klassisk Fettuccine Alfredo',
-    'Chicken Alfredo Primavera': 'Fettuccine Alfredo med Kyckling och Grönsaker',
     
     // Nötkött
     'Beef and Mustard Pie': 'Mustig Nötköttspaj med Senap',
@@ -257,7 +256,8 @@ export async function fetchPopularRecipes(limit = 50) {
     const categories = ['Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Breakfast', 'Dessert']
     const areas = ['Thai', 'Swedish'] // Lägg till specifika områden
     const allRecipes = []
-    const seenIds = new Set() // För att undvika dubbletter
+    const seenIds = new Set() // För att undvika dubbletter baserat på API-ID
+    const seenNames = new Set() // För att undvika dubbletter baserat på receptnamn
     
     for (const category of categories) {
       try {
@@ -280,8 +280,13 @@ export async function fetchPopularRecipes(limit = 50) {
               const detailData = await detailResponse.json()
               
               if (detailData.meals && detailData.meals[0]) {
-                seenIds.add(meal.idMeal)
-                allRecipes.push(convertToSwedishRecipe(detailData.meals[0]))
+                const recipe = convertToSwedishRecipe(detailData.meals[0])
+                // Skippa om vi redan har ett recept med samma namn
+                if (!seenNames.has(recipe.name)) {
+                  seenIds.add(meal.idMeal)
+                  seenNames.add(recipe.name)
+                  allRecipes.push(recipe)
+                }
               }
               
               // Liten fördröjning för att inte överbelasta API:et
@@ -316,8 +321,13 @@ export async function fetchPopularRecipes(limit = 50) {
               const detailData = await detailResponse.json()
               
               if (detailData.meals && detailData.meals[0]) {
-                seenIds.add(meal.idMeal)
-                allRecipes.push(convertToSwedishRecipe(detailData.meals[0]))
+                const recipe = convertToSwedishRecipe(detailData.meals[0])
+                // Skippa om vi redan har ett recept med samma namn
+                if (!seenNames.has(recipe.name)) {
+                  seenIds.add(meal.idMeal)
+                  seenNames.add(recipe.name)
+                  allRecipes.push(recipe)
+                }
               }
               
               await new Promise(resolve => setTimeout(resolve, 100))
