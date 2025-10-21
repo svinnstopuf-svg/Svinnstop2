@@ -633,7 +633,7 @@ export default function App() {
     return recipesToShow.filter(recipe => {
       const recipeTags = recipe.tags || []
       const recipeArea = recipe.area?.toLowerCase() || ''
-      const recipeCategory = recipe.category?.toLowerCase() || ''
+      const recipeCat = recipe.category?.toLowerCase() || ''
       
       switch (recipeCategory) {
         case 'thai':
