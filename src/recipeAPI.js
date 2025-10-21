@@ -2,7 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
-const CACHE_VERSION = 'v4' // Öka denna för att ogiltigförklara gammal cache
+const CACHE_VERSION = 'v5' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -242,13 +242,13 @@ const translateRecipeName = (englishName, category, area) => {
 }
 
 // Hämta recept från TheMealDB API
-export async function fetchPopularRecipes(limit = 20) {
+export async function fetchPopularRecipes(limit = 50) {
   try {
     // Kolla cache först
     const cached = getCachedRecipes()
     if (cached && cached.length > 0) {
       console.log('📦 Använder cachade recept från internet')
-      return cached.slice(0, limit)
+      return cached // Returnera alla cachade recept, utan begränsning
     }
     
     console.log('🌐 Hämtar populära recept från internet...')
@@ -341,7 +341,7 @@ export async function fetchPopularRecipes(limit = 20) {
     if (allRecipes.length > 0) {
       cacheRecipes(allRecipes)
       console.log(`✅ Hämtade ${allRecipes.length} recept från internet`)
-      return allRecipes.slice(0, limit)
+      return allRecipes // Returnera alla recept, utan begränsning
     }
     
     // Om inga recept hämtades, returnera fallback

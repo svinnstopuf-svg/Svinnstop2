@@ -260,7 +260,7 @@ export default function App() {
     const loadInternetRecipes = async () => {
       setLoadingRecipes(true)
       try {
-        const recipes = await fetchPopularRecipes(20)
+        const recipes = await fetchPopularRecipes(50) // Hämta upp till 50 recept
         setInternetRecipes(recipes)
       } catch (error) {
         console.error('Kunde inte ladda recept:', error)
