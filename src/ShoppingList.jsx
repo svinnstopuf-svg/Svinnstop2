@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { searchShoppingItems } from './shoppingDatabase'
 import { getExpiryDateSuggestion } from './foodDatabase'
+import { SV_UNITS, getSuggestedUnitKey } from './App'
 
 export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
   const [shoppingItems, setShoppingItems] = useState([])
@@ -42,12 +43,15 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   
   // Lägg till vara från förslag
   const addFromSuggestion = (item) => {
+    const unitKey = getSuggestedUnitKey(item.name)
+    const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+    
     const newShoppingItem = {
       id: Date.now() + Math.random(), // Mer unik ID
       name: item.name,
       category: item.category,
       emoji: item.emoji,
-      unit: item.unit || 'st',
+      unit: unit,
       quantity: 1,
       completed: false,
       isFood: item.isFood || false,
@@ -65,12 +69,15 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     e.preventDefault()
     if (!newItem.trim()) return
 
+    const unitKey = getSuggestedUnitKey(newItem.trim())
+    const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+
     const newShoppingItem = {
       id: Date.now() + Math.random(),
       name: newItem.trim(),
       category: 'övrigt',
       emoji: '📦',
-      unit: 'st',
+      unit: unit,
       quantity: 1,
       completed: false,
       isFood: false,

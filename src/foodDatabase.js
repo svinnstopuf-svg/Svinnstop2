@@ -96,8 +96,9 @@ export function searchFoods(query) {
   
   const searchTerm = query.toLowerCase().trim()
   const results = []
+  const allFoods = getAllFoods()
   
-  SWEDISH_FOODS.forEach(food => {
+  allFoods.forEach(food => {
     const name = food.name.toLowerCase()
     
     // Exakt match (högsta prioritet)
@@ -174,6 +175,56 @@ export function getExpiryDateSuggestion(foodName) {
     defaultUnit: 'st',
     emoji: '📦'
   }
+}
+
+// Dynamiska ingredienser från recept (lagras i localStorage)
+const LEARNED_INGREDIENTS_KEY = 'svinnstop_learned_ingredients'
+
+function getLearnedIngredients() {
+  try {
+    const stored = localStorage.getItem(LEARNED_INGREDIENTS_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch (e) {
+    return []
+  }
+}
+
+function saveLearnedIngredient(ingredient) {
+  const learned = getLearnedIngredients()
+  
+  // Kolla om ingrediensen redan finns
+  const exists = learned.some(item => 
+    item.name.toLowerCase() === ingredient.name.toLowerCase()
+  )
+  
+  if (!exists) {
+    learned.push({
+      name: ingredient.name,
+      category: 'recept',
+      emoji: '🍳',
+      defaultDays: 7,
+      unit: ingredient.unit || 'st',
+      learnedFrom: 'recipe'
+    })
+    
+    try {
+      localStorage.setItem(LEARNED_INGREDIENTS_KEY, JSON.stringify(learned))
+    } catch (e) {
+      console.warn('Kunde inte spara lärd ingrediens:', e)
+    }
+  }
+}
+
+// Lär sig ingredienser från ett recept
+export function learnIngredientsFromRecipe(ingredients) {
+  ingredients.forEach(ingredient => {
+    saveLearnedIngredient(ingredient)
+  })
+}
+
+// Kombinera statiska och lärda matvaror för sökning
+export function getAllFoods() {
+  return [...SWEDISH_FOODS, ...getLearnedIngredients()]
 }
 
 export { SWEDISH_FOODS }

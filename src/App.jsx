@@ -4,7 +4,7 @@ import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
-import { searchFoods, getExpiryDateSuggestion } from './foodDatabase'
+import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
 import './mobile.css'
 import './newFeatures.css'
@@ -51,7 +51,7 @@ function daysUntil(dateStr) {
 
 
 // Hämta föreslagen enhetsnyckel för antal-etikett baserat på varans namn
-function getSuggestedUnitKey(itemName) {
+export function getSuggestedUnitKey(itemName) {
   if (!itemName.trim()) return 'defaultUnit'
   
   const name = itemName.toLowerCase()
@@ -106,7 +106,7 @@ const STORAGE_KEY = 'svinnstop_items'
 const THEME_KEY = 'svinnstop_theme'
 
 // Svensk enhets-karta (används för UI-tips och lagrad enhet)
-const SV_UNITS = {
+export const SV_UNITS = {
   liters: 'liter',
   loaves: 'limpor',
   kg: 'kg',
@@ -117,7 +117,7 @@ const SV_UNITS = {
 }
 
 // Förkortningar för enheter
-function abbreviateUnit(unit) {
+export function abbreviateUnit(unit) {
   if (!unit) return ''
   
   const unitLower = unit.toLowerCase()
@@ -548,6 +548,9 @@ export default function App() {
   const addMatvarorToShoppingList = (ingredients) => {
     const currentShoppingList = JSON.parse(localStorage.getItem('svinnstop_shopping_list') || '[]')
     
+    // Lär appen om nya ingredienser från receptet
+    learnIngredientsFromRecipe(ingredients)
+    
     ingredients.forEach(ingredient => {
       // Kolla om varan redan finns i inköpslistan
       const existingItem = currentShoppingList.find(item => 
@@ -612,7 +615,11 @@ export default function App() {
     return result
   }, [sorted, filter, searchQuery])
 
-  const suggestions = useMemo(() => suggestRecipes(items), [items])
+  // Mina recept - använd endast recept från rekommenderade (internet-recept)
+  const suggestions = useMemo(() => {
+    if (internetRecipes.length === 0) return []
+    return suggestRecipes(items, internetRecipes)
+  }, [items, internetRecipes])
   
   // Rekommenderade recept från internet med kategorifilter
   const recommendedRecipes = useMemo(() => {
@@ -1120,7 +1127,7 @@ export default function App() {
                       {suggestions.map(r => (
                         <div key={r.id} className={`recipe-card ${r.hasExpiringIngredients ? 'urgent-recipe' : ''}`}>
                           <div className="recipe-header">
-                            <h3>{r.name}</h3>
+                            <h3 className="notranslate">{r.name}</h3>
                             <div className="recipe-meta">
                               <span className="servings">👥 {r.servings} portioner</span>
                               <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
@@ -1257,7 +1264,7 @@ export default function App() {
                     {recommendedRecipes.map(r => (
                       <div key={r.id} className="recipe-card recommended-recipe">
                         <div className="recipe-header">
-                          <h3>{r.name}</h3>
+                          <h3 className="notranslate">{r.name}</h3>
                           <div className="recipe-meta">
                             <span className="servings">👥 {r.servings} portioner</span>
                             <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>

@@ -643,6 +643,39 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   font-size: 12px;
   margin-left: auto;
 }
+
+/* Servings control */
+.servings-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.serving-btn {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.serving-btn:hover {
+  background: var(--glass-hover);
+  transform: scale(1.1);
+}
+
+.serving-btn:active {
+  transform: scale(0.95);
+}
 .recipe-instructions p {
   margin: 0;
   line-height: 1.5;

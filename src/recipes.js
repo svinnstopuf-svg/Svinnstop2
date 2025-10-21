@@ -204,11 +204,11 @@ function daysUntil(dateStr) {
   return diff
 }
 
-export function suggestRecipes(items) {
+export function suggestRecipes(items, internetRecipes = []) {
   if (items.length === 0) return []
   
-  // Använd alltid svenska recept
-  const languageRecipes = recipes.sv
+  // Använd internet-recept om tillgängliga, annars fall back på svenska recept
+  const languageRecipes = internetRecipes.length > 0 ? internetRecipes : recipes.sv
   
   // Skapa en karta över tillgängliga ingredienser med deras mängder och utgångsdatum
   const availableIngredients = new Map()
