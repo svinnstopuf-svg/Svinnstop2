@@ -993,6 +993,215 @@
   }
 }
 
+/* Receptkategori filter */
+.recipe-category-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.category-filter-btn {
+  padding: 8px 16px;
+  background: var(--secondary-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.category-filter-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border-color: var(--primary-color);
+}
+
+.category-filter-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Laddar recept meddelande */
+.loading-recipes {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.empty-recipes {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+/* Bulk Edit Panel */
+.bulk-edit-panel {
+  background: var(--warning-bg);
+  border: 2px solid var(--warning-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.bulk-edit-header {
+  margin-bottom: 16px;
+}
+
+.bulk-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bulk-icon {
+  font-size: 24px;
+}
+
+.bulk-text {
+  flex: 1;
+}
+
+.bulk-count {
+  background: white;
+  color: var(--warning-color);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bulk-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.bulk-action-btn {
+  padding: 8px 16px;
+  background: white;
+  color: var(--warning-color);
+  border: 1px solid var(--warning-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulk-action-btn:hover {
+  background: var(--warning-color);
+  color: white;
+}
+
+.bulk-date-section {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.bulk-date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.bulk-date-header h4 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.selected-count {
+  background: var(--warning-color);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bulk-date-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.bulk-apply-btn {
+  padding: 10px 20px;
+  background: var(--success-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.bulk-apply-btn:hover:not(:disabled) {
+  background: #16a34a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+}
+
+.bulk-apply-btn:disabled {
+  background: var(--secondary-bg);
+  color: var(--secondary-color);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Responsiv design för kategorifilter */
+@media (max-width: 768px) {
+  .recipe-category-filters {
+    padding: 12px;
+    gap: 6px;
+  }
+  
+  .category-filter-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .bulk-edit-panel {
+    padding: 16px;
+  }
+  
+  .bulk-status {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .bulk-date-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .bulk-apply-btn {
+    width: 100%;
+  }
+}
+
 /* Färgvariabler för nya funktioner */
 :root {
   --success-bg: rgba(34, 197, 94, 0.1);

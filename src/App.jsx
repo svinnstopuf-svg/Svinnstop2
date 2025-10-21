@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { suggestRecipes, recipes } from './recipes'
+import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
@@ -170,6 +171,9 @@ export default function App() {
   const [bulkExpiryDate, setBulkExpiryDate] = useState('')
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [recipeTab, setRecipeTab] = useState('mine') // 'mine' eller 'recommended'
+  const [internetRecipes, setInternetRecipes] = useState([])
+  const [loadingRecipes, setLoadingRecipes] = useState(false)
+  const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -250,6 +254,23 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('svinnstop_active_tab', activeTab)
   }, [activeTab])
+  
+  // Hämta populära recept från internet vid start
+  useEffect(() => {
+    const loadInternetRecipes = async () => {
+      setLoadingRecipes(true)
+      try {
+        const recipes = await fetchPopularRecipes(20)
+        setInternetRecipes(recipes)
+      } catch (error) {
+        console.error('Kunde inte ladda recept:', error)
+      } finally {
+        setLoadingRecipes(false)
+      }
+    }
+    
+    loadInternetRecipes()
+  }, [])
   
   // Stäng inställningsmeny när man klickar utanför
   useEffect(() => {
@@ -593,11 +614,49 @@ export default function App() {
 
   const suggestions = useMemo(() => suggestRecipes(items), [items])
   
-  // Rekommenderade recept (alla recept, inte bara de man har ingredienser till)
+  // Rekommenderade recept från internet med kategorifilter
   const recommendedRecipes = useMemo(() => {
-    const allRecipes = recipes.sv || []
-    return allRecipes.slice(0, 8) // Visa 8 rekommenderade recept
-  }, [])
+    let recipesToShow = []
+    
+    if (internetRecipes.length > 0) {
+      recipesToShow = internetRecipes
+    } else {
+      // Fallback till lokala recept om internet-recept inte laddats än
+      recipesToShow = recipes.sv || []
+    }
+    
+    // Filtrera baserat på vald kategori
+    if (recipeCategory === 'alla') {
+      return recipesToShow
+    }
+    
+    return recipesToShow.filter(recipe => {
+      const recipeTags = recipe.tags || []
+      const recipeArea = recipe.area?.toLowerCase() || ''
+      const recipeCategory = recipe.category?.toLowerCase() || ''
+      
+      switch (recipeCategory) {
+        case 'thai':
+          return recipeArea === 'thai' || recipeTags.includes('thai') || recipeTags.includes('asiatiskt')
+        case 'italienskt':
+          return recipeArea === 'italian' || recipeTags.includes('italian') || recipeTags.includes('pasta') || recipeTags.includes('pizza')
+        case 'husmanskost':
+          return recipeArea === 'swedish' || recipeTags.includes('swedish') || recipeTags.includes('husmanskost') || recipeTags.includes('klassiskt')
+        case 'vegetariskt':
+          return recipeTags.includes('vegetarian') || recipeTags.includes('vegetariskt')
+        case 'kyckling':
+          return recipeTags.includes('chicken') || recipeTags.includes('kyckling')
+        case 'fisk':
+          return recipeTags.includes('seafood') || recipeTags.includes('fisk') || recipeTags.includes('salmon') || recipeTags.includes('lax')
+        case 'snabbt':
+          return recipeTags.includes('snabbt') || recipeTags.includes('quick') || recipe.difficulty === 'Lätt'
+        case 'dessert':
+          return recipeTags.includes('dessert') || recipeTags.includes('efterrätt') || recipeTags.includes('sweet')
+        default:
+          return true
+      }
+    })
+  }, [internetRecipes, recipeCategory])
   
   // Hämta föreslagen enhet baserat på nuvarande varans namn
   const suggestedUnitKey = useMemo(() => {
@@ -1117,6 +1176,73 @@ export default function App() {
               {/* Rekommenderade recept tab */}
               {recipeTab === 'recommended' && (
                 <div className="recipe-tab-content">
+                  {/* Kategorifilter */}
+                  <div className="recipe-category-filters">
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'alla' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('alla')}
+                    >
+                      🍽️ Alla
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'thai' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('thai')}
+                    >
+                      🌶️ Thai
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'italienskt' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('italienskt')}
+                    >
+                      🍝 Italienskt
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'husmanskost' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('husmanskost')}
+                    >
+                      🇸🇪 Husmanskost
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'vegetariskt' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('vegetariskt')}
+                    >
+                      🥗 Vegetariskt
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'kyckling' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('kyckling')}
+                    >
+                      🍗 Kyckling
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'fisk' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('fisk')}
+                    >
+                      🐟 Fisk & Skaldjur
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'snabbt' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('snabbt')}
+                    >
+                      ⚡ Snabbt
+                    </button>
+                    <button 
+                      className={`category-filter-btn ${recipeCategory === 'dessert' ? 'active' : ''}`}
+                      onClick={() => setRecipeCategory('dessert')}
+                    >
+                      🍰 Dessert
+                    </button>
+                  </div>
+                  
+                  {loadingRecipes ? (
+                    <div className="loading-recipes">
+                      <p>🍳 Laddar populära recept från internet...</p>
+                    </div>
+                  ) : recommendedRecipes.length === 0 ? (
+                    <div className="empty-recipes">
+                      <p>😔 Inga recept hittades i kategorin "{recipeCategory}". Försök en annan kategori!</p>
+                    </div>
+                  ) : (
                   <div className="recipes">
                     {recommendedRecipes.map(r => (
                       <div key={r.id} className="recipe-card recommended-recipe">
@@ -1165,6 +1291,7 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+                  )}
                 </div>
               )}
             </section>
