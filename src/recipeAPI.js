@@ -486,20 +486,20 @@ function getSwedishFallbackRecipes() {
     },
     {
       id: 'swedish-2',
-      name: 'Janssons Frestelse',
+      name: 'Pannbiff med Lök',
       servings: 4,
       ingredients: [
-        { name: 'potatis', quantity: 800, unit: 'g' },
-        { name: 'ansjovis', quantity: 125, unit: 'g' },
+        { name: 'köttfärs', quantity: 600, unit: 'g' },
+        { name: 'ägg', quantity: 1, unit: 'stycke' },
+        { name: 'mjölk', quantity: 1, unit: 'dl' },
         { name: 'lök', quantity: 2, unit: 'stycken' },
-        { name: 'grädde', quantity: 3, unit: 'dl' },
         { name: 'smör', quantity: 50, unit: 'g' },
-        { name: 'brödsmulor', quantity: 0.5, unit: 'dl' }
+        { name: 'grädde', quantity: 2, unit: 'dl' }
       ],
-      instructions: 'Sätt ugn på 200°C. Skala och skiva potatis tunt. Skiva lök. Smör en ugnssäker form. Varva potatis, lök och ansjovisfiléer. Häll på halva grädden. Gratinera i ugnen 30 min. Häll på resten av grädden. Strö brödsmulor och smörflingor på toppen. Gratinera ytterligare 15-20 min tills gyllene.',
-      cookingTime: '60 minuter',
-      difficulty: 'Medel',
-      tags: ['husmanskost', 'gratinerad', 'swedish'],
+      instructions: 'Blanda köttfärs, ägg, mjölk, salt och peppar. Forma till platta biffar. Stek i smör tills genomstekta. Lägg åt sidan. Skiva lök och stek mjuk. Häll på grädde och låt koka ihop. Lägg tillbaka biffarna och värm. Servera med potatis och grönsaker.',
+      cookingTime: '30 minuter',
+      difficulty: 'Lätt',
+      tags: ['husmanskost', 'vardagsmat', 'swedish'],
       category: 'Swedish',
       area: 'Swedish',
       source: 'Lokal databas'
