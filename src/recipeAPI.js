@@ -2,7 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
-const CACHE_VERSION = 'v3' // Öka denna för att ogiltigförklara gammal cache
+const CACHE_VERSION = 'v4' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -206,6 +206,11 @@ const translateRecipeName = (englishName, category, area) => {
     'Thai Green Curry': 'Thailändsk Grön Curry',
     'Pad Thai': 'Klassisk Pad Thai med Räkor',
     'Thai Red Curry': 'Thailändsk Röd Curry',
+    'Tom Yum Soup': 'Het och Sur Thaisoppa Tom Yum',
+    'Tom Kha Gai': 'Kryddig Kokossoppa med Kyckling',
+    'Massaman Beef': 'Mild Massaman-Curry med Nötkött',
+    'Pad See Ew': 'Wokad Ris-Nudlar Pad See Ew',
+    'Thai Fried Rice': 'Thailändskt Stekt Ris',
     
     // Vegetariskt
     'Mushroom & Chestnut Rotolo': 'Italiensk Svamprulad',
@@ -250,6 +255,7 @@ export async function fetchPopularRecipes(limit = 20) {
     
     // Hämta flera kategorier för variation
     const categories = ['Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Breakfast', 'Dessert']
+    const areas = ['Thai', 'Swedish'] // Lägg till specifika områden
     const allRecipes = []
     const seenIds = new Set() // För att undvika dubbletter
     
@@ -288,6 +294,47 @@ export async function fetchPopularRecipes(limit = 20) {
       } catch (err) {
         console.warn(`Kunde inte hämta recept från kategori ${category}:`, err)
       }
+    }
+    
+    // Hämta recept från specifika områden (Thai, Swedish, etc.)
+    for (const area of areas) {
+      try {
+        const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?a=${area}`)
+        const data = await response.json()
+        
+        if (data.meals) {
+          // Ta 5 recept från varje område för att säkerställa tillräcklig täckning
+          const areaRecipes = data.meals.slice(0, 5)
+          
+          for (const meal of areaRecipes) {
+            if (seenIds.has(meal.idMeal)) {
+              continue
+            }
+            
+            try {
+              const detailResponse = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`)
+              const detailData = await detailResponse.json()
+              
+              if (detailData.meals && detailData.meals[0]) {
+                seenIds.add(meal.idMeal)
+                allRecipes.push(convertToSwedishRecipe(detailData.meals[0]))
+              }
+              
+              await new Promise(resolve => setTimeout(resolve, 100))
+            } catch (err) {
+              console.warn(`Kunde inte hämta detaljer för ${meal.strMeal}:`, err)
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`Kunde inte hämta recept från område ${area}:`, err)
+      }
+    }
+    
+    // Lägg till svenska fallback-recept om inga svenska recept hittades
+    const swedishRecipes = allRecipes.filter(r => r.area === 'Swedish' || r.tags.includes('swedish'))
+    if (swedishRecipes.length < 3) {
+      allRecipes.push(...getSwedishFallbackRecipes())
     }
     
     // Cacha resultatet
@@ -412,7 +459,95 @@ export function clearRecipeCache() {
   console.log('🗑️ Receptcache rensad')
 }
 
-// Fallback-recept om API misslyckas (använd befintliga svenska recept)
+// Svenska husmanskost-recept som fallback
+function getSwedishFallbackRecipes() {
+  return [
+    {
+      id: 'swedish-1',
+      name: 'Köttbullar med Brunsås',
+      servings: 4,
+      ingredients: [
+        { name: 'köttfärs', quantity: 500, unit: 'g' },
+        { name: 'ägg', quantity: 1, unit: 'stycke' },
+        { name: 'brödsmulor', quantity: 1, unit: 'dl' },
+        { name: 'mjölk', quantity: 1, unit: 'dl' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'smör', quantity: 50, unit: 'g' },
+        { name: 'grädde', quantity: 2, unit: 'dl' },
+        { name: 'soja', quantity: 1, unit: 'msk' }
+      ],
+      instructions: 'Blanda köttfärs, ägg, brödsmulor blötta i mjölk, hackad lök, salt och peppar. Rulla till bullar. Stek i smör tills genomstekta. Lägg åt sidan. Gör brunsås av stekskyarna, mjöl, buljong och grädde. Smaka av med soja. Servera med potatis, lingon och inlagd gurka.',
+      cookingTime: '45 minuter',
+      difficulty: 'Medel',
+      tags: ['husmanskost', 'klassiskt', 'swedish'],
+      category: 'Swedish',
+      area: 'Swedish',
+      source: 'Lokal databas'
+    },
+    {
+      id: 'swedish-2',
+      name: 'Janssons Frestelse',
+      servings: 4,
+      ingredients: [
+        { name: 'potatis', quantity: 800, unit: 'g' },
+        { name: 'ansjovis', quantity: 125, unit: 'g' },
+        { name: 'lök', quantity: 2, unit: 'stycken' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'smör', quantity: 50, unit: 'g' },
+        { name: 'brödsmulor', quantity: 0.5, unit: 'dl' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Skala och skiva potatis tunt. Skiva lök. Smör en ugnssäker form. Varva potatis, lök och ansjovisfiléer. Häll på halva grädden. Gratinera i ugnen 30 min. Häll på resten av grädden. Strö brödsmulor och smörflingor på toppen. Gratinera ytterligare 15-20 min tills gyllene.',
+      cookingTime: '60 minuter',
+      difficulty: 'Medel',
+      tags: ['husmanskost', 'gratinerad', 'swedish'],
+      category: 'Swedish',
+      area: 'Swedish',
+      source: 'Lokal databas'
+    },
+    {
+      id: 'swedish-3',
+      name: 'Raggmunk med Fläsk',
+      servings: 4,
+      ingredients: [
+        { name: 'potatis', quantity: 600, unit: 'g' },
+        { name: 'ägg', quantity: 2, unit: 'stycken' },
+        { name: 'mjölk', quantity: 2, unit: 'dl' },
+        { name: 'mjöl', quantity: 1, unit: 'dl' },
+        { name: 'fläsk', quantity: 400, unit: 'g' },
+        { name: 'smör', quantity: 75, unit: 'g' }
+      ],
+      instructions: 'Riv potatisen grovt. Vispa ihop ägg, mjölk, mjöl, salt och peppar till en smet. Blanda i riven potatis. Stek fläsket knaprig, lägg åt sidan. Stek raggmunkarna i smör, ca 3 min per sida. Servera med stekt fläsk och lingonsylt.',
+      cookingTime: '35 minuter',
+      difficulty: 'Lätt',
+      tags: ['husmanskost', 'klassiskt', 'swedish'],
+      category: 'Swedish',
+      area: 'Swedish',
+      source: 'Lokal databas'
+    },
+    {
+      id: 'swedish-4',
+      name: 'Pytt i Panna',
+      servings: 4,
+      ingredients: [
+        { name: 'potatis', quantity: 600, unit: 'g' },
+        { name: 'kött', quantity: 300, unit: 'g' },
+        { name: 'korv', quantity: 200, unit: 'g' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'smör', quantity: 50, unit: 'g' },
+        { name: 'ägg', quantity: 4, unit: 'stycken' }
+      ],
+      instructions: 'Skala och tärna potatis. Koka tills nästan möra. Tärna kött, korv och lök. Stek allt i smör på hög värme tills gyllenbrunt och knaprig. Krydda med salt och peppar. Stek äggulor. Servera med stekt ägg, rödbetssallad och inlagd gurka.',
+      cookingTime: '30 minuter',
+      difficulty: 'Lätt',
+      tags: ['husmanskost', 'snabbt', 'swedish'],
+      category: 'Swedish',
+      area: 'Swedish',
+      source: 'Lokal databas'
+    }
+  ]
+}
+
+// Fallback-recept om API misslyckas (använd befíntliga svenska recept)
 function getFallbackRecipes() {
   return [
     {
