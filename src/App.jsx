@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { suggestRecipes } from './recipes'
+import { suggestRecipes, recipes } from './recipes'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
@@ -169,6 +169,7 @@ export default function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false)
   const [bulkExpiryDate, setBulkExpiryDate] = useState('')
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [recipeTab, setRecipeTab] = useState('mine') // 'mine' eller 'recommended'
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -522,6 +523,43 @@ export default function App() {
     }, 100)
   }
   
+  // Lägg till matvaror från recept i inköpslistan
+  const addMatvarorToShoppingList = (ingredients) => {
+    const currentShoppingList = JSON.parse(localStorage.getItem('svinnstop_shopping_list') || '[]')
+    
+    ingredients.forEach(ingredient => {
+      // Kolla om varan redan finns i inköpslistan
+      const existingItem = currentShoppingList.find(item => 
+        item.name.toLowerCase() === ingredient.name.toLowerCase()
+      )
+      
+      if (!existingItem) {
+        const newShoppingItem = {
+          id: Date.now() + Math.random(),
+          name: ingredient.name,
+          category: 'recept',
+          emoji: '📋',
+          unit: ingredient.unit,
+          quantity: ingredient.quantity,
+          completed: false,
+          isFood: true,
+          addedAt: Date.now()
+        }
+        
+        currentShoppingList.unshift(newShoppingItem)
+      } else {
+        // Uppdatera kvantiteten om varan redan finns
+        existingItem.quantity = Math.max(existingItem.quantity, ingredient.quantity)
+      }
+    })
+    
+    // Spara uppdaterad lista
+    localStorage.setItem('svinnstop_shopping_list', JSON.stringify(currentShoppingList))
+    
+    // Visa bekräftelse
+    alert(`✅ Lade till ${ingredients.length} matvaror i inköpslistan!`)
+  }
+  
 
   const sorted = useMemo(() => {
     const copy = [...items]
@@ -554,6 +592,12 @@ export default function App() {
   }, [sorted, filter, searchQuery])
 
   const suggestions = useMemo(() => suggestRecipes(items), [items])
+  
+  // Rekommenderade recept (alla recept, inte bara de man har ingredienser till)
+  const recommendedRecipes = useMemo(() => {
+    const allRecipes = recipes.sv || []
+    return allRecipes.slice(0, 8) // Visa 8 rekommenderade recept
+  }, [])
   
   // Hämta föreslagen enhet baserat på nuvarande varans namn
   const suggestedUnitKey = useMemo(() => {
@@ -980,71 +1024,147 @@ export default function App() {
           <div className="tab-panel">
             <section className="card">
               <div className="section-header">
-                <h2>🍳 Receptförslag</h2>
-                {notificationsEnabled && (
-                  <span className="notifications-active">🔔 Notiser aktiva</span>
-                )}
+                <h2>🍳 Recept</h2>
+                <p className="section-subtitle">Hitta inspiration för din matlagning</p>
               </div>
-              {suggestions.length === 0 ? (
-                <div className="empty-recipes">
-                  <p>{items.length === 0 
-                    ? '📦 Lägg till varor i ditt kölskåp för att få skräddarsydda receptförslag!' 
-                    : '🔍 Inga recept hittades med dina nuvarande ingredienser. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
-                  </p>
-                </div>
-              ) : (
-                <div className="recipes">
-                  {suggestions.map(r => (
-                    <div key={r.id} className={`recipe-card ${r.hasExpiringIngredients ? 'urgent-recipe' : ''}`}>
-                      <div className="recipe-header">
-                        <h3>{r.name}</h3>
-                        <div className="recipe-meta">
-                          <span className="servings">👥 {r.servings} portioner</span>
-                          <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
-                          <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
-                          {r.hasExpiringIngredients && (
-                            <span className="urgency-badge">⚠️ Snart utgånget ({r.expiringIngredientsCount})</span>
+              
+              {/* Sub-tabs för recept */}
+              <div className="recipe-tabs">
+                <button 
+                  className={`recipe-tab-btn ${recipeTab === 'mine' ? 'active' : ''}`}
+                  onClick={() => setRecipeTab('mine')}
+                >
+                  🍽️ Mina recept
+                  {suggestions.length > 0 && <span className="tab-count">{suggestions.length}</span>}
+                </button>
+                <button 
+                  className={`recipe-tab-btn ${recipeTab === 'recommended' ? 'active' : ''}`}
+                  onClick={() => setRecipeTab('recommended')}
+                >
+                  🍳 Rekommenderade
+                  <span className="tab-count">{recommendedRecipes.length}</span>
+                </button>
+              </div>
+              
+              {/* Mina recept tab */}
+              {recipeTab === 'mine' && (
+                <div className="recipe-tab-content">
+                  {suggestions.length === 0 ? (
+                    <div className="empty-recipes">
+                      <p>{items.length === 0 
+                        ? '📦 Lägg till varor i ditt kölskåp för att få personliga receptförslag!' 
+                        : '🔍 Inga recept hittades med dina nuvarande matvaror. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="recipes">
+                      {suggestions.map(r => (
+                        <div key={r.id} className={`recipe-card ${r.hasExpiringIngredients ? 'urgent-recipe' : ''}`}>
+                          <div className="recipe-header">
+                            <h3>{r.name}</h3>
+                            <div className="recipe-meta">
+                              <span className="servings">👥 {r.servings} portioner</span>
+                              <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
+                              <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
+                              {r.hasExpiringIngredients && (
+                                <span className="urgency-badge">⚠️ Snart utgånget ({r.expiringIngredientsCount})</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="recipe-ingredients">
+                            <h4>Matvaror som behövs:</h4>
+                            <ul>
+                              {r.usedIngredients.map((ingredient, idx) => (
+                                <li key={idx} className={`ingredient-item ${ingredient.isExpiring ? 'expiring-ingredient' : ''} ${ingredient.isExpired ? 'expired-ingredient' : ''}`}>
+                                  <span className="ingredient-amount">
+                                    {ingredient.quantity} {ingredient.unit}
+                                  </span>
+                                  <span className="ingredient-name">{ingredient.name}</span>
+                                  <span className="ingredient-available">
+                                    <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
+                                    {ingredient.isExpiring && (
+                                      <span className="expiry-warning">⚠️ Går ut om {ingredient.daysLeft} dag{ingredient.daysLeft !== 1 ? 'ar' : ''}</span>
+                                    )}
+                                    {ingredient.isExpired && (
+                                      <span className="expired-warning">🚨 Utgången</span>
+                                    )}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div className="recipe-instructions">
+                            <h4>Instruktioner:</h4>
+                            <p>{r.instructions}</p>
+                          </div>
+                          
+                          {r.tags && (
+                            <div className="recipe-tags">
+                              {r.tags.map(tag => (
+                                <span key={tag} className="recipe-tag">#{tag}</span>
+                              ))}
+                            </div>
                           )}
                         </div>
-                      </div>
-                      
-                      <div className="recipe-ingredients">
-                        <h4>Ingredienser som behövs:</h4>
-                        <ul>
-                          {r.usedIngredients.map((ingredient, idx) => (
-                            <li key={idx} className={`ingredient-item ${ingredient.isExpiring ? 'expiring-ingredient' : ''} ${ingredient.isExpired ? 'expired-ingredient' : ''}`}>
-                              <span className="ingredient-amount">
-                                {ingredient.quantity} {ingredient.unit}
-                              </span>
-                              <span className="ingredient-name">{ingredient.name}</span>
-                              <span className="ingredient-available">
-                                <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
-                                {ingredient.isExpiring && (
-                                  <span className="expiry-warning">⚠️ Går ut om {ingredient.daysLeft} dag{ingredient.daysLeft !== 1 ? 'ar' : ''}</span>
-                                )}
-                                {ingredient.isExpired && (
-                                  <span className="expired-warning">🚨 Utgången</span>
-                                )}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div className="recipe-instructions">
-                        <h4>Instruktioner:</h4>
-                        <p>{r.instructions}</p>
-                      </div>
-                      
-                      {r.tags && (
-                        <div className="recipe-tags">
-                          {r.tags.map(tag => (
-                            <span key={tag} className="recipe-tag">#{tag}</span>
-                          ))}
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+              
+              {/* Rekommenderade recept tab */}
+              {recipeTab === 'recommended' && (
+                <div className="recipe-tab-content">
+                  <div className="recipes">
+                    {recommendedRecipes.map(r => (
+                      <div key={r.id} className="recipe-card recommended-recipe">
+                        <div className="recipe-header">
+                          <h3>{r.name}</h3>
+                          <div className="recipe-meta">
+                            <span className="servings">👥 {r.servings} portioner</span>
+                            <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
+                            <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="recipe-ingredients">
+                          <h4>Matvaror som behövs:</h4>
+                          <ul>
+                            {r.ingredients.map((ingredient, idx) => (
+                              <li key={idx} className="ingredient-item">
+                                <span className="ingredient-amount">
+                                  {ingredient.quantity} {ingredient.unit}
+                                </span>
+                                <span className="ingredient-name">{ingredient.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <button 
+                            className="add-to-shopping-btn"
+                            onClick={() => addMatvarorToShoppingList(r.ingredients)}
+                            title="Lägg till alla matvaror i inköpslistan"
+                          >
+                            🛍️ Lägg till i inköpslista
+                          </button>
+                        </div>
+                        
+                        <div className="recipe-instructions">
+                          <h4>Instruktioner:</h4>
+                          <p>{r.instructions}</p>
+                        </div>
+                        
+                        {r.tags && (
+                          <div className="recipe-tags">
+                            {r.tags.map(tag => (
+                              <span key={tag} className="recipe-tag">#{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </section>
