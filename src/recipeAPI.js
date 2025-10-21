@@ -2,7 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
-const CACHE_VERSION = 'v2' // Öka denna för att ogiltigförklara gammal cache
+const CACHE_VERSION = 'v3' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -185,6 +185,8 @@ const translateRecipeName = (englishName, category, area) => {
     'Rigatoni with fennel and mascarpone': 'Krämig Rigatoni med Fänkål',
     'Pasta and Beans': 'Italiensk Pasta e Fagioli',
     'Seafood fideuà': 'Spansk Skaldjurspasta',
+    'Fettuccine Alfredo': 'Klassisk Fettuccine Alfredo',
+    'Chicken Alfredo Primavera': 'Fettuccine Alfredo med Kyckling och Grönsaker',
     
     // Nötkött
     'Beef and Mustard Pie': 'Mustig Nötköttspaj med Senap',
