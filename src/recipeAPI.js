@@ -2,6 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
+const CACHE_VERSION = 'v2' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -163,6 +164,76 @@ const getSwedishDifficulty = (ingredientCount) => {
   return 'Svår'
 }
 
+// Översätt receptnamn till svenska och gör dem aptitliga
+const translateRecipeName = (englishName, category, area) => {
+  // Specifika översättningar för populära recept
+  const translations = {
+    // Kycklingrätter
+    'Teriyaki Chicken Casserole': 'Saftig Teriyaki-Kycklinggryta',
+    'Chicken Couscous': 'Kryddig Kycklingcouscous med Grönsaker',
+    'Chicken Handi': 'Indisk Kyckling i Kryddig Sås',
+    'Katsu Chicken curry': 'Japansk Katsu-Curry med Kyckling',
+    'Kung Pao Chicken': 'Kinesisk Kung Pao Kyckling',
+    'Chicken Fajitas': 'Mexikanska Kycklingfajitas',
+    'Chicken Alfredo Primavera': 'Krämig Kycklingpasta Alfredo',
+    'Jerk Chicken': 'Karibisk Jerk-Marinerad Kyckling',
+    
+    // Pasta
+    'Spaghetti Bolognese': 'Klassisk Italiensk Köttfärssås',
+    'Carbonara': 'Krämig Pasta Carbonara med Bacon',
+    'Lasagne': 'Ugnsgratinerad Italiensk Lasagne',
+    'Rigatoni with fennel and mascarpone': 'Krämig Rigatoni med Fänkål',
+    'Pasta and Beans': 'Italiensk Pasta e Fagioli',
+    'Seafood fideuà': 'Spansk Skaldjurspasta',
+    
+    // Nötkött
+    'Beef and Mustard Pie': 'Mustig Nötköttspaj med Senap',
+    'Beef Wellington': 'Festlig Oxfilé i Smördeg',
+    'Beef Stroganoff': 'Krämig Beef Stroganoff',
+    'Beef Brisket Pot Roast': 'Långstek Oxbringa',
+    'Massaman Beef curry': 'Thailändsk Massaman-Curry med Nötkött',
+    
+    // Fisk & skaldjur
+    'Salmon Prawn Risotto': 'Krämig Lax- och Räkrisotto',
+    'Grilled Portuguese sardines': 'Grillad Sardiner på Portugisiskt Vis',
+    'Tuna Nicoise': 'Fransk Tonnfiskssallad Niçoise',
+    'Salmon Avocado Salad': 'Färsk Laxsallad med Avokado',
+    'Mediterranean Pasta Salad': 'Medelhavspasta med Tonfisk',
+    
+    // Thaimat
+    'Thai Green Curry': 'Thailändsk Grön Curry',
+    'Pad Thai': 'Klassisk Pad Thai med Räkor',
+    'Thai Red Curry': 'Thailändsk Röd Curry',
+    
+    // Vegetariskt
+    'Mushroom & Chestnut Rotolo': 'Italiensk Svamprulad',
+    'Vegetarian Casserole': 'Vegetarisk Grönsaksgryta',
+    'Vegan Lasagne': 'Vegansk Lasagne med Grönsaker',
+    'Spicy Arrabiata Penne': 'Het Penne Arrabiata',
+    
+    // Frukost
+    'Pancakes': 'Fluffiga Amerikanska Pannkakor',
+    'Breakfast Potatoes': 'Stekt Frukostpotatis med Lök',
+    'Full English Breakfast': 'Engelsk Frukost',
+    
+    // Dessert
+    'Apple Frangipan Tart': 'Fransk Äppelpaj med Mandel',
+    'Bakewell tart': 'Engelsk Mandelkaka Bakewell',
+    'Chocolate Gateau': 'Rik Fransk Chokladtårta',
+    'Banana Pancakes': 'Söta Bananpannkakor',
+    'Apam balik': 'Malaysisk Pannkaka med Jordötter',
+    'Apple & Blackberry Crumble': 'Äppel- och Björnbärspaj med Smuldeg'
+  }
+  
+  // Returnera översättning om den finns
+  if (translations[englishName]) {
+    return translations[englishName]
+  }
+  
+  // Annars, använd originalnamnet
+  return englishName
+}
+
 // Hämta recept från TheMealDB API
 export async function fetchPopularRecipes(limit = 20) {
   try {
@@ -178,6 +249,7 @@ export async function fetchPopularRecipes(limit = 20) {
     // Hämta flera kategorier för variation
     const categories = ['Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Breakfast', 'Dessert']
     const allRecipes = []
+    const seenIds = new Set() // För att undvika dubbletter
     
     for (const category of categories) {
       try {
@@ -185,16 +257,22 @@ export async function fetchPopularRecipes(limit = 20) {
         const data = await response.json()
         
         if (data.meals) {
-          // Ta 3-4 recept från varje kategori
+          // Ta 3 recept från varje kategori
           const categoryRecipes = data.meals.slice(0, 3)
           
           // Hämta fullständig info för varje recept
           for (const meal of categoryRecipes) {
+            // Skippa om vi redan har detta recept
+            if (seenIds.has(meal.idMeal)) {
+              continue
+            }
+            
             try {
               const detailResponse = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`)
               const detailData = await detailResponse.json()
               
               if (detailData.meals && detailData.meals[0]) {
+                seenIds.add(meal.idMeal)
                 allRecipes.push(convertToSwedishRecipe(detailData.meals[0]))
               }
               
@@ -267,7 +345,7 @@ function convertToSwedishRecipe(meal) {
   
   return {
     id: `api-${meal.idMeal}`,
-    name: meal.strMeal,
+    name: translateRecipeName(meal.strMeal, meal.strCategory, meal.strArea),
     servings: 4,
     ingredients: ingredients,
     instructions: instructions,
@@ -296,11 +374,11 @@ function getCachedRecipes() {
     const cached = localStorage.getItem(CACHE_KEY)
     if (!cached) return null
     
-    const { recipes, timestamp } = JSON.parse(cached)
+    const { recipes, timestamp, version } = JSON.parse(cached)
     const now = Date.now()
     
-    // Kolla om cache är för gammal
-    if (now - timestamp > CACHE_DURATION) {
+    // Kolla om cache är för gammal eller fel version
+    if (version !== CACHE_VERSION || now - timestamp > CACHE_DURATION) {
       localStorage.removeItem(CACHE_KEY)
       return null
     }
@@ -316,7 +394,8 @@ function cacheRecipes(recipes) {
   try {
     const cacheData = {
       recipes: recipes,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      version: CACHE_VERSION
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
     console.log('💾 Cachade recept för framtida användning')
