@@ -3,6 +3,7 @@ import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
+import Onboarding from './Onboarding'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -175,6 +176,7 @@ export default function App() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
+  const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -243,6 +245,12 @@ export default function App() {
     const savedTab = localStorage.getItem('svinnstop_active_tab')
     if (savedTab && ['add', 'shopping', 'inventory', 'recipes'].includes(savedTab)) {
       setActiveTab(savedTab)
+    }
+    
+    // Kolla om användaren har sett onboarding
+    const hasSeenOnboarding = localStorage.getItem('svinnstop_onboarding_seen')
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true)
     }
   }, [])
 
@@ -780,8 +788,18 @@ export default function App() {
     return unit
   }, [suggestedUnitKey])
 
+  // Handle onboarding complete
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false)
+    localStorage.setItem('svinnstop_onboarding_seen', 'true')
+    // Gå till add-fliken efter onboarding
+    setActiveTab('add')
+  }
+
   return (
     <>
+      {/* Onboarding Flow */}
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       
       <div className="settings-menu-container">
         <button 
