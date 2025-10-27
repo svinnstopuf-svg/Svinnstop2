@@ -2,7 +2,7 @@
 // Använder TheMealDB API (gratis, ingen API-nyckel krävs)
 
 const CACHE_KEY = 'svinnstop_cached_recipes'
-const CACHE_VERSION = 'v8' // Öka denna för att ogiltigförklara gammal cache
+const CACHE_VERSION = 'v9' // Öka denna för att ogiltigförklara gammal cache
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
 
 // Översättning från engelska till svenska
@@ -133,6 +133,12 @@ const translateIngredient = (ingredient) => {
     'eggplant': 'aubergine',
     'cornstarch': 'majsstärkelse',
     'corn starch': 'majsstärkelse',
+    // FIX: Vanliga felöversättningar från Google Translate
+    'millilitre': 'milliliter',
+    'millilitres': 'milliliter',
+    'milliliter': 'milliliter',
+    'milliliters': 'milliliter',
+    'ml': 'ml',
     // FIX: "slabb" och andra oklarheter
     'stock': 'buljong',
     'chicken stock': 'kycklingbuljong',
@@ -193,6 +199,12 @@ const translateMeasure = (measure) => {
     'litres': 'liter',
     'liter': 'liter',
     'liters': 'liter',
+    // FIX: Vanliga felöversättningar som blir "miljoner" eller "militär"
+    'million': 'milliliter',
+    'millions': 'milliliter',
+    'miljoner': 'milliliter',
+    'militär': 'milliliter',
+    'military': 'milliliter',
     'g': 'g',
     'kg': 'kg',
     'pinch': 'nypa',
