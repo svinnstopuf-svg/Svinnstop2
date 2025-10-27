@@ -174,6 +174,7 @@ export default function App() {
   const [internetRecipes, setInternetRecipes] = useState([])
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
+  const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -200,7 +201,33 @@ export default function App() {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      try { setItems(JSON.parse(saved)) } catch {}
+      try { 
+        const parsed = JSON.parse(saved)
+        // FIX: Validera att parsed är en array och innehåller giltiga objekt
+        if (Array.isArray(parsed)) {
+          const validItems = parsed.filter(item => 
+            item && 
+            typeof item === 'object' && 
+            item.id && 
+            item.name && 
+            item.quantity !== undefined && 
+            item.expiresAt
+          )
+          setItems(validItems)
+          
+          // Om vi filtrerade bort ogiltiga items, uppdatera localStorage
+          if (validItems.length !== parsed.length) {
+            console.warn(`Rensade ${parsed.length - validItems.length} ogiltiga items`)
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(validItems))
+          }
+        } else {
+          console.error('localStorage innehöll inte en giltig array')
+          setItems([])
+        }
+      } catch (error) {
+        console.error('Kunde inte ladda items från localStorage:', error)
+        setItems([])
+      }
     }
     
     const savedTheme = localStorage.getItem(THEME_KEY)
@@ -219,8 +246,26 @@ export default function App() {
     }
   }, [])
 
+  // FIX: Debounce localStorage writes för att undvika race conditions
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+      } catch (error) {
+        console.error('Kunde inte spara items till localStorage:', error)
+        // Försök rensa gamla data om storage är full
+        if (error.name === 'QuotaExceededError') {
+          try {
+            localStorage.removeItem('svinnstop_cached_recipes')
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+          } catch (e) {
+            console.error('Kunde inte spara även efter rensning:', e)
+          }
+        }
+      }
+    }, 100) // 100ms debounce
+    
+    return () => clearTimeout(timeoutId)
   }, [items])
 
   // Tillämpa tema på dokument och spara till localStorage
@@ -255,22 +300,47 @@ export default function App() {
     localStorage.setItem('svinnstop_active_tab', activeTab)
   }, [activeTab])
   
-  // Hämta populära recept från internet vid start
+  // FIX: Hämta populära recept ENDAST EN GÅNG vid start
   useEffect(() => {
-    const loadInternetRecipes = async () => {
-      setLoadingRecipes(true)
+    // Kolla om vi redan har recept i cache
+    const cachedRecipes = localStorage.getItem('svinnstop_cached_recipes')
+    if (cachedRecipes && !recipesLoaded) {
       try {
-        const recipes = await fetchPopularRecipes(50) // Hämta upp till 50 recept
-        setInternetRecipes(recipes)
-      } catch (error) {
-        console.error('Kunde inte ladda recept:', error)
-      } finally {
-        setLoadingRecipes(false)
+        const { recipes, timestamp, version } = JSON.parse(cachedRecipes)
+        const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
+        const CACHE_VERSION = 'v8'
+        
+        if (version === CACHE_VERSION && Date.now() - timestamp < CACHE_DURATION) {
+          // Använd cachade recept direkt
+          setInternetRecipes(recipes)
+          setRecipesLoaded(true)
+          console.log('⚡ Laddade recept från cache (snabbt!)')
+          return
+        }
+      } catch (e) {
+        console.warn('Kunde inte läsa receptcache:', e)
       }
     }
     
-    loadInternetRecipes()
-  }, [])
+    // Om ingen cache eller gammal cache, hämta från API
+    if (!recipesLoaded) {
+      const loadInternetRecipes = async () => {
+        setLoadingRecipes(true)
+        try {
+          const recipes = await fetchPopularRecipes(50)
+          setInternetRecipes(recipes)
+          setRecipesLoaded(true)
+          console.log('🍳 Laddade recept från API')
+        } catch (error) {
+          console.error('Kunde inte ladda recept:', error)
+        } finally {
+          setLoadingRecipes(false)
+        }
+      }
+      
+      loadInternetRecipes()
+    }
+  }, [recipesLoaded])
   
   // Stäng inställningsmeny när man klickar utanför
   useEffect(() => {
@@ -288,11 +358,16 @@ export default function App() {
 
   const onChange = e => {
     const { name, value } = e.target
+    
+    // FIX: Använd functional update för att undvika stale state
     if (name === 'quantity') {
       const numValue = parseFloat(value)
-      setForm(f => ({ ...f, [name]: isNaN(numValue) ? 0 : Math.max(0, numValue) }))
+      setForm(prevForm => ({ 
+        ...prevForm, 
+        [name]: isNaN(numValue) ? 0 : Math.max(0, numValue) 
+      }))
     } else if (name === 'name') {
-      setForm(f => ({ ...f, [name]: value }))
+      setForm(prevForm => ({ ...prevForm, [name]: value }))
       
       // Visa matvaruförslag när användaren skriver
       if (value.trim().length > 0) {
@@ -304,7 +379,7 @@ export default function App() {
         setShowFoodSuggestions(false)
       }
     } else {
-      setForm(f => ({ ...f, [name]: value }))
+      setForm(prevForm => ({ ...prevForm, [name]: value }))
     }
   }
 
@@ -312,15 +387,33 @@ export default function App() {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
     
+    // FIX: Skapa en kopia av form-data INNAN vi rensar state
+    const itemName = form.name.trim()
+    const itemQuantity = form.quantity
+    const itemExpiresAt = form.expiresAt
+    
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-    const unitKey = getSuggestedUnitKey(form.name)
+    const unitKey = getSuggestedUnitKey(itemName)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     
-    const newItem = { id, ...form, unit }
+    const newItem = { 
+      id, 
+      name: itemName, 
+      quantity: itemQuantity, 
+      expiresAt: itemExpiresAt, 
+      unit 
+    }
     
     // Lägg till vara i inventariet
     setItems(prev => {
       const updated = [...prev, newItem]
+      
+      // FIX: Spara till localStorage direkt för att undvika race condition
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      } catch (error) {
+        console.error('Kunde inte spara till localStorage:', error)
+      }
       
       // Uppdatera notifikationer för utgångsdatum
       if (notificationsEnabled) {
@@ -330,6 +423,7 @@ export default function App() {
       return updated
     })
     
+    // FIX: Rensa formuläret EFTER att vi skapat newItem
     setForm({ 
       name: '', 
       quantity: 0, 
@@ -356,7 +450,17 @@ export default function App() {
         timestamp: Date.now()
       })
     }
-    setItems(prev => prev.filter(i => i.id !== id))
+    
+    // FIX: Uppdatera state OCH localStorage synkront
+    setItems(prev => {
+      const updated = prev.filter(i => i.id !== id)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      } catch (error) {
+        console.error('Kunde inte spara efter borttagning:', error)
+      }
+      return updated
+    })
   }
 
   const toggleTheme = () => {
@@ -397,21 +501,40 @@ export default function App() {
   }
   
   const handleExpiryUpdate = (updatedItem) => {
+    // FIX: Validera att items existerar
+    if (!updatedItem || !updatedItem.id) {
+      console.error('Ogiltigt updatedItem:', updatedItem)
+      return
+    }
+    
     const originalItem = editingItem
     
     // Lär AI:n från justeringen
-    learnFromUserAdjustment(
-      originalItem.name,
-      originalItem.expiresAt,
-      updatedItem.expiresAt,
-      originalItem.category,
-      updatedItem.adjustmentReason || ''
-    )
+    if (originalItem && originalItem.name) {
+      learnFromUserAdjustment(
+        originalItem.name,
+        originalItem.expiresAt,
+        updatedItem.expiresAt,
+        originalItem.category,
+        updatedItem.adjustmentReason || ''
+      )
+    }
     
     // Uppdatera item i listan
-    setItems(prev => prev.map(item => 
-      item.id === updatedItem.id ? updatedItem : item
-    ))
+    setItems(prev => {
+      const updated = prev.map(item => 
+        item.id === updatedItem.id ? { ...item, ...updatedItem } : item
+      )
+      
+      // FIX: Spara direkt till localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      } catch (error) {
+        console.error('Kunde inte spara efter uppdatering:', error)
+      }
+      
+      return updated
+    })
     
     console.log(`📝 Utgångsdatum uppdaterat för ${updatedItem.name}`)
   }
@@ -526,13 +649,21 @@ export default function App() {
   
   // Välja matvaruförslag
   const selectFoodSuggestion = (food) => {
+    // FIX: Validera att food-objektet är giltigt
+    if (!food || !food.name) {
+      console.error('Ogiltigt matvaruförslag:', food)
+      return
+    }
+    
     const suggestion = getExpiryDateSuggestion(food.name)
     
-    setForm({
+    // FIX: Använd functional update för att undvika stale state
+    setForm(prevForm => ({
+      ...prevForm,
       name: food.name,
       quantity: 1,
-      expiresAt: suggestion.date
-    })
+      expiresAt: suggestion && suggestion.date ? suggestion.date : ''
+    }))
     
     setFoodSuggestions([])
     setShowFoodSuggestions(false)

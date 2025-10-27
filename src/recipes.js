@@ -221,20 +221,34 @@ export function suggestRecipes(items, internetRecipes = []) {
     })
   })
   
-  // Filtrera recept där vi har ALLA nödvändiga ingredienser
-  const viableRecipes = languageRecipes.filter(recipe => {
-    return recipe.ingredients.every(ingredient => {
+  // FIX: Ändra från ALLA ingredienser till MINST 2 ingredienser för att visa fler recept
+  const viableRecipes = languageRecipes.map(recipe => {
+    let matchCount = 0
+    let totalIngredients = recipe.ingredients.length
+    
+    recipe.ingredients.forEach(ingredient => {
       const ingredientName = ingredient.name.toLowerCase()
       
       // Kontrollera om vi har denna ingrediens (exakt matchning eller delvis matchning)
       for (const [availableName] of availableIngredients) {
         if (availableName.includes(ingredientName) || ingredientName.includes(availableName)) {
-          return true
+          matchCount++
+          break
         }
       }
-      return false
     })
-  })
+    
+    return {
+      recipe,
+      matchCount,
+      matchPercentage: (matchCount / totalIngredients) * 100
+    }
+  }).filter(({ matchCount, matchPercentage }) => {
+    // Visa recept om:
+    // - Vi har minst 2 ingredienser ELLER
+    // - Vi har minst 30% av ingredienserna
+    return matchCount >= 2 || matchPercentage >= 30
+  }).map(({ recipe }) => recipe)
   
   // Beräkna prioritet baserat på utgångsdatum och sortera
   const prioritizedRecipes = viableRecipes.map(recipe => {
@@ -279,7 +293,7 @@ export function suggestRecipes(items, internetRecipes = []) {
       }
       return a.servings - b.servings // Mindre portioner först vid lika urgency
     })
-    .slice(0, 5) // Visa fler recept nu när vi har bättre prioritering
+    .slice(0, 8) // FIX: Visa ännu fler recept (8 istället för 5)
     .map(recipe => ({
       ...recipe,
       // Lägg till info om vilka av dina varor som kommer användas
