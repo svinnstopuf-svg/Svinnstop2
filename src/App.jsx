@@ -1291,55 +1291,55 @@ export default function App() {
                   {/* Kategorifilter */}
                   <div className="recipe-category-filters">
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'alla' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'alla' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('alla')}
                     >
                       🍽️ Alla
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'thai' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'thai' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('thai')}
                     >
                       🌶️ Thai
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'italienskt' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'italienskt' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('italienskt')}
                     >
                       🍝 Italienskt
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'husmanskost' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'husmanskost' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('husmanskost')}
                     >
                       🇸🇪 Husmanskost
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'vegetariskt' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'vegetariskt' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('vegetariskt')}
                     >
                       🥗 Vegetariskt
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'kyckling' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'kyckling' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('kyckling')}
                     >
                       🍗 Kyckling
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'fisk' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'fisk' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('fisk')}
                     >
                       🐟 Fisk & Skaldjur
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'snabbt' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'snabbt' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('snabbt')}
                     >
                       ⚡ Snabbt
                     </button>
                     <button 
-                      className={`category-filter-btn ${recipeCategory === 'dessert' ? 'active' : ''}`}
+                      className={`category-filter-btn notranslate ${recipeCategory === 'dessert' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('dessert')}
                     >
                       🍰 Dessert

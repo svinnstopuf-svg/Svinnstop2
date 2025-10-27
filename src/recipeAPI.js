@@ -326,8 +326,8 @@ const parseMeasurement = (measureStr) => {
   
   const result = { quantity, unit }
   
-  // DEBUG: Logga endast om det är ett konstigt resultat
-  if (quantity > 1000 || unit.includes('miljoner')) {
+  // DEBUG: Logga endast om det är ett konstigt resultat (men inte gram/kg över 1000)
+  if (quantity > 10000 && unit !== 'g' && unit !== 'kg') {
     console.warn('⚠️ Måttkonvertering:', {
       input: originalInput,
       output: result
