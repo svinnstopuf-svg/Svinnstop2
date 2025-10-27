@@ -1059,6 +1059,265 @@ function getAdditionalSwedishRecipes() {
       cookingTime: '40 minuter',
       difficulty: 'Lätt',
       tags: ['barnvänligt', 'gratäng', 'vardagsmat']
+    },
+    {
+      id: 'extra-6',
+      name: 'Ugnsbakad Lax med Citron',
+      servings: 4,
+      ingredients: [
+        { name: 'laxfilé', quantity: 600, unit: 'g' },
+        { name: 'citron', quantity: 2, unit: 'stycken' },
+        { name: 'dill', quantity: 1, unit: 'knippe' },
+        { name: 'olivolja', quantity: 3, unit: 'msk' },
+        { name: 'potatis', quantity: 800, unit: 'g' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Linjera långpanna med bakplåtspapper. Lägg laxen på pappret, ringla olivolja, salt och peppar. Lägg citronskivor och dill på. Baka 15-20 min. Servera med kokt potatis.',
+      cookingTime: '30 minuter',
+      difficulty: 'Lätt',
+      tags: ['fisk', 'hälsosamt', 'snabbt']
+    },
+    {
+      id: 'extra-7',
+      name: 'Kebabpizza',
+      servings: 4,
+      ingredients: [
+        { name: 'pizzadeg', quantity: 400, unit: 'g' },
+        { name: 'kebabkött', quantity: 300, unit: 'g' },
+        { name: 'tomatsås', quantity: 2, unit: 'dl' },
+        { name: 'ost', quantity: 300, unit: 'g' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'kebabsås', quantity: 2, unit: 'dl' }
+      ],
+      instructions: 'Sätt ugn på 250°C. Kavla ut degen och bred på tomatsås. Strö ost. Grilla kebabköttet och lägg på pizzan med skivad lök. Grilla 10-12 min. Ringla kebabsås över.',
+      cookingTime: '25 minuter',
+      difficulty: 'Medel',
+      tags: ['pizza', 'snabbt', 'festmat']
+    },
+    {
+      id: 'extra-8',
+      name: 'Fiskgratäng',
+      servings: 4,
+      ingredients: [
+        { name: 'torskfilé', quantity: 600, unit: 'g' },
+        { name: 'räkor', quantity: 200, unit: 'g' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'dill', quantity: 1, unit: 'knippe' },
+        { name: 'potatis', quantity: 800, unit: 'g' },
+        { name: 'ströbröd', quantity: 1, unit: 'dl' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Koka potatis och skiva. Varva fisk, räkor och potatis i smörd form. Vispa grädde med hackad dill, salt och peppar. Häll över. Strö ströbröd. Grädda 35-40 min.',
+      cookingTime: '60 minuter',
+      difficulty: 'Medel',
+      tags: ['fisk', 'gratäng', 'festmat']
+    },
+    {
+      id: 'extra-9',
+      name: 'Tacos med Köttfärs',
+      servings: 4,
+      ingredients: [
+        { name: 'köttfärs', quantity: 500, unit: 'g' },
+        { name: 'tacokrydda', quantity: 1, unit: 'påse' },
+        { name: 'tacoskal', quantity: 12, unit: 'stycken' },
+        { name: 'sallad', quantity: 1, unit: 'huvud' },
+        { name: 'tomat', quantity: 3, unit: 'stycken' },
+        { name: 'gräddfil', quantity: 2, unit: 'dl' },
+        { name: 'ost', quantity: 200, unit: 'g' }
+      ],
+      instructions: 'Bryn köttfärs. Tillsatt tacokrydda och vatten enligt förpackning. Sjud 10 min. Värm tacoskalen. Skiva sallad och tomat. Riv ost. Bygg tacos med alla tillbehör.',
+      cookingTime: '20 minuter',
+      difficulty: 'Lätt',
+      tags: ['mexikanskt', 'barnvänligt', 'snabbt']
+    },
+    {
+      id: 'extra-10',
+      name: 'Flygande Jakob',
+      servings: 4,
+      ingredients: [
+        { name: 'kyckling', quantity: 600, unit: 'g' },
+        { name: 'bacon', quantity: 200, unit: 'g' },
+        { name: 'bananer', quantity: 2, unit: 'stycken' },
+        { name: 'chilisås', quantity: 1, unit: 'dl' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'jordötter', quantity: 1, unit: 'dl' },
+        { name: 'ris', quantity: 300, unit: 'g' }
+      ],
+      instructions: 'Koka ris. Koka och strimla kyckling. Stek bacon knaprig. Sätt ugn på 225°C. Varva kyckling, bacon och banan i form. Vispa grädde med chilisås. Häll över. Strö jordötter. Grädda 20 min. Servera med ris.',
+      cookingTime: '45 minuter',
+      difficulty: 'Medel',
+      tags: ['kyckling', 'klassiskt', 'swedish']
+    },
+    {
+      id: 'extra-11',
+      name: 'Lins- och Sötpotatissoppa',
+      servings: 4,
+      ingredients: [
+        { name: 'röda linser', quantity: 250, unit: 'g' },
+        { name: 'sötpotatis', quantity: 400, unit: 'g' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'vitlök', quantity: 2, unit: 'klyftor' },
+        { name: 'kokosmjölk', quantity: 4, unit: 'dl' },
+        { name: 'grönsaksbuljong', quantity: 5, unit: 'dl' }
+      ],
+      instructions: 'Skala och tärna sötpotatis. Fräs hackad lök och vitlök. Tillsatt linser, sötpotatis och buljong. Koka 20 min. Häll i kokosmjölk och mixa slät. Smaka av med salt, peppar och lime.',
+      cookingTime: '35 minuter',
+      difficulty: 'Lätt',
+      tags: ['soppa', 'vegetariskt', 'hälsosamt']
+    },
+    {
+      id: 'extra-12',
+      name: 'Citronkyckling med Ris',
+      servings: 4,
+      ingredients: [
+        { name: 'kycklingfilé', quantity: 600, unit: 'g' },
+        { name: 'citron', quantity: 2, unit: 'stycken' },
+        { name: 'honung', quantity: 2, unit: 'msk' },
+        { name: 'vitlök', quantity: 3, unit: 'klyftor' },
+        { name: 'ris', quantity: 300, unit: 'g' },
+        { name: 'grönsaker', quantity: 300, unit: 'g' }
+      ],
+      instructions: 'Koka ris. Skär kyckling i bitar. Marinera i citronsaft, honung, vitlök, salt och peppar i 15 min. Stek kycklingen 6-8 min. Wokar grönsaker. Servera allt tillsammans.',
+      cookingTime: '30 minuter',
+      difficulty: 'Lätt',
+      tags: ['kyckling', 'hälsosamt', 'snabbt']
+    },
+    {
+      id: 'extra-13',
+      name: 'Rostbiff med Bearnaisesås',
+      servings: 4,
+      ingredients: [
+        { name: 'nötkött', quantity: 800, unit: 'g' },
+        { name: 'bearnaisesås', quantity: 2, unit: 'dl' },
+        { name: 'potatis', quantity: 800, unit: 'g' },
+        { name: 'gröna bönor', quantity: 300, unit: 'g' },
+        { name: 'smör', quantity: 50, unit: 'g' }
+      ],
+      instructions: 'Sätt ugn på 150°C. Bryn köttet i smör på alla sidor. Stek i ugn till 52-55°C kärntemperatur (medium). Vila 10 min. Koka potatis och bönor. Skiva köttet. Servera med bearnaisesås.',
+      cookingTime: '45 minuter',
+      difficulty: 'Medel',
+      tags: ['nötkött', 'festmat', 'klassiskt']
+    },
+    {
+      id: 'extra-14',
+      name: 'Tonfiskpasta',
+      servings: 4,
+      ingredients: [
+        { name: 'pasta', quantity: 400, unit: 'g' },
+        { name: 'tonfisk', quantity: 2, unit: 'burkar' },
+        { name: 'tomatsås', quantity: 4, unit: 'dl' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'olivolja', quantity: 2, unit: 'msk' },
+        { name: 'basilika', quantity: 1, unit: 'kruka' }
+      ],
+      instructions: 'Koka pasta. Fräs hackad lök i olivolja. Tillsatt tomatsås och tonfisk. Sjud 5 min. Krydda med salt, peppar och basilika. Blanda med pastan. Servera med riven parmesan.',
+      cookingTime: '20 minuter',
+      difficulty: 'Lätt',
+      tags: ['pasta', 'snabbt', 'fisk']
+    },
+    {
+      id: 'extra-15',
+      name: 'Shakshouka',
+      servings: 2,
+      ingredients: [
+        { name: 'ägg', quantity: 4, unit: 'stycken' },
+        { name: 'tomat', quantity: 400, unit: 'g' },
+        { name: 'paprika', quantity: 2, unit: 'stycken' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'vitlök', quantity: 2, unit: 'klyftor' },
+        { name: 'kummin', quantity: 1, unit: 'tsk' },
+        { name: 'bröd', quantity: 4, unit: 'skivor' }
+      ],
+      instructions: 'Fräs hackad lök, paprika och vitlök. Tillsatt krossade tomater, kummin, paprikapulver, salt och peppar. Sjud 10 min. Gör 4 hål och knäck ner äggen. Täck och låt äggen stelna 5-7 min. Servera med bröd.',
+      cookingTime: '25 minuter',
+      difficulty: 'Lätt',
+      tags: ['vegetariskt', 'frukost', 'medelhavs']
+    },
+    {
+      id: 'extra-16',
+      name: 'Korv Stroganoff Deluxe',
+      servings: 4,
+      ingredients: [
+        { name: 'falukorv', quantity: 500, unit: 'g' },
+        { name: 'champinjoner', quantity: 250, unit: 'g' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'tomatpuré', quantity: 2, unit: 'msk' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'soja', quantity: 1, unit: 'msk' },
+        { name: 'ris', quantity: 300, unit: 'g' }
+      ],
+      instructions: 'Koka ris. Skär korv i remsor. Skiva champinjoner och lök. Stek korv, lägg åt sidan. Stek champinjoner och lök. Tillsatt tomatpuré och grädde. Sjud 5 min. Tillsatt korv och soja. Servera med ris.',
+      cookingTime: '30 minuter',
+      difficulty: 'Lätt',
+      tags: ['vardagsmat', 'barnvänligt', 'snabbt']
+    },
+    {
+      id: 'extra-17',
+      name: 'Pulled Chicken Bowl',
+      servings: 4,
+      ingredients: [
+        { name: 'kycklinglår', quantity: 600, unit: 'g' },
+        { name: 'bbq-sås', quantity: 2, unit: 'dl' },
+        { name: 'ris', quantity: 300, unit: 'g' },
+        { name: 'mais', quantity: 1, unit: 'burk' },
+        { name: 'svarta bönor', quantity: 1, unit: 'burk' },
+        { name: 'avokado', quantity: 2, unit: 'stycken' },
+        { name: 'lime', quantity: 2, unit: 'stycken' }
+      ],
+      instructions: 'Koka kycklinglåren i vatten 30 min. Riv köttet med två gafflar. Blanda med bbq-sås. Koka ris. Skölj mais och bönor. Bygg bowls med ris, kyckling, mais, bönor och avokado. Pressa lime över.',
+      cookingTime: '45 minuter',
+      difficulty: 'Lätt',
+      tags: ['kyckling', 'hälsosamt', 'amerikanskt']
+    },
+    {
+      id: 'extra-18',
+      name: 'Vegetarisk Lasagne',
+      servings: 6,
+      ingredients: [
+        { name: 'lasagneplattor', quantity: 12, unit: 'stycken' },
+        { name: 'spenat', quantity: 400, unit: 'g' },
+        { name: 'ricotta', quantity: 400, unit: 'g' },
+        { name: 'tomatsås', quantity: 6, unit: 'dl' },
+        { name: 'mozzarella', quantity: 300, unit: 'g' },
+        { name: 'parmesan', quantity: 100, unit: 'g' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Blanda ricotta med hackad spenat, salt och peppar. Varva tomatsås, lasagneplattor, ricottablandning och riven mozzarella i smörd form. Avsluta med ost. Grädda 40 min. Vila 10 min innan servering.',
+      cookingTime: '65 minuter',
+      difficulty: 'Medel',
+      tags: ['vegetariskt', 'gratäng', 'italienskt']
+    },
+    {
+      id: 'extra-19',
+      name: 'Kycklingspätt',
+      servings: 4,
+      ingredients: [
+        { name: 'kycklingfilé', quantity: 600, unit: 'g' },
+        { name: 'paprika', quantity: 2, unit: 'stycken' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'champinjoner', quantity: 200, unit: 'g' },
+        { name: 'soja', quantity: 3, unit: 'msk' },
+        { name: 'ris', quantity: 300, unit: 'g' }
+      ],
+      instructions: 'Koka ris. Skär kyckling, paprika, lök och champinjoner i bitar. Wokar kyckling först, lägg åt sidan. Wokar grönsaker 5 min. Tillsatt kyckling och soja. Wokar 2 min till. Servera med ris.',
+      cookingTime: '25 minuter',
+      difficulty: 'Lätt',
+      tags: ['kyckling', 'wok', 'snabbt']
+    },
+    {
+      id: 'extra-20',
+      name: 'Falafel med Tzatziki',
+      servings: 4,
+      ingredients: [
+        { name: 'kikärtor', quantity: 400, unit: 'g' },
+        { name: 'vitlök', quantity: 3, unit: 'klyftor' },
+        { name: 'koriander', quantity: 1, unit: 'knippe' },
+        { name: 'kummin', quantity: 1, unit: 'tsk' },
+        { name: 'pitabröd', quantity: 4, unit: 'stycken' },
+        { name: 'tzatziki', quantity: 3, unit: 'dl' },
+        { name: 'sallad', quantity: 200, unit: 'g' }
+      ],
+      instructions: 'Mixa kikärtor, vitlök, koriander, kummin, salt och peppar till en deg. Forma till bollar. Stek i olja 3-4 min per sida. Värm pitabröd. Fyll med falafel, sallad och tzatziki.',
+      cookingTime: '30 minuter',
+      difficulty: 'Medel',
+      tags: ['vegetariskt', 'medelhavs', 'hälsosamt']
     }
   ]
 }
