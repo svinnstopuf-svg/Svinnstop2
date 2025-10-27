@@ -140,13 +140,13 @@
 .dot.active {
   width: 24px;
   border-radius: 4px;
-  background: var(--primary);
+  background: var(--primary-color);
   opacity: 1;
 }
 
 /* Next Button */
 .onboarding-next {
-  background: var(--primary);
+  background: var(--primary-color);
   color: #ffffff;
   border: none;
   padding: 1rem 3rem;
@@ -165,7 +165,7 @@
 }
 
 .onboarding-next:hover {
-  background: var(--primary-hover);
+  background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
 }
