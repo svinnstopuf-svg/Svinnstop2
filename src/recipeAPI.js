@@ -185,6 +185,14 @@ const translateMeasure = (measure) => {
     'pound': 'kg',
     'pounds': 'kg',
     'ml': 'ml',
+    'millilitre': 'ml',
+    'millilitres': 'ml',
+    'milliliter': 'ml',
+    'milliliters': 'ml',
+    'litre': 'liter',
+    'litres': 'liter',
+    'liter': 'liter',
+    'liters': 'liter',
     'g': 'g',
     'kg': 'kg',
     'pinch': 'nypa',
@@ -195,10 +203,19 @@ const translateMeasure = (measure) => {
     'cloves': 'klyftor',
     'piece': 'stycke',
     'pieces': 'stycken',
+    'whole': 'hel',
+    'halved': 'halverad',
+    'chopped': 'hackad',
+    'diced': 'tärnad',
+    'sliced': 'skivad',
     'to taste': 'efter smak',
+    'as needed': 'efter behov',
     'goz': 'g',  // Felstavning av oz
     'grams': 'g',
-    'gram': 'g'
+    'gram': 'g',
+    'drizzle': 'skål',
+    'handful': 'näve',
+    'bunch': 'knippe'
   }
   
   const lower = measure.toLowerCase().trim()
@@ -219,13 +236,19 @@ const parseMeasurement = (measureStr) => {
   
   const str = measureStr.trim().toLowerCase()
   
-  // Hantera "to taste" och andra beskrivningar
-  if (str.includes('taste') || str.includes('garnish') || str.includes('serve')) {
+  // FIX: Hantera "to taste" och andra beskrivningar
+  if (str.includes('taste') || str.includes('garnish') || str.includes('serve') || 
+      str.includes('needed') || str.includes('drizzle') || str.includes('splash')) {
     return { quantity: 1, unit: 'efter smak' }
   }
   
-  // Hantera bråk (1/2, 1/4, etc)
-  const fractionMatch = str.match(/(\d+)\/(\d+)/)
+  // FIX: Hantera "handful", "bunch", etc.
+  if (str.includes('handful')) return { quantity: 1, unit: 'näve' }
+  if (str.includes('bunch')) return { quantity: 1, unit: 'knippe' }
+  if (str.includes('pinch')) return { quantity: 1, unit: 'nypa' }
+  
+  // FIX: Hantera bråk (1/2, 1/4, etc)
+  const fractionMatch = str.match(/(\d+)\s*\/\s*(\d+)/)
   if (fractionMatch) {
     const quantity = parseFloat(fractionMatch[1]) / parseFloat(fractionMatch[2])
     const unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
@@ -233,15 +256,32 @@ const parseMeasurement = (measureStr) => {
     return { quantity, unit }
   }
   
-  // Försök extrahera tal
+  // FIX: Extrahera tal (hantera decimaler OCH heltal)
   const numberMatch = str.match(/(\d+\.?\d*|\d*\.?\d+)/)
-  const quantity = numberMatch ? parseFloat(numberMatch[1]) : 1
+  let quantity = numberMatch ? parseFloat(numberMatch[1]) : 1
+  
+  // FIX: Konvertera oz till gram (1 oz = 28.35g)
+  if (str.includes('oz') && !str.includes('goz')) {
+    quantity = Math.round(quantity * 28.35)
+  }
+  
+  // FIX: Konvertera lb till kg (1 lb = 0.453592 kg)
+  if (str.includes('lb') || str.includes('pound')) {
+    quantity = Math.round(quantity * 453.592)
+    return { quantity, unit: 'g' }
+  }
+  
+  // FIX: Konvertera cup till dl (1 cup = 2.36588 dl)
+  if (str.includes('cup')) {
+    quantity = Math.round(quantity * 2.36588 * 10) / 10 // Avrundat till 1 decimal
+    return { quantity, unit: 'dl' }
+  }
   
   // Extrahera enhet (hantera sammansatta som "6oz" -> "6" och "oz")
   let unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
   
   // Rensa bort vanliga felstavningar och konstigheter
-  unitMatch = unitMatch.replace(/goz/g, 'oz').replace(/^g(?!ram)/g, 'g')
+  unitMatch = unitMatch.replace(/goz/g, 'g').replace(/^g(?!ram)/g, 'g')
   
   const unit = unitMatch ? translateMeasure(unitMatch) : 'st'
   
@@ -257,82 +297,131 @@ const getSwedishDifficulty = (ingredientCount) => {
 
 // Översätt receptnamn till svenska och gör dem aptitliga
 const translateRecipeName = (englishName, category, area) => {
-  // FIX: Lägg till MER översättningar för att täcka fler recept
+  // OMFATTANDE ÖVERSÄTTNINGAR baserat på TheMealDB API:ets faktiska recept
   const translations = {
-    // Kycklingrätter
-    'Teriyaki Chicken Casserole': 'Saftig Teriyaki-Kycklinggryta',
-    'Chicken Couscous': 'Kryddig Kycklingcouscous med Grönsaker',
-    'Chicken Handi': 'Indisk Kyckling i Kryddig Sås',
-    'Katsu Chicken curry': 'Japansk Katsu-Curry med Kyckling',
-    'Kung Pao Chicken': 'Kinesisk Kung Pao Kyckling',
-    'Chicken Fajitas': 'Mexikanska Kycklingfajitas',
-    'Chicken Alfredo Primavera': 'Krämig Kycklingpasta Alfredo',
-    'Jerk Chicken': 'Karibisk Jerk-Marinerad Kyckling',
-    'Chicken Marengo': 'Fransk Kycklinggryta Marengo',
-    'Chicken Congee': 'Asiatisk Risgröt med Kyckling',
+    // === KYCKLINGRÄTTER ===
+    'Teriyaki Chicken Casserole': 'Teriyaki-Kycklinggryta',
+    'Chicken Couscous': 'Kycklingcouscous med Grönsaker',
+    'Chicken Handi': 'Indisk Kycklinggryta',
+    'Katsu Chicken curry': 'Japansk Kyckling-Katsu Curry',
+    'Kung Pao Chicken': 'Kung Pao Kyckling',
+    'Kung Po Chicken': 'Kung Pao Kyckling',
+    'Chicken Fajitas': 'Kycklingfajitas',
+    'Chicken Alfredo Primavera': 'Kyckling Alfredo med Grönsaker',
+    'Jerk Chicken': 'Jerk-Marinerad Kyckling',
+    'Chicken Marengo': 'Kycklinggryta Marengo',
+    'Chicken Congee': 'Kinesisk Risgröt med Kyckling',
     'Chicken Basquaise': 'Baskisk Kycklinggryta',
     'Brown Stew Chicken': 'Karibisk Kycklinggryta',
-    'Chicken Enchilada Casserole': 'Mexikansk Kycklinggratäng',
+    'Chicken Enchilada Casserole': 'Kycklingenchilada-Gratäng',
     'Honey Teriyaki Chicken': 'Honung-Teriyaki Kyckling',
-    'Kentucky Fried Chicken': 'Krispig Stekt Kyckling',
-    'Chicken Parmentier': 'Fransk Kycklingpirå',
-    
-    // Pasta
-    'Spaghetti Bolognese': 'Klassisk Italiensk Köttfärssås',
-    'Carbonara': 'Krämig Pasta Carbonara med Bacon',
-    'Lasagne': 'Ugnsgratinerad Italiensk Lasagne',
-    'Rigatoni with fennel and mascarpone': 'Krämig Rigatoni med Fänkål',
-    'Pasta and Beans': 'Italiensk Pasta e Fagioli',
-    'Seafood fideùà': 'Spansk Skaldjurspasta',
-    'Fettuccine Alfredo': 'Klassisk Fettuccine Alfredo',
-    'Pasta with Pesto': 'Pasta med Färsk Basilikapsesto',
-    'Penne Arrabiata': 'Stark Italiensk Pennepasta',
-    
-    // Nötkött
-    'Beef and Mustard Pie': 'Mustig Nötköttspaj med Senap',
-    'Beef Wellington': 'Festlig Oxfilé i Smördeg',
-    'Beef Stroganoff': 'Krämig Beef Stroganoff',
-    'Beef Brisket Pot Roast': 'Långstek Oxbringa',
-    'Massaman Beef curry': 'Thailändsk Massaman-Curry med Nötkött',
-    'Beef Banh Mi Bowls': 'Vietnamesisk Nötköttsskål',
-    'Beef Dumpling Stew': 'Nötköttsgryta med Kli mp',
-    'Beef Sunday Roast': 'Klassisk Engelsk Stek',
-    
-    // Fisk & skaldjur
-    'Salmon Prawn Risotto': 'Krämig Lax- och Räkrisotto',
-    'Grilled Portuguese sardines': 'Grillad Sardiner på Portugisiskt Vis',
-    'Tuna Nicoise': 'Fransk Tonnfiskssallad Niçoise',
-    'Salmon Avocado Salad': 'Färsk Laxsallad med Avokado',
-    'Mediterranean Pasta Salad': 'Medelhavspasta med Tonfisk',
-    
-    // Thaimat
+    'Kentucky Fried Chicken': 'Friterad Kyckling',
+    'Chicken Parmentier': 'Kycklingpirå',
+    'Chicken & mushroom Hotpot': 'Kyckling- och Svampgryta',
+    'Chicken Quinoa Greek Salad': 'Grekisk Kycklings Quinoasallad',
     'Thai Green Curry': 'Thailändsk Grön Curry',
-    'Pad Thai': 'Klassisk Pad Thai med Räkor',
-    'Thai Red Curry': 'Thailändsk Röd Curry',
-    'Tom Yum Soup': 'Het och Sur Thaisoppa Tom Yum',
-    'Tom Kha Gai': 'Kryddig Kokossoppa med Kyckling',
-    'Massaman Beef': 'Mild Massaman-Curry med Nötkött',
-    'Pad See Ew': 'Wokad Ris-Nudlar Pad See Ew',
-    'Thai Fried Rice': 'Thailändskt Stekt Ris',
+    'Massaman Beef': 'Massaman-Curry med Nötkött',
     
-    // Vegetariskt
-    'Mushroom & Chestnut Rotolo': 'Italiensk Svamprulad',
+    
+    // === PASTA ===
+    'Spaghetti Bolognese': 'Spaghetti Bolognese',
+    'Carbonara': 'Pasta Carbonara',
+    'Lasagne': 'Lasagne',
+    'Lasagna': 'Lasagne',
+    'Rigatoni with fennel and mascarpone': 'Rigatoni med Fänkål och Mascarpone',
+    'Pasta and Beans': 'Pasta med Bönor',
+    'Seafood fideùà': 'Skaldjurspasta',
+    'Seafood fideuà': 'Skaldjurspasta',
+    'Fettuccine Alfredo': 'Fettuccine Alfredo',
+    'Pasta with Pesto': 'Pasta med Pesto',
+    'Penne Arrabiata': 'Penne Arrabiata',
+    'Spicy Arrabiata Penne': 'Stark Penne Arrabiata',
+    'Spinach & Ricotta Cannelloni': 'Cannelloni med Spenat och Ricotta',
+    
+    // === NÖTKÖTT ===
+    'Beef and Mustard Pie': 'Nötköttspaj med Senap',
+    'Beef Wellington': 'Oxfilé Wellington',
+    'Beef Stroganoff': 'Biff Stroganoff',
+    'Beef Brisket Pot Roast': 'Långstek Oxbringa',
+    'Massaman Beef curry': 'Massaman-Curry med Nötkött',
+    'Massaman Beef': 'Massaman-Curry med Nötkött',
+    'Beef Banh Mi Bowls': 'Vietnamesisk Nötköttskål',
+    'Beef Dumpling Stew': 'Nötköttsgryta med Dumplings',
+    'Beef Sunday Roast': 'Stek med Nötkött',
+    'Beef Bourguignon': 'Boeuf Bourguignon',
+    'Beef Lo Mein': 'Wokad Nötkött med Nudlar',
+    
+    // === FISK & SKALDJUR ===
+    'Salmon Prawn Risotto': 'Risotto med Lax och Räkor',
+    'Grilled Portuguese sardines': 'Grillerade Sardiner',
+    'Portuguese fish stew': 'Portugisisk Fiskgryta',
+    'Tuna Nicoise': 'Sallad Niçoise med Tonfisk',
+    'Salmon Avocado Salad': 'Laxsallad med Avokado',
+    'Mediterranean Pasta Salad': 'Medelhavspasta',
+    'Grilled Mac and Cheese Sandwich': 'Grillad Macka med Ost',
+    'Kedgeree': 'Rökt Fisk med Ris',
+    
+    // === THAIMAT ===
+    'Thai Green Curry': 'Grön Thaicurry',
+    'Pad Thai': 'Pad Thai',
+    'Thai Red Curry': 'Röd Thaicurry',
+    'Tom Yum Soup': 'Tom Yum-Soppa',
+    'Tom Kha Gai': 'Tom Kha Gai',
+    'Pad See Ew': 'Pad See Ew',
+    'Thai Fried Rice': 'Stekt Ris på Thailändskt Vis',
+    
+    // === VEGETARISKT ===
+    'Mushroom & Chestnut Rotolo': 'Vegetarisk Pastarulle med Svamp',
     'Vegetarian Casserole': 'Vegetarisk Grönsaksgryta',
-    'Vegan Lasagne': 'Vegansk Lasagne med Grönsaker',
-    'Spicy Arrabiata Penne': 'Het Penne Arrabiata',
+    'Vegan Lasagne': 'Vegansk Lasagne',
+    'Spicy Arrabiata Penne': 'Stark Penne Arrabiata',
+    'Vegetarian Chilli': 'Vegetarisk Chili',
+    'Brie wrapped in prosciutto & brioche': 'Inbakad Brie',
     
-    // Frukost
-    'Pancakes': 'Fluffiga Amerikanska Pannkakor',
-    'Breakfast Potatoes': 'Stekt Frukostpotatis med Lök',
+    // === FRUKOST ===
+    'Pancakes': 'Pannkakor',
+    'Breakfast Potatoes': 'Frukostpotatis',
     'Full English Breakfast': 'Engelsk Frukost',
+    'English Breakfast': 'Engelsk Frukost',
+    'Bread omelette': 'Omelett med Bröd',
+    'French Toast': 'Fransk Toast',
     
-    // Dessert
-    'Apple Frangipan Tart': 'Fransk Äppelpaj med Mandel',
-    'Bakewell tart': 'Engelsk Mandelkaka Bakewell',
-    'Chocolate Gateau': 'Rik Fransk Chokladtårta',
-    'Banana Pancakes': 'Söta Bananpannkakor',
-    'Apam balik': 'Malaysisk Pannkaka med Jordötter',
-    'Apple & Blackberry Crumble': 'Äppel- och Björnbärspaj med Smuldeg'
+    // === DESSERT ===
+    'Apple Frangipan Tart': 'Äppelpaj med Mandel',
+    'Apple Frangipane Tart': 'Äppelpaj med Mandel',
+    'Bakewell tart': 'Bakewell-Tårta',
+    'Bakewell Tart': 'Bakewell-Tårta',
+    'Chocolate Gateau': 'Chokladtårta',
+    'Banana Pancakes': 'Bananpannkakor',
+    'Apam balik': 'Malaysisk Pannkaka',
+    'Apple & Blackberry Crumble': 'Äppel- och Björnbärspaj',
+    'Carrot Cake': 'Morotskaka',
+    'Chocolate Avocado Mousse': 'Chokladmousse med Avokado',
+    'Key Lime Pie': 'Key Lime Pie',
+    'Sticky Toffee Pudding': 'Sticky Toffee Pudding',
+    'Treacle Tart': 'Sirapstårta',
+    
+    // === ÖVRIGT (VANLIGA RECEPT FRÅN API) ===
+    'Corba': 'Turkisk Linsoppa',
+    'Burek': 'Burek',
+    'Tamiya': 'Egyptiska Falafel',
+    'Dal fry': 'Indisk Linsärt',
+    'Poutine': 'Kanadensisk Poutine',
+    'Timbits': 'Kanadensiska Munkar',
+    'Wontons': 'Wontons',
+    'Kafteji': 'Tunisisk Grönsaksgryta',
+    'Big Mac': 'Hamburgare',
+    'Chicken Ham and Leek Pie': 'Kycklingpaj med Skinka och Purjolök',
+    'Lamb tomato and sweet spices': 'Lamm med Tomat och Kryddor',
+    'Lamb Biryani': 'Lamm Biryani',
+    'Lamb Rogan josh': 'Lamm Rogan Josh',
+    'Pork Cassoulet': 'Fransk Böngryta med Fläsk',
+    'Rappie Pie': 'Rappie Pie',
+    'Split Pea Soup': 'Ärtsoppa',
+    'Three Fish Pie': 'Fiskpaj med Tre Sorters Fisk',
+    'Sushi': 'Sushi',
+    'Teriyaki Chicken': 'Teriyaki-Kyckling',
+    'Mee goreng mamak': 'Malaysisk Wok-Nudlar'
   }
   
   // Returnera översättning om den finns
