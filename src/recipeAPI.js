@@ -872,3 +872,14 @@ export async function fetchRandomRecipe() {
   
   return null
 }
+
+// FIX: Exportera alla lokala svenska recept (skippa API helt)
+export function getAllLocalSwedishRecipes() {
+  // Kombinera alla lokala recept
+  const allRecipes = [
+    ...getSwedishFallbackRecipes(),
+    ...getFallbackRecipes()
+  ]
+  
+  return allRecipes
+}

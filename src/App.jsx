@@ -300,45 +300,16 @@ export default function App() {
     localStorage.setItem('svinnstop_active_tab', activeTab)
   }, [activeTab])
   
-  // FIX: Hämta populära recept ENDAST EN GÅNG vid start
+  // FIX: Skippa API helt - använd bara lokala svenska recept
   useEffect(() => {
-    // Kolla om vi redan har recept i cache
-    const cachedRecipes = localStorage.getItem('svinnstop_cached_recipes')
-    if (cachedRecipes && !recipesLoaded) {
-      try {
-        const { recipes, timestamp, version } = JSON.parse(cachedRecipes)
-        const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 timmar
-        const CACHE_VERSION = 'v8'
-        
-        if (version === CACHE_VERSION && Date.now() - timestamp < CACHE_DURATION) {
-          // Använd cachade recept direkt
-          setInternetRecipes(recipes)
-          setRecipesLoaded(true)
-          console.log('⚡ Laddade recept från cache (snabbt!)')
-          return
-        }
-      } catch (e) {
-        console.warn('Kunde inte läsa receptcache:', e)
-      }
-    }
-    
-    // Om ingen cache eller gammal cache, hämta från API
     if (!recipesLoaded) {
-      const loadInternetRecipes = async () => {
-        setLoadingRecipes(true)
-        try {
-          const recipes = await fetchPopularRecipes(50)
-          setInternetRecipes(recipes)
-          setRecipesLoaded(true)
-          console.log('🍳 Laddade recept från API')
-        } catch (error) {
-          console.error('Kunde inte ladda recept:', error)
-        } finally {
-          setLoadingRecipes(false)
-        }
-      }
-      
-      loadInternetRecipes()
+      // Ladda lokala svenska recept direkt (inga API-anrop)
+      import('./recipeAPI').then(module => {
+        const localRecipes = module.getAllLocalSwedishRecipes()
+        setInternetRecipes(localRecipes)
+        setRecipesLoaded(true)
+        console.log('🍳 Laddade ' + localRecipes.length + ' svenska recept')
+      })
     }
   }, [recipesLoaded])
   
