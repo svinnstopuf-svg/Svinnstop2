@@ -123,6 +123,9 @@ const translateIngredient = (ingredient) => {
     'natural yogurt': 'naturell yoghurt',
     'honey': 'honung',
     'nuts': 'nötter',
+    'ladyfingers': 'savoiardikex',
+    'lady fingers': 'savoiardikex',
+    'savoiardi': 'savoiardikex',
     'coconut': 'kokos',
     'coconut milk': 'kokosmölk',
     'coconut cream': 'kokosgrädde',
@@ -1398,10 +1401,10 @@ function getAdditionalSwedishRecipes() {
         { name: 'ägg', quantity: 4, unit: 'stycken' },
         { name: 'socker', quantity: 1, unit: 'dl' },
         { name: 'kaffe', quantity: 3, unit: 'dl' },
-        { name: 'längfingrar', quantity: 200, unit: 'g' },
+        { name: 'savoiardikex', quantity: 200, unit: 'g' },
         { name: 'kakao', quantity: 2, unit: 'msk' }
       ],
-      instructions: 'Separera äggulor och vitor. Vispa äggulor med socker. Rör i mascarpone. Vispa vitorna till hårt skum. Vänd ner i mascarponekrämen. Doppa längfingrar i kallt kaffe. Varva längfingrar och kräm. Kyl 4 timmar. Pudra kakao över innan servering.',
+      instructions: 'Separera äggulor och vitor. Vispa äggulor med socker. Rör i mascarpone. Vispa vitorna till hårt skum. Vänd ner i mascarponekrämen. Doppa savoiardikexen i kallt kaffe. Varva kex och kräm. Kyl 4 timmar. Pudra kakao över innan servering.',
       cookingTime: '4.5 timmar',
       difficulty: 'Medel',
       tags: ['dessert', 'italienskt', 'elegant']
