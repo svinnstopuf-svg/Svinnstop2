@@ -878,8 +878,175 @@ export function getAllLocalSwedishRecipes() {
   // Kombinera alla lokala recept
   const allRecipes = [
     ...getSwedishFallbackRecipes(),
-    ...getFallbackRecipes()
+    ...getFallbackRecipes(),
+    ...getAdditionalSwedishRecipes()
   ]
   
   return allRecipes
+}
+
+// Lägg till fler hårdkodade svenska recept
+function getAdditionalSwedishRecipes() {
+  return [
+    {
+      id: 'swedish-5',
+      name: 'Ärtsoppa med Fläsk',
+      servings: 4,
+      ingredients: [
+        { name: 'gula ärtor', quantity: 500, unit: 'g' },
+        { name: 'rökt fläsk', quantity: 400, unit: 'g' },
+        { name: 'lök', quantity: 1, unit: 'stycke' },
+        { name: 'morot', quantity: 2, unit: 'stycken' },
+        { name: 'timjan', quantity: 2, unit: 'msk' }
+      ],
+      instructions: 'Blötlägg ärtor över natten. Koka ärtor med fläsk, lök och morötter i 2 timmar. Ta ut fläsket och skiva. Mixa soppan slät. Servera med senap och knäckebröd.',
+      cookingTime: '2.5 timmar',
+      difficulty: 'Medel',
+      tags: ['soppa', 'husmanskost', 'swedish']
+    },
+    {
+      id: 'swedish-6',
+      name: 'Stekt Strömming',
+      servings: 2,
+      ingredients: [
+        { name: 'strömmingsfilé', quantity: 400, unit: 'g' },
+        { name: 'mjöl', quantity: 1, unit: 'dl' },
+        { name: 'smör', quantity: 50, unit: 'g' },
+        { name: 'potatis', quantity: 600, unit: 'g' },
+        { name: 'gräddfil', quantity: 2, unit: 'dl' }
+      ],
+      instructions: 'Vänd strömmingsfiléerna i mjöl, salt och peppar. Stek i smör 2-3 min per sida. Servera med kokt potatis, lingon och gräddfil.',
+      cookingTime: '25 minuter',
+      difficulty: 'Lätt',
+      tags: ['fisk', 'husmanskost', 'swedish']
+    },
+    {
+      id: 'swedish-7',
+      name: 'Janssons Frestelse',
+      servings: 4,
+      ingredients: [
+        { name: 'potatis', quantity: 800, unit: 'g' },
+        { name: 'ansovis', quantity: 1, unit: 'burk' },
+        { name: 'lök', quantity: 2, unit: 'stycken' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'smör', quantity: 50, unit: 'g' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Skala och strimla potatis och lök. Varva potatis, lök och ansjovis i smörd form. Häll över grädde. Grädda 60 min tills gyllene.',
+      cookingTime: '75 minuter',
+      difficulty: 'Lätt',
+      tags: ['gratäng', 'husmanskost', 'swedish']
+    },
+    {
+      id: 'swedish-8',
+      name: 'Inkokt Lax med Dillstuva',
+      servings: 4,
+      ingredients: [
+        { name: 'laxfilé', quantity: 600, unit: 'g' },
+        { name: 'smör', quantity: 50, unit: 'g' },
+        { name: 'mjöl', quantity: 3, unit: 'msk' },
+        { name: 'fiskbuljong', quantity: 5, unit: 'dl' },
+        { name: 'dill', quantity: 1, unit: 'knippe' }
+      ],
+      instructions: 'Koka laxen i lätt saltat vatten 8-10 min. Gör en vit sås av smör, mjöl och buljong. Tillsatt hackad dill. Servera med kokt potatis.',
+      cookingTime: '30 minuter',
+      difficulty: 'Medel',
+      tags: ['fisk', 'husmanskost', 'swedish']
+    },
+    {
+      id: 'swedish-9',
+      name: 'Kalops',
+      servings: 6,
+      ingredients: [
+        { name: 'nötkött', quantity: 800, unit: 'g' },
+        { name: 'lök', quantity: 3, unit: 'stycken' },
+        { name: 'morot', quantity: 3, unit: 'stycken' },
+        { name: 'lagerblad', quantity: 3, unit: 'stycken' },
+        { name: 'smör', quantity: 50, unit: 'g' }
+      ],
+      instructions: 'Skär köttet i bitar. Bryn i smör. Tillsatt lök, morots skivor, lagerblad, salt och peppar. Häll på vatten och sjud 2 timmar. Servera med kokt potatis och rödbetssallad.',
+      cookingTime: '2.5 timmar',
+      difficulty: 'Medel',
+      tags: ['gryta', 'husmanskost', 'swedish']
+    },
+    {
+      id: 'extra-1',
+      name: 'Kryddig Linssoppa',
+      servings: 4,
+      ingredients: [
+        { name: 'röda linser', quantity: 300, unit: 'g' },
+        { name: 'tomat', quantity: 400, unit: 'g' },
+        { name: 'kokosmjölk', quantity: 4, unit: 'dl' },
+        { name: 'currypasta', quantity: 2, unit: 'msk' },
+        { name: 'spenat', quantity: 100, unit: 'g' }
+      ],
+      instructions: 'Stek currypasta i olja. Tillsatt linser, krossade tomater och grönsaksbuljong. Sjud 20 min. Rör i kokosmjölk och spenat. Servera med naan-bröd.',
+      cookingTime: '35 minuter',
+      difficulty: 'Lätt',
+      tags: ['soppa', 'vegetariskt', 'indiskt']
+    },
+    {
+      id: 'extra-2',
+      name: 'Laxpasta med Spenat',
+      servings: 4,
+      ingredients: [
+        { name: 'pasta', quantity: 400, unit: 'g' },
+        { name: 'rökt lax', quantity: 200, unit: 'g' },
+        { name: 'spenat', quantity: 150, unit: 'g' },
+        { name: 'crème fraiche', quantity: 2, unit: 'dl' },
+        { name: 'citron', quantity: 1, unit: 'stycke' }
+      ],
+      instructions: 'Koka pastan. Stek spenat i smör. Tillsatt crème fraiche, lax i bitar och citronsaft. Värm. Blanda med pastan. Toppa med dill.',
+      cookingTime: '20 minuter',
+      difficulty: 'Lätt',
+      tags: ['pasta', 'fisk', 'snabbt']
+    },
+    {
+      id: 'extra-3',
+      name: 'Halloumiburgare',
+      servings: 4,
+      ingredients: [
+        { name: 'halloumi', quantity: 400, unit: 'g' },
+        { name: 'hamburgerbröd', quantity: 4, unit: 'stycken' },
+        { name: 'tomat', quantity: 2, unit: 'stycken' },
+        { name: 'sallad', quantity: 1, unit: 'huvud' },
+        { name: 'tzatziki', quantity: 2, unit: 'dl' }
+      ],
+      instructions: 'Skiva halloumin. Stek i torr panna tills gyllene. Rosta brödet. Bygg burgare med sallad, tomat, halloumi och tzatziki.',
+      cookingTime: '15 minuter',
+      difficulty: 'Lätt',
+      tags: ['vegetariskt', 'snabbt', 'lunch']
+    },
+    {
+      id: 'extra-4',
+      name: 'Thailaändsk Kokosgrönsaksgryta',
+      servings: 4,
+      ingredients: [
+        { name: 'kokosmjölk', quantity: 4, unit: 'dl' },
+        { name: 'grön currypasta', quantity: 3, unit: 'msk' },
+        { name: 'broccoli', quantity: 300, unit: 'g' },
+        { name: 'paprika', quantity: 2, unit: 'stycken' },
+        { name: 'jasminris', quantity: 300, unit: 'g' }
+      ],
+      instructions: 'Koka ris. Fräs currypasta. Tillsatt kokosmjölk och grönsaker. Sjud 10 min. Smaka av med fisksås och lime. Servera över ris med koriander.',
+      cookingTime: '25 minuter',
+      difficulty: 'Lätt',
+      tags: ['vegetariskt', 'thailändskt', 'gryta']
+    },
+    {
+      id: 'extra-5',
+      name: 'Falukorvsgratäng',
+      servings: 4,
+      ingredients: [
+        { name: 'falukorv', quantity: 500, unit: 'g' },
+        { name: 'makaroner', quantity: 400, unit: 'g' },
+        { name: 'tomat', quantity: 400, unit: 'g' },
+        { name: 'räksmör', quantity: 200, unit: 'g' },
+        { name: 'ost', quantity: 150, unit: 'g' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Koka makaroner. Blanda med skivad korv, krossade tomater och räksmör. Lägg i form. Strö ost på. Grädda 25 min.',
+      cookingTime: '40 minuter',
+      difficulty: 'Lätt',
+      tags: ['barnvänligt', 'gratäng', 'vardagsmat']
+    }
+  ]
 }

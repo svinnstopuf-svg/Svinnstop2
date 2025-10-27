@@ -303,12 +303,15 @@ export default function App() {
   // FIX: Skippa API helt - använd bara lokala svenska recept
   useEffect(() => {
     if (!recipesLoaded) {
+      // VIKTIGT: Rensa gammal API-cache först
+      localStorage.removeItem('svinnstop_cached_recipes')
+      
       // Ladda lokala svenska recept direkt (inga API-anrop)
       import('./recipeAPI').then(module => {
         const localRecipes = module.getAllLocalSwedishRecipes()
         setInternetRecipes(localRecipes)
         setRecipesLoaded(true)
-        console.log('🍳 Laddade ' + localRecipes.length + ' svenska recept')
+        console.log('🍳 Laddade ' + localRecipes.length + ' svenska recept (utan API)')
       })
     }
   }, [recipesLoaded])
