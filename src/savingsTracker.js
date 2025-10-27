@@ -255,3 +255,11 @@ export function getAllAchievements() {
 export function resetSavingsData() {
   localStorage.removeItem(STORAGE_KEY)
 }
+
+// Default export object
+export const savingsTracker = {
+  getSavingsData,
+  trackSavedItem: trackItemSaved,
+  getAllAchievements,
+  resetSavingsData
+}
