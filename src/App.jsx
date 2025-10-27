@@ -5,9 +5,11 @@ import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
 import Onboarding from './Onboarding'
 import NotificationPrompt from './NotificationPrompt'
+import SavingsBanner from './SavingsBanner'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
+import { savingsTracker } from './savingsTracker'
 import './mobile.css'
 import './newFeatures.css'
 
@@ -443,6 +445,13 @@ export default function App() {
         data: { item: itemToRemove },
         timestamp: Date.now()
       })
+      
+      // Track savings if item was used before expiry
+      const daysLeft = daysUntil(itemToRemove.expiresAt)
+      if (daysLeft >= 0) {
+        // Item removed before or on expiry date = saved!
+        savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+      }
     }
     
     // FIX: Uppdatera state OCH localStorage synkront
@@ -914,6 +923,9 @@ export default function App() {
           </div>
         </div>
       </header>
+      
+      {/* Savings Tracker Banner */}
+      <SavingsBanner />
       
       {/* Enhanced Tab Navigation */}
       <nav className="tab-navigation">

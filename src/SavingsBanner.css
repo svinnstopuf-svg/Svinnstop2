@@ -1,0 +1,252 @@
+/* Savings Banner - Gamification Hero */
+.savings-banner {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: white;
+  box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hero Section */
+.savings-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.savings-icon {
+  font-size: 3rem;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.savings-main {
+  flex: 1;
+}
+
+.savings-amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.savings-label {
+  font-size: 0.95rem;
+  opacity: 0.95;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* Stats Grid */
+.savings-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Latest Achievement */
+.latest-achievement {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.achievement-badge {
+  font-size: 1.5rem;
+}
+
+.achievement-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Details Button */
+.savings-details-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.savings-details-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Details Section */
+.savings-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  animation: expandDown 0.3s ease-out;
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.savings-details h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.savings-info {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  opacity: 0.95;
+}
+
+/* Month Progress */
+.month-progress {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 6px;
+  transition: width 0.5s ease-out;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.progress-tip {
+  font-size: 0.8rem;
+  text-align: center;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .savings-banner {
+    padding: 1.25rem;
+  }
+
+  .savings-amount {
+    font-size: 2rem;
+  }
+
+  .savings-label {
+    font-size: 0.85rem;
+  }
+
+  .savings-stats {
+    padding: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stat-divider {
+    height: 30px;
+  }
+
+  .savings-icon {
+    font-size: 2.5rem;
+  }
+}
