@@ -124,9 +124,12 @@ const translateIngredient = (ingredient) => {
     'honey': 'honung',
     'nuts': 'nötter',
     'coconut': 'kokos',
-    'coconut milk': 'kokosmjölk',
+    'coconut milk': 'kokosmölk',
     'coconut cream': 'kokosgrädde',
     'desiccated coconut': 'kokos (torkad)',
+    'corn': 'majs',
+    'sweetcorn': 'majs',
+    'mais': 'majs',
     'zucchini': 'zucchini',
     'courgette': 'zucchini',
     'aubergine': 'aubergine',
@@ -1257,12 +1260,12 @@ function getAdditionalSwedishRecipes() {
         { name: 'kycklinglår', quantity: 600, unit: 'g' },
         { name: 'bbq-sås', quantity: 2, unit: 'dl' },
         { name: 'ris', quantity: 300, unit: 'g' },
-        { name: 'mais', quantity: 1, unit: 'burk' },
+        { name: 'majs', quantity: 1, unit: 'burk' },
         { name: 'svarta bönor', quantity: 1, unit: 'burk' },
         { name: 'avokado', quantity: 2, unit: 'stycken' },
         { name: 'lime', quantity: 2, unit: 'stycken' }
       ],
-      instructions: 'Koka kycklinglåren i vatten 30 min. Riv köttet med två gafflar. Blanda med bbq-sås. Koka ris. Skölj mais och bönor. Bygg bowls med ris, kyckling, mais, bönor och avokado. Pressa lime över.',
+      instructions: 'Koka kycklinglåren i vatten 30 min. Riv köttet med två gafflar. Blanda med bbq-sås. Koka ris. Skölj majs och bönor. Bygg bowls med ris, kyckling, majs, bönor och avokado. Pressa lime över.',
       cookingTime: '45 minuter',
       difficulty: 'Lätt',
       tags: ['kyckling', 'hälsosamt', 'amerikanskt']
@@ -1318,6 +1321,174 @@ function getAdditionalSwedishRecipes() {
       cookingTime: '30 minuter',
       difficulty: 'Medel',
       tags: ['vegetariskt', 'medelhavs', 'hälsosamt']
+    },
+    {
+      id: 'dessert-1',
+      name: 'Kladdkaka',
+      servings: 8,
+      ingredients: [
+        { name: 'ägg', quantity: 2, unit: 'stycken' },
+        { name: 'socker', quantity: 3, unit: 'dl' },
+        { name: 'mjöl', quantity: 1.5, unit: 'dl' },
+        { name: 'kakao', quantity: 4, unit: 'msk' },
+        { name: 'smör', quantity: 100, unit: 'g' },
+        { name: 'vaniljsocker', quantity: 1, unit: 'tsk' }
+      ],
+      instructions: 'Sätt ugn på 175°C. Smält smör och låt svalna. Vispa ägg och socker puffigt. Blanda mjöl, kakao och vaniljsocker. Rör ner i äggsmeten. Tillsatt smält smör. Häll i smörd form. Grädda 12-15 min (ska vara kladdig i mitten). Servera med vispgrädde.',
+      cookingTime: '30 minuter',
+      difficulty: 'Lätt',
+      tags: ['dessert', 'bakning', 'choklad', 'swedish']
+    },
+    {
+      id: 'dessert-2',
+      name: 'Pannacotta med Bär',
+      servings: 4,
+      ingredients: [
+        { name: 'grädde', quantity: 5, unit: 'dl' },
+        { name: 'socker', quantity: 1, unit: 'dl' },
+        { name: 'gelatin', quantity: 3, unit: 'blad' },
+        { name: 'vaniljstång', quantity: 1, unit: 'stycke' },
+        { name: 'hallon', quantity: 200, unit: 'g' }
+      ],
+      instructions: 'Blötlägg gelatin i kallt vatten. Koka grädde, socker och vanilj. Ta av från värmen. Krama ur gelatinet och rör ner. Häll i formar. Kyl 4 timmar. Vänd upp och ner på tallrik. Toppa med hallon.',
+      cookingTime: '4.5 timmar',
+      difficulty: 'Medel',
+      tags: ['dessert', 'italienskt', 'elegant']
+    },
+    {
+      id: 'dessert-3',
+      name: 'Chokladbollar',
+      servings: 20,
+      ingredients: [
+        { name: 'havregryn', quantity: 3, unit: 'dl' },
+        { name: 'socker', quantity: 1.5, unit: 'dl' },
+        { name: 'kakao', quantity: 3, unit: 'msk' },
+        { name: 'smör', quantity: 100, unit: 'g' },
+        { name: 'kallt kaffe', quantity: 3, unit: 'msk' },
+        { name: 'kokos', quantity: 1, unit: 'dl' }
+      ],
+      instructions: 'Smält smör och låt svalna. Blanda havregryn, socker och kakao. Tillsatt smör och kaffe. Rör ihop. Rulla till bollar och vältra i kokos. Förvara i kylen.',
+      cookingTime: '20 minuter',
+      difficulty: 'Lätt',
+      tags: ['dessert', 'fika', 'swedish', 'snabbt']
+    },
+    {
+      id: 'dessert-4',
+      name: 'Äppelpaj',
+      servings: 8,
+      ingredients: [
+        { name: 'äpple', quantity: 5, unit: 'stycken' },
+        { name: 'smör', quantity: 100, unit: 'g' },
+        { name: 'mjöl', quantity: 2, unit: 'dl' },
+        { name: 'havregryn', quantity: 1, unit: 'dl' },
+        { name: 'socker', quantity: 1, unit: 'dl' },
+        { name: 'kanel', quantity: 1, unit: 'tsk' }
+      ],
+      instructions: 'Sätt ugn på 200°C. Skala och skiva äpplen. Lägg i smörd form. Strö kanel och 2 msk socker. Smält smör. Blanda mjöl, havregryn och socker. Tillsatt smör. Smula över äpplena. Grädda 25-30 min. Servera med vaniljglass.',
+      cookingTime: '45 minuter',
+      difficulty: 'Lätt',
+      tags: ['dessert', 'bakning', 'swedish']
+    },
+    {
+      id: 'dessert-5',
+      name: 'Tiramisu',
+      servings: 6,
+      ingredients: [
+        { name: 'mascarpone', quantity: 500, unit: 'g' },
+        { name: 'ägg', quantity: 4, unit: 'stycken' },
+        { name: 'socker', quantity: 1, unit: 'dl' },
+        { name: 'kaffe', quantity: 3, unit: 'dl' },
+        { name: 'längfingrar', quantity: 200, unit: 'g' },
+        { name: 'kakao', quantity: 2, unit: 'msk' }
+      ],
+      instructions: 'Separera äggulor och vitor. Vispa äggulor med socker. Rör i mascarpone. Vispa vitorna till hårt skum. Vänd ner i mascarponekrämen. Doppa längfingrar i kallt kaffe. Varva längfingrar och kräm. Kyl 4 timmar. Pudra kakao över innan servering.',
+      cookingTime: '4.5 timmar',
+      difficulty: 'Medel',
+      tags: ['dessert', 'italienskt', 'elegant']
+    },
+    {
+      id: 'dessert-6',
+      name: 'Chokladmousse',
+      servings: 4,
+      ingredients: [
+        { name: 'mörk choklad', quantity: 200, unit: 'g' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'ägg', quantity: 2, unit: 'stycken' },
+        { name: 'socker', quantity: 2, unit: 'msk' }
+      ],
+      instructions: 'Smält choklad över vattenbad. Låt svalna. Vispa grädden. Separera ägg. Vispa äggulor med socker. Rör i chokladen. Vänd försiktigt ner vispgrädde. Häll i glas. Kyl 2 timmar.',
+      cookingTime: '2.5 timmar',
+      difficulty: 'Medel',
+      tags: ['dessert', 'choklad', 'elegant']
+    },
+    {
+      id: 'dessert-7',
+      name: 'Citronmåne',
+      servings: 8,
+      ingredients: [
+        { name: 'ägg', quantity: 3, unit: 'stycken' },
+        { name: 'socker', quantity: 2, unit: 'dl' },
+        { name: 'mjöl', quantity: 1.5, unit: 'dl' },
+        { name: 'bakpulver', quantity: 1, unit: 'tsk' },
+        { name: 'citron', quantity: 2, unit: 'stycken' },
+        { name: 'florsocker', quantity: 2, unit: 'dl' }
+      ],
+      instructions: 'Sätt ugn på 175°C. Vispa ägg och socker puffigt. Blanda mjöl och bakpulver. Vänd ner. Häll i smörd form. Grädda 25 min. Vispa florsocker med citronsaft. Stick hål i kakan. Häll glasyren över. Låt stelna.',
+      cookingTime: '45 minuter',
+      difficulty: 'Lätt',
+      tags: ['dessert', 'bakning', 'citrus']
+    },
+    {
+      id: 'dessert-8',
+      name: 'Prinsesstårta Mini',
+      servings: 6,
+      ingredients: [
+        { name: 'ägg', quantity: 3, unit: 'stycken' },
+        { name: 'socker', quantity: 1.5, unit: 'dl' },
+        { name: 'mjöl', quantity: 1, unit: 'dl' },
+        { name: 'vaniljkräm', quantity: 3, unit: 'dl' },
+        { name: 'grädde', quantity: 3, unit: 'dl' },
+        { name: 'marsipan', quantity: 300, unit: 'g' },
+        { name: 'sylt', quantity: 1, unit: 'dl' }
+      ],
+      instructions: 'Sätt ugn på 175°C. Vispa ägg och socker. Vänd ner mjöl. Grädda 25 min. Dela i två. Vispa grädde. Varva botten, sylt, vaniljkräm, vispgrädde och lock. Kavla ut grön marsipan. Täck tårtan. Pudra florsocker.',
+      cookingTime: '60 minuter',
+      difficulty: 'Svår',
+      tags: ['dessert', 'bakning', 'swedish', 'festmat']
+    },
+    {
+      id: 'dessert-9',
+      name: 'Brownie',
+      servings: 12,
+      ingredients: [
+        { name: 'mörk choklad', quantity: 200, unit: 'g' },
+        { name: 'smör', quantity: 150, unit: 'g' },
+        { name: 'ägg', quantity: 3, unit: 'stycken' },
+        { name: 'socker', quantity: 3, unit: 'dl' },
+        { name: 'mjöl', quantity: 1.5, unit: 'dl' },
+        { name: 'kakao', quantity: 3, unit: 'msk' },
+        { name: 'valnötter', quantity: 1, unit: 'dl' }
+      ],
+      instructions: 'Sätt ugn på 175°C. Smält choklad och smör. Låt svalna. Vispa ägg och socker. Tillsatt chokladblandningen. Blanda mjöl och kakao. Rör ner med hackade valnötter. Häll i form. Grädda 25-30 min. Låt svalna helt innan skärning.',
+      cookingTime: '45 minuter',
+      difficulty: 'Lätt',
+      tags: ['dessert', 'choklad', 'amerikanskt']
+    },
+    {
+      id: 'dessert-10',
+      name: 'Crème Brûlée',
+      servings: 4,
+      ingredients: [
+        { name: 'grädde', quantity: 5, unit: 'dl' },
+        { name: 'äggulor', quantity: 5, unit: 'stycken' },
+        { name: 'socker', quantity: 0.75, unit: 'dl' },
+        { name: 'vaniljstång', quantity: 1, unit: 'stycke' },
+        { name: 'farinsocker', quantity: 4, unit: 'msk' }
+      ],
+      instructions: 'Sätt ugn på 150°C. Koka grädde med vanilj. Vispa äggulor med socker. Häll grädden i dünstroåm. Sila. Häll i formar. Grädda i vattenbad 40-45 min. Kyl 4 timmar. Strö farinsocker. Karamellisera med brüléelämpor eller i ugn.',
+      cookingTime: '5.5 timmar',
+      difficulty: 'Svår',
+      tags: ['dessert', 'franskt', 'elegant']
     }
   ]
 }
