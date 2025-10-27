@@ -75,6 +75,9 @@ export default function SavingsBanner() {
             Det motsvarar ca <strong>{Math.round(savingsData.totalSaved / 50)} liter bensin</strong> eller{' '}
             <strong>{Math.round(savingsData.totalSaved / 100)} biobiljetter</strong>! 🎉
           </p>
+          <p className="savings-note">
+            <small>📊 Summan räknas konservativt (70% av varje varas värde) för att kompensera för delvis användning.</small>
+          </p>
           
           {savingsData.currentMonth.items > 0 && (
             <div className="month-progress">

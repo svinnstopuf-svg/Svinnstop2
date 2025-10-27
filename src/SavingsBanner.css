@@ -173,8 +173,21 @@
 .savings-info {
   font-size: 0.95rem;
   line-height: 1.6;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   opacity: 0.95;
+}
+
+.savings-note {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  font-style: italic;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.savings-note small {
+  display: block;
+  line-height: 1.4;
 }
 
 /* Month Progress */

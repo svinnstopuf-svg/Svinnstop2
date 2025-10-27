@@ -1,6 +1,10 @@
 // Gamification: Spåra sparade pengar och achievements
 const STORAGE_KEY = 'svinnstop_savings_data'
 
+// Konservativ uppskattningsfaktor: Räkna endast 70% av värdet som sparat
+// Detta kompenserar för delvis användning, svinn under förvaring, etc.
+const SAVINGS_FACTOR = 0.7
+
 // Genomsnittliga priser per kategori (SEK)
 const AVERAGE_PRICES = {
   'mjölkprodukter': 35,
@@ -119,8 +123,9 @@ function saveSavingsData(data) {
 export function trackItemSaved(item) {
   const data = getSavingsData()
   
-  // Estimera värdet
-  const estimatedValue = estimateProductPrice(item.name, item.quantity)
+  // Estimera värdet och applicera konservativ faktor (70%)
+  const fullPrice = estimateProductPrice(item.name, item.quantity)
+  const estimatedValue = Math.round(fullPrice * SAVINGS_FACTOR)
   
   // Uppdatera totaler
   data.totalSaved += estimatedValue
