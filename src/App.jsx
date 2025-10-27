@@ -302,10 +302,10 @@ export default function App() {
   
   // FIX: Skippa API helt - använd bara lokala svenska recept
   useEffect(() => {
+    // VIKTIGT: Rensa ALLTID gammal cache först (kör varje gång sidan laddas)
+    localStorage.removeItem('svinnstop_cached_recipes')
+    
     if (!recipesLoaded) {
-      // VIKTIGT: Rensa gammal API-cache först
-      localStorage.removeItem('svinnstop_cached_recipes')
-      
       // Ladda lokala svenska recept direkt (inga API-anrop)
       import('./recipeAPI').then(module => {
         const localRecipes = module.getAllLocalSwedishRecipes()
@@ -1248,10 +1248,10 @@ export default function App() {
                             <ul>
                               {r.usedIngredients.map((ingredient, idx) => (
                                 <li key={idx} className={`ingredient-item ${ingredient.isExpiring ? 'expiring-ingredient' : ''} ${ingredient.isExpired ? 'expired-ingredient' : ''}`}>
-                                  <span className="ingredient-amount">
+                                  <span className="ingredient-amount notranslate">
                                     {ingredient.quantity} {ingredient.unit}
                                   </span>
-                                  <span className="ingredient-name">{ingredient.name}</span>
+                                  <span className="ingredient-name notranslate">{ingredient.name}</span>
                                   <span className="ingredient-available">
                                     <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
                                     {ingredient.isExpiring && (
@@ -1382,10 +1382,10 @@ export default function App() {
                           <ul>
                             {r.ingredients.map((ingredient, idx) => (
                               <li key={idx} className="ingredient-item">
-                                <span className="ingredient-amount">
+                                <span className="ingredient-amount notranslate">
                                   {ingredient.quantity} {ingredient.unit}
                                 </span>
-                                <span className="ingredient-name">{ingredient.name}</span>
+                                <span className="ingredient-name notranslate">{ingredient.name}</span>
                               </li>
                             ))}
                           </ul>
