@@ -4,6 +4,7 @@ import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
 import Onboarding from './Onboarding'
+import NotificationPrompt from './NotificationPrompt'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -177,6 +178,7 @@ export default function App() {
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
   const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -251,6 +253,16 @@ export default function App() {
     const hasSeenOnboarding = localStorage.getItem('svinnstop_onboarding_seen')
     if (!hasSeenOnboarding) {
       setShowOnboarding(true)
+    }
+    
+    // Kolla om vi ska visa notifikationsprompt
+    // Visa efter onboarding eller när användaren lagt till första varan
+    const notificationPrompted = localStorage.getItem('svinnstop_notifications_prompted')
+    if (!notificationPrompted && hasSeenOnboarding) {
+      // Visa prompten efter en kort delay så användaren hinner se appen först
+      setTimeout(() => {
+        setShowNotificationPrompt(true)
+      }, 2000)
     }
   }, [])
 
@@ -794,12 +806,53 @@ export default function App() {
     localStorage.setItem('svinnstop_onboarding_seen', 'true')
     // Gå till add-fliken efter onboarding
     setActiveTab('add')
+    
+    // Visa notifikationsprompt efter en kort delay
+    setTimeout(() => {
+      const notificationPrompted = localStorage.getItem('svinnstop_notifications_prompted')
+      if (!notificationPrompted) {
+        setShowNotificationPrompt(true)
+      }
+    }, 1500)
+  }
+  
+  // Handle notification permission granted
+  const handleNotificationPermission = async (granted) => {
+    setShowNotificationPrompt(false)
+    
+    if (granted) {
+      // Aktivera notifikationer i appen
+      const success = await notificationService.requestPermission()
+      if (success) {
+        setNotificationsEnabled(true)
+        localStorage.setItem('svinnstop_notifications_enabled', 'true')
+        // Schemalägg notifikationer för befintliga varor
+        if (items.length > 0) {
+          notificationService.scheduleExpiryNotifications(items)
+        }
+        // Visa test-notifikation
+        notificationService.showTestNotification()
+      }
+    }
+  }
+  
+  // Handle notification prompt dismiss
+  const handleNotificationDismiss = () => {
+    setShowNotificationPrompt(false)
   }
 
   return (
     <>
       {/* Onboarding Flow */}
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+      
+      {/* Notification Permission Prompt */}
+      {showNotificationPrompt && (
+        <NotificationPrompt 
+          onPermissionGranted={handleNotificationPermission}
+          onDismiss={handleNotificationDismiss}
+        />
+      )}
       
       <div className="settings-menu-container">
         <button 
