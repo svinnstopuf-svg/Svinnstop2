@@ -230,62 +230,111 @@ const translateMeasure = (measure) => {
   return translations[lower] || measure
 }
 
-// Konvertera mått till numeriska värden
+// HELT OMSKRIVEN: Korrekt måttkonvertering
 const parseMeasurement = (measureStr) => {
   if (!measureStr || measureStr.trim() === '') return { quantity: 1, unit: 'st' }
   
+  // DEBUG: Logga input
+  const originalInput = measureStr
+  
   const str = measureStr.trim().toLowerCase()
   
-  // FIX: Hantera "to taste" och andra beskrivningar
-  if (str.includes('taste') || str.includes('garnish') || str.includes('serve') || 
-      str.includes('needed') || str.includes('drizzle') || str.includes('splash')) {
+  // Steg 1: Hantera icke-numeriska mått
+  if (str.includes('taste') || str.includes('garnish') || str.includes('serve') || str.includes('needed')) {
     return { quantity: 1, unit: 'efter smak' }
   }
-  
-  // FIX: Hantera "handful", "bunch", etc.
+  if (str.includes('drizzle') || str.includes('splash')) return { quantity: 1, unit: 'skål' }
   if (str.includes('handful')) return { quantity: 1, unit: 'näve' }
   if (str.includes('bunch')) return { quantity: 1, unit: 'knippe' }
   if (str.includes('pinch')) return { quantity: 1, unit: 'nypa' }
   
-  // FIX: Hantera bråk (1/2, 1/4, etc)
+  // Steg 2: Extrahera tal (hantera bråk, decimaler, och heltal)
+  let quantity = 1
+  
+  // Hantera bråk (1/2, 1/4, 3/4, etc)
   const fractionMatch = str.match(/(\d+)\s*\/\s*(\d+)/)
   if (fractionMatch) {
-    const quantity = parseFloat(fractionMatch[1]) / parseFloat(fractionMatch[2])
-    const unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
-    const unit = unitMatch ? translateMeasure(unitMatch) : 'st'
-    return { quantity, unit }
+    quantity = parseFloat(fractionMatch[1]) / parseFloat(fractionMatch[2])
+  } else {
+    // Hantera decimaler och heltal
+    const numberMatch = str.match(/(\d+\.?\d*|\d*\.?\d+)/)
+    if (numberMatch) {
+      quantity = parseFloat(numberMatch[1])
+    }
   }
   
-  // FIX: Extrahera tal (hantera decimaler OCH heltal)
-  const numberMatch = str.match(/(\d+\.?\d*|\d*\.?\d+)/)
-  let quantity = numberMatch ? parseFloat(numberMatch[1]) : 1
+  // Steg 3: Identifiera enhet OCH konvertera till metriskt
   
-  // FIX: Konvertera oz till gram (1 oz = 28.35g)
-  if (str.includes('oz') && !str.includes('goz')) {
-    quantity = Math.round(quantity * 28.35)
+  // Viktenhet: oz (ounce) -> gram
+  if ((str.includes('oz') || str.includes('ounce')) && !str.includes('goz')) {
+    return { quantity: Math.round(quantity * 28.35), unit: 'g' }
   }
   
-  // FIX: Konvertera lb till kg (1 lb = 0.453592 kg)
+  // Viktenhet: lb (pound) -> gram
   if (str.includes('lb') || str.includes('pound')) {
-    quantity = Math.round(quantity * 453.592)
+    return { quantity: Math.round(quantity * 453.592), unit: 'g' }
+  }
+  
+  // Volymenhet: cup -> dl
+  if (str.includes('cup')) {
+    return { quantity: Math.round(quantity * 2.366 * 10) / 10, unit: 'dl' }
+  }
+  
+  // Volymenhet: tablespoon -> msk
+  if (str.includes('tablespoon') || str.includes('tbsp')) {
+    return { quantity, unit: 'msk' }
+  }
+  
+  // Volymenhet: teaspoon -> tsk
+  if (str.includes('teaspoon') || str.includes('tsp')) {
+    return { quantity, unit: 'tsk' }
+  }
+  
+  // Volymenhet: ml/liter
+  if (str.includes('ml') || str.includes('millilitre')) {
+    return { quantity, unit: 'ml' }
+  }
+  if (str.includes('litre') || str.includes('liter')) {
+    return { quantity, unit: 'liter' }
+  }
+  
+  // Viktenhet: gram/kg (redan metriskt)
+  if (str.includes('gram') || (str.includes('g') && !str.includes('oz'))) {
     return { quantity, unit: 'g' }
   }
-  
-  // FIX: Konvertera cup till dl (1 cup = 2.36588 dl)
-  if (str.includes('cup')) {
-    quantity = Math.round(quantity * 2.36588 * 10) / 10 // Avrundat till 1 decimal
-    return { quantity, unit: 'dl' }
+  if (str.includes('kg') || str.includes('kilogram')) {
+    return { quantity, unit: 'kg' }
   }
   
-  // Extrahera enhet (hantera sammansatta som "6oz" -> "6" och "oz")
-  let unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
+  // Styckenheter
+  if (str.includes('slice')) {
+    return { quantity, unit: quantity === 1 ? 'skiva' : 'skivor' }
+  }
+  if (str.includes('clove')) {
+    return { quantity, unit: quantity === 1 ? 'klyfta' : 'klyftor' }
+  }
+  if (str.includes('piece')) {
+    return { quantity, unit: quantity === 1 ? 'stycke' : 'stycken' }
+  }
+  if (str.includes('whole')) {
+    return { quantity, unit: 'hel' }
+  }
   
-  // Rensa bort vanliga felstavningar och konstigheter
-  unitMatch = unitMatch.replace(/goz/g, 'g').replace(/^g(?!ram)/g, 'g')
-  
+  // Standard: Använd translateMeasure som fallback
+  const unitMatch = str.replace(/[\d\s.\/]+/g, '').trim()
   const unit = unitMatch ? translateMeasure(unitMatch) : 'st'
   
-  return { quantity, unit }
+  const result = { quantity, unit }
+  
+  // DEBUG: Logga endast om det är ett konstigt resultat
+  if (quantity > 1000 || unit.includes('miljoner')) {
+    console.warn('⚠️ Måttkonvertering:', {
+      input: originalInput,
+      output: result
+    })
+  }
+  
+  return result
 }
 
 // Översätt svårighetsgrad
