@@ -133,7 +133,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--text-muted);
-  opacity: 0.3;
+  opacity: 0.5;
   transition: all 0.3s;
 }
 
@@ -147,7 +147,7 @@
 /* Next Button */
 .onboarding-next {
   background: var(--primary);
-  color: white;
+  color: #ffffff;
   border: none;
   padding: 1rem 3rem;
   border-radius: 12px;
@@ -157,6 +157,11 @@
   transition: all 0.2s;
   width: 100%;
   max-width: 280px;
+}
+
+/* Force white text in light theme */
+[data-theme="light"] .onboarding-next {
+  color: #ffffff;
 }
 
 .onboarding-next:hover {
