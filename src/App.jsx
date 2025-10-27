@@ -900,6 +900,17 @@ export default function App() {
               <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
               <span className="menu-text">{notificationsEnabled ? 'Avaktivera notiser' : 'Aktivera notiser'}</span>
             </button>
+            
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                setActiveTab('savings');
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">💰</span>
+              <span className="menu-text">Mina besparingar</span>
+            </button>
           </div>
         )}
       </div>
@@ -923,9 +934,6 @@ export default function App() {
           </div>
         </div>
       </header>
-      
-      {/* Savings Tracker Banner */}
-      <SavingsBanner />
       
       {/* Enhanced Tab Navigation */}
       <nav className="tab-navigation">
@@ -1499,6 +1507,20 @@ export default function App() {
                   )}
                 </div>
               )}
+            </section>
+          </div>
+        )}
+        
+        {/* Besparingar flik */}
+        {activeTab === 'savings' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="section-header">
+                <h2>💰 Mina besparingar</h2>
+                <p className="section-subtitle">Se hur mycket du har sparat genom att rädda mat från att slängas</p>
+              </div>
+              
+              <SavingsBanner />
             </section>
           </div>
         )}
