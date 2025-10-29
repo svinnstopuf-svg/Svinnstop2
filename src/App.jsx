@@ -6,7 +6,6 @@ import ShoppingList from './ShoppingList'
 import Onboarding from './Onboarding'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
-import SmartSuggestionWidget from './SmartSuggestionWidget'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -1017,25 +1016,6 @@ export default function App() {
                     </div>
                   </label>
                 </div>
-                
-                {/* Smart AI-förslag widget */}
-                {form.name && form.name.trim().length >= 2 && (
-                  <SmartSuggestionWidget 
-                    itemName={form.name}
-                    onApplySuggestion={(suggestion) => {
-                      setForm(prev => ({
-                        ...prev,
-                        expiresAt: suggestion.expiresAt,
-                        quantity: prev.quantity || suggestion.quantity
-                      }))
-                      // Fokusera på quantity-fältet efter att förslaget använts
-                      setTimeout(() => {
-                        const quantityInput = document.querySelector('input[name="quantity"]')
-                        if (quantityInput) quantityInput.focus()
-                      }, 100)
-                    }}
-                  />
-                )}
                 
                 <div className="form-row">
                   <label className="form-label">
