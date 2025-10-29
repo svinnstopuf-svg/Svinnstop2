@@ -742,18 +742,31 @@
 
 /* Bulk Edit funktionalitet */
 .bulk-edit-toggle {
-  padding: 6px 12px;
+  padding: 12px 20px;
   background: var(--secondary-bg);
   color: var(--secondary-color);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 44px;
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.bulk-edit-toggle:hover {
+.bulk-edit-toggle:active {
   background: var(--hover-bg);
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .bulk-edit-toggle:hover {
+    background: var(--hover-bg);
+  }
 }
 
 .bulk-edit-toggle.active {
@@ -1121,20 +1134,33 @@
 }
 
 .bulk-action-btn {
-  padding: 8px 16px;
+  padding: 12px 20px;
   background: white;
   color: var(--warning-color);
-  border: 1px solid var(--warning-color);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
+  border: 2px solid var(--warning-color);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 44px;
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.bulk-action-btn:hover {
+.bulk-action-btn:active {
   background: var(--warning-color);
   color: white;
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .bulk-action-btn:hover {
+    background: var(--warning-color);
+    color: white;
+  }
 }
 
 .bulk-date-section {
@@ -1174,22 +1200,35 @@
 }
 
 .bulk-apply-btn {
-  padding: 10px 20px;
+  padding: 14px 24px;
   background: var(--success-color);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  min-height: 48px;
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.bulk-apply-btn:hover:not(:disabled) {
+.bulk-apply-btn:active:not(:disabled) {
   background: #16a34a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+  transform: scale(0.97);
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+}
+
+@media (hover: hover) {
+  .bulk-apply-btn:hover:not(:disabled) {
+    background: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+  }
 }
 
 .bulk-apply-btn:disabled {
@@ -1224,7 +1263,7 @@
 
 .bulk-delete-btn:active {
   background: var(--danger-hover);
-  transform: scale(0.98);
+  transform: scale(0.97);
   box-shadow: 0 1px 4px rgba(239, 68, 68, 0.3);
 }
 
