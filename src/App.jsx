@@ -8,10 +8,12 @@ import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
 import ReferralProgram from './ReferralProgram'
+import AchievementsPage from './AchievementsPage'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
 import { savingsTracker } from './savingsTracker'
+import { achievementService } from './achievementService'
 import './mobile.css'
 import './newFeatures.css'
 
@@ -249,7 +251,7 @@ export default function App() {
     
     // Ladda senaste aktiva tab
     const savedTab = localStorage.getItem('svinnstop_active_tab')
-    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral'].includes(savedTab)) {
+    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral', 'achievements'].includes(savedTab)) {
       setActiveTab(savedTab)
     }
     
@@ -268,6 +270,9 @@ export default function App() {
         setShowNotificationPrompt(true)
       }, 2000)
     }
+    
+    // Track daily login for achievements
+    achievementService.trackDailyLogin()
   }, [])
 
   // FIX: Debounce localStorage writes för att undvika race conditions
@@ -275,6 +280,14 @@ export default function App() {
     const timeoutId = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+        
+        // Track max active items for achievements
+        const achievementData = achievementService.getAchievementData()
+        if (items.length > (achievementData.stats.maxActiveItems || 0)) {
+          achievementService.updateStats({
+            maxActiveItems: items.length
+          })
+        }
       } catch (error) {
         console.error('Kunde inte spara items till localStorage:', error)
         // Försök rensa gamla data om storage är full
@@ -461,7 +474,13 @@ export default function App() {
       // Track savings if item was used before expiry
       const daysLeft = daysUntil(itemToRemove.expiresAt)
       if (daysLeft >= 0) {
-        savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+        const savingsResult = savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+        
+        // Update achievement stats
+        achievementService.updateStats({
+          itemsSaved: savingsResult.itemsSaved,
+          totalSaved: savingsResult.totalSaved
+        })
       }
       
       // Uppdatera state och localStorage
@@ -642,12 +661,21 @@ export default function App() {
       })
       
       // Track savings för varor som togs bort innan utgångsdatum
+      let lastSavingsResult = null
       itemsToDelete.forEach(item => {
         const daysLeft = daysUntil(item.expiresAt)
         if (daysLeft >= 0) {
-          savingsTracker.trackSavedItem(item.name, item.quantity || 1)
+          lastSavingsResult = savingsTracker.trackSavedItem(item.name, item.quantity || 1)
         }
       })
+      
+      // Update achievement stats after all items
+      if (lastSavingsResult) {
+        achievementService.updateStats({
+          itemsSaved: lastSavingsResult.itemsSaved,
+          totalSaved: lastSavingsResult.totalSaved
+        })
+      }
       
       // Ta bort valda varor
       setItems(prev => {
@@ -990,6 +1018,17 @@ export default function App() {
             >
               <span className="menu-icon">🎁</span>
               <span className="menu-text">Bjud in vänner</span>
+            </button>
+            
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                setActiveTab('achievements');
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">🏆</span>
+              <span className="menu-text">Achievements</span>
             </button>
           </div>
         )}
@@ -1641,6 +1680,13 @@ export default function App() {
               
               <ReferralProgram />
             </section>
+          </div>
+        )}
+        
+        {/* Achievements & Badges flik */}
+        {activeTab === 'achievements' && (
+          <div className="tab-panel">
+            <AchievementsPage />
           </div>
         )}
       

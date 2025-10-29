@@ -103,8 +103,18 @@ export function registerReferral(referredUserCode) {
   
   data.referrals.push(referral)
   
-  // Kolla om jag når någon milestone
+  // Uppdatera achievement stats
   const referralCount = data.referrals.length
+  try {
+    // Import achievementService dynamiskt för att undvika circular dependencies
+    import('./achievementService.js').then(({ achievementService }) => {
+      achievementService.updateStats({
+        referralsCount: referralCount
+      })
+    })
+  } catch (error) {
+    console.warn('Could not update achievement stats:', error)
+  }
   
   if (REWARDS[referralCount]) {
     const reward = REWARDS[referralCount]
