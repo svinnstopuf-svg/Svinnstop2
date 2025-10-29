@@ -438,46 +438,69 @@ export default function App() {
   }
 
   const onRemove = (id, event) => {
-    if (event) {
-      event.stopPropagation()
-      event.preventDefault()
-    }
-    
-    console.log('🗑️ onRemove called for id:', id)
-    
-    const itemToRemove = items.find(item => item.id === id)
-    if (!itemToRemove) {
-      console.error('❌ Item not found:', id)
-      return
-    }
-    
-    console.log('✅ Removing item:', itemToRemove)
-    
-    // Spara åtgärd för att ångra
-    saveAction({
-      type: 'DELETE_SINGLE',
-      data: { item: itemToRemove },
-      timestamp: Date.now()
-    })
-    
-    // Track savings if item was used before expiry
-    const daysLeft = daysUntil(itemToRemove.expiresAt)
-    if (daysLeft >= 0) {
-      // Item removed before or on expiry date = saved!
-      savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
-    }
-    
-    // FIX: Uppdatera state OCH localStorage synkront
-    setItems(prev => {
-      const updated = prev.filter(i => i.id !== id)
-      console.log('💾 Updated items:', updated.length, 'items')
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      } catch (error) {
-        console.error('Kunde inte spara efter borttagning:', error)
+    try {
+      console.log('\n========== onRemove START ==========')
+      console.log('🗑️ onRemove called with id:', id)
+      console.log('📑 Event object:', event)
+      console.log('📊 Current items count:', items.length)
+      
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+        console.log('✅ Event propagation stopped')
       }
-      return updated
-    })
+      
+      const itemToRemove = items.find(item => item.id === id)
+      if (!itemToRemove) {
+        console.error('❌ Item not found with id:', id)
+        console.error('📊 Available items:', items.map(i => ({ id: i.id, name: i.name })))
+        alert('❌ Fel: Kunde inte hitta varan att ta bort')
+        return
+      }
+      
+      console.log('✅ Found item to remove:', itemToRemove)
+      
+      // Spara åtgärd för att ångra
+      console.log('💾 Saving action for undo...')
+      saveAction({
+        type: 'DELETE_SINGLE',
+        data: { item: itemToRemove },
+        timestamp: Date.now()
+      })
+      console.log('✅ Action saved')
+      
+      // Track savings if item was used before expiry
+      const daysLeft = daysUntil(itemToRemove.expiresAt)
+      console.log('📅 Days left:', daysLeft)
+      if (daysLeft >= 0) {
+        console.log('💰 Tracking savings...')
+        savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+        console.log('✅ Savings tracked')
+      }
+      
+      // FIX: Uppdatera state OCH localStorage synkront
+      console.log('🔄 Updating items state...')
+      setItems(prev => {
+        const updated = prev.filter(i => i.id !== id)
+        console.log('💾 Updated items count:', updated.length, '(was:', prev.length, ')')
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+          console.log('✅ Saved to localStorage')
+        } catch (error) {
+          console.error('❌ Kunde inte spara till localStorage:', error)
+        }
+        return updated
+      })
+      
+      console.log('✅ Item removed successfully!')
+      console.log('========== onRemove END ==========\n')
+      
+    } catch (error) {
+      console.error('\n❌❌❌ CRITICAL ERROR in onRemove ❌❌❌')
+      console.error('Error:', error)
+      console.error('Stack:', error.stack)
+      alert('❌ Ett fel uppstod: ' + error.message)
+    }
   }
 
   const toggleTheme = () => {

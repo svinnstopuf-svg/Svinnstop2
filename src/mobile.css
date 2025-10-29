@@ -532,6 +532,15 @@ button[type="submit"]:hover,
   /* Touch-friendly */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  
+  /* Prevent text selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  
+  /* Force pointer events */
+  pointer-events: auto;
 }
 
 .edit-btn {
