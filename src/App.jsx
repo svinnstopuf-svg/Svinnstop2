@@ -7,6 +7,7 @@ import Onboarding from './Onboarding'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
+import ReferralProgram from './ReferralProgram'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -248,7 +249,7 @@ export default function App() {
     
     // Ladda senaste aktiva tab
     const savedTab = localStorage.getItem('svinnstop_active_tab')
-    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email'].includes(savedTab)) {
+    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral'].includes(savedTab)) {
       setActiveTab(savedTab)
     }
     
@@ -979,6 +980,17 @@ export default function App() {
               <span className="menu-icon">📧</span>
               <span className="menu-text">Veckosammanfattning</span>
             </button>
+            
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                setActiveTab('referral');
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">🎁</span>
+              <span className="menu-text">Bjud in vänner</span>
+            </button>
           </div>
         )}
       </div>
@@ -1614,6 +1626,20 @@ export default function App() {
               </div>
               
               <WeeklyEmailSignup />
+            </section>
+          </div>
+        )}
+        
+        {/* Referral Program flik */}
+        {activeTab === 'referral' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="section-header">
+                <h2>🎁 Bjud in vänner</h2>
+                <p className="section-subtitle">Tjäna Premium gratis genom att bjuda in vänner!</p>
+              </div>
+              
+              <ReferralProgram />
             </section>
           </div>
         )}
