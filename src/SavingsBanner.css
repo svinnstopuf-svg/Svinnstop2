@@ -229,6 +229,268 @@
   font-weight: 500;
 }
 
+/* === COMPARISON GRID === */
+.comparison-section {
+  margin-bottom: 1.5rem;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.comparison-item {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1rem;
+  border-radius: 10px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.comparison-item:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.comparison-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.comparison-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.comparison-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* === TREND CHART === */
+.trend-section {
+  margin-bottom: 1.5rem;
+}
+
+.trend-chart {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  height: 150px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.trend-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.trend-bar-container.current .trend-bar {
+  background: white;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.trend-bar-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.trend-bar {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: height 0.5s ease;
+  min-height: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.trend-value {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.trend-label {
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+/* === MONTH COMPARISON === */
+.comparison-month-section {
+  margin-bottom: 1.5rem;
+}
+
+.month-comparison {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.month-comp-item {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.month-comp-item.current {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.month-comp-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.month-comp-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.month-comp-items {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.month-comp-divider {
+  font-size: 1.5rem;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.comparison-result {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.comparison-result.positive {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* === ACHIEVEMENTS SECTION === */
+.achievements-section {
+  margin-bottom: 1.5rem;
+}
+
+.achievement-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.achievement-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.achievement-stat:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.achievement-stat-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.achievement-stat-content {
+  flex: 1;
+}
+
+.achievement-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.achievement-stat-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* === FAMILY STATS === */
+.family-stats-section {
+  margin-bottom: 1.5rem;
+}
+
+.family-stat-card {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.family-stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.family-member-count {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.family-stat-note {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.95;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .savings-banner {
@@ -261,5 +523,29 @@
 
   .savings-icon {
     font-size: 2.5rem;
+  }
+  
+  .comparison-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .achievement-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .month-comparison {
+    flex-direction: column;
+  }
+  
+  .month-comp-divider {
+    transform: rotate(90deg);
+  }
+  
+  .trend-chart {
+    height: 120px;
+  }
+  
+  .trend-value {
+    font-size: 0.6rem;
   }
 }
