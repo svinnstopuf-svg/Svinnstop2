@@ -491,6 +491,9 @@ export default function App() {
     if (lastAction.type === 'DELETE_SINGLE') {
       // Återställ enskild raderad vara
       setItems(prev => [...prev, lastAction.data.item])
+    } else if (lastAction.type === 'DELETE_BULK') {
+      // Återställ flera raderade varor
+      setItems(prev => [...prev, ...lastAction.data.items])
     }
     
     // Ta bort åtgärden från historiken
@@ -608,6 +611,46 @@ export default function App() {
       }
       
       console.log(`✅ Ändrade utgångsdatum för ${selectedItems.size} varor`)
+    }
+  }
+  
+  const bulkDeleteItems = () => {
+    if (selectedItems.size === 0) return
+    
+    const confirmed = confirm(`Är du säker på att du vill ta bort ${selectedItems.size} valda varor?`)
+    if (confirmed) {
+      // Spara för undo
+      const itemsToDelete = items.filter(item => selectedItems.has(item.id))
+      saveAction({
+        type: 'DELETE_BULK',
+        data: { items: itemsToDelete },
+        timestamp: Date.now()
+      })
+      
+      // Track savings för varor som togs bort innan utgångsdatum
+      itemsToDelete.forEach(item => {
+        const daysLeft = daysUntil(item.expiresAt)
+        if (daysLeft >= 0) {
+          savingsTracker.trackSavedItem(item.name, item.quantity || 1)
+        }
+      })
+      
+      // Ta bort valda varor
+      setItems(prev => {
+        const updated = prev.filter(item => !selectedItems.has(item.id))
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        } catch (error) {
+          console.error('Kunde inte spara efter borttagning:', error)
+        }
+        return updated
+      })
+      
+      // Rensa selection och avsluta bulk mode
+      setSelectedItems(new Set())
+      setBulkEditMode(false)
+      
+      console.log(`✅ Tog bort ${itemsToDelete.length} varor`)
     }
   }
   
@@ -1199,29 +1242,40 @@ export default function App() {
                   </div>
                   
                   {selectedItems.size > 0 && (
-                    <div className="bulk-date-section">
-                      <div className="bulk-date-header">
-                        <h4>📅 Ändra utgångsdatum</h4>
-                        <span className="selected-count">{selectedItems.size} varor valda</span>
+                    <>
+                      <div className="bulk-date-section">
+                        <div className="bulk-date-header">
+                          <h4>📅 Ändra utgångsdatum</h4>
+                          <span className="selected-count">{selectedItems.size} varor valda</span>
+                        </div>
+                        <div className="bulk-date-controls">
+                          <input 
+                            type="date" 
+                            value={bulkExpiryDate} 
+                            onChange={(e) => setBulkExpiryDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="bulk-date-input"
+                            placeholder="Välj nytt datum"
+                          />
+                          <button 
+                            onClick={applyBulkExpiryDate}
+                            className="bulk-apply-btn"
+                            disabled={!bulkExpiryDate}
+                          >
+                            ✅ Uppdatera {selectedItems.size} varor
+                          </button>
+                        </div>
                       </div>
-                      <div className="bulk-date-controls">
-                        <input 
-                          type="date" 
-                          value={bulkExpiryDate} 
-                          onChange={(e) => setBulkExpiryDate(e.target.value)}
-                          min={new Date().toISOString().split('T')[0]}
-                          className="bulk-date-input"
-                          placeholder="Välj nytt datum"
-                        />
+                      
+                      <div className="bulk-delete-section">
                         <button 
-                          onClick={applyBulkExpiryDate}
-                          className="bulk-apply-btn"
-                          disabled={!bulkExpiryDate}
+                          onClick={bulkDeleteItems}
+                          className="bulk-delete-btn"
                         >
-                          ✅ Uppdatera {selectedItems.size} varor
+                          🗑️ Ta bort {selectedItems.size} valda varor
                         </button>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               )}

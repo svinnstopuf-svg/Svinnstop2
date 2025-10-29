@@ -495,28 +495,61 @@ button[type="submit"]:hover,
 
 .item-actions {
   flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
+.edit-btn,
 .remove-btn {
-  background: var(--danger-color);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 18px;
-  font-weight: bold;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   min-height: auto;
+  transition: all 0.2s ease;
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.remove-btn:hover {
-  background: #da190b;
-  transform: scale(1.05);
+.edit-btn {
+  color: var(--text-color);
+}
+
+.remove-btn {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.edit-btn:active {
+  background: var(--border-color);
+  transform: scale(0.95);
+}
+
+.remove-btn:active {
+  background: var(--danger-color);
+  color: white;
+  transform: scale(0.95);
+}
+
+@media (hover: hover) {
+  .edit-btn:hover {
+    background: var(--border-color);
+  }
+  
+  .remove-btn:hover {
+    background: var(--danger-color);
+    color: white;
+  }
 }
 
 /* Empty states */

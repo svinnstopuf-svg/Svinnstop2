@@ -1199,6 +1199,43 @@
   opacity: 0.5;
 }
 
+/* Bulk delete section */
+.bulk-delete-section {
+  margin-top: 16px;
+}
+
+.bulk-delete-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.bulk-delete-btn:active {
+  background: var(--danger-hover);
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.3);
+}
+
+@media (hover: hover) {
+  .bulk-delete-btn:hover {
+    background: var(--danger-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+  }
+}
+
 /* Responsiv design för kategorifilter */
 @media (max-width: 768px) {
   .recipe-category-filters {
