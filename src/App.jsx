@@ -437,27 +437,40 @@ export default function App() {
     }, 100)
   }
 
-  const onRemove = id => {
+  const onRemove = (id, event) => {
+    if (event) {
+      event.stopPropagation()
+      event.preventDefault()
+    }
+    
+    console.log('🗑️ onRemove called for id:', id)
+    
     const itemToRemove = items.find(item => item.id === id)
-    if (itemToRemove) {
-      // Spara åtgärd för att ångra
-      saveAction({
-        type: 'DELETE_SINGLE',
-        data: { item: itemToRemove },
-        timestamp: Date.now()
-      })
-      
-      // Track savings if item was used before expiry
-      const daysLeft = daysUntil(itemToRemove.expiresAt)
-      if (daysLeft >= 0) {
-        // Item removed before or on expiry date = saved!
-        savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
-      }
+    if (!itemToRemove) {
+      console.error('❌ Item not found:', id)
+      return
+    }
+    
+    console.log('✅ Removing item:', itemToRemove)
+    
+    // Spara åtgärd för att ångra
+    saveAction({
+      type: 'DELETE_SINGLE',
+      data: { item: itemToRemove },
+      timestamp: Date.now()
+    })
+    
+    // Track savings if item was used before expiry
+    const daysLeft = daysUntil(itemToRemove.expiresAt)
+    if (daysLeft >= 0) {
+      // Item removed before or on expiry date = saved!
+      savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
     }
     
     // FIX: Uppdatera state OCH localStorage synkront
     setItems(prev => {
       const updated = prev.filter(i => i.id !== id)
+      console.log('💾 Updated items:', updated.length, 'items')
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
       } catch (error) {
@@ -1330,7 +1343,7 @@ export default function App() {
                           </button>
                           <button 
                             className="remove-btn" 
-                            onClick={() => onRemove(i.id)}
+                            onClick={(e) => onRemove(i.id, e)}
                             title="Ta bort denna vara"
                             aria-label="Ta bort denna vara"
                           >
