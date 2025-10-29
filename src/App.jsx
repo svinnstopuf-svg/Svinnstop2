@@ -57,7 +57,7 @@ function daysUntil(dateStr) {
 
 // Hämta föreslagen enhetsnyckel för antal-etikett baserat på varans namn
 export function getSuggestedUnitKey(itemName) {
-  if (!itemName.trim()) return 'defaultUnit'
+  if (!itemName || typeof itemName !== 'string' || !itemName.trim()) return 'defaultUnit'
   
   const name = itemName.toLowerCase()
   

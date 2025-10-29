@@ -23,6 +23,11 @@ const AVERAGE_PRICES = {
 
 // Estimera pris baserat på produktnamn
 function estimateProductPrice(productName, quantity = 1) {
+  if (!productName || typeof productName !== 'string') {
+    console.warn('⚠️ estimateProductPrice: Invalid productName:', productName)
+    return AVERAGE_PRICES.default * quantity
+  }
+  
   const name = productName.toLowerCase()
   
   // Kött
