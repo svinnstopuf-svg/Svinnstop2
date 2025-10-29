@@ -10,6 +10,7 @@ import WeeklyEmailSignup from './WeeklyEmailSignup'
 import ReferralProgram from './ReferralProgram'
 import AchievementsPage from './AchievementsPage'
 import FamilySharing from './FamilySharing'
+import Leaderboard from './Leaderboard'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -252,7 +253,7 @@ export default function App() {
     
     // Ladda senaste aktiva tab
     const savedTab = localStorage.getItem('svinnstop_active_tab')
-    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral', 'achievements', 'family'].includes(savedTab)) {
+    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral', 'achievements', 'family', 'leaderboard'].includes(savedTab)) {
       setActiveTab(savedTab)
     }
     
@@ -1042,6 +1043,17 @@ export default function App() {
               <span className="menu-icon">👨‍👩‍👧‍👦</span>
               <span className="menu-text">Family Sharing</span>
             </button>
+            
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                setActiveTab('leaderboard');
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">🏆</span>
+              <span className="menu-text">Leaderboard</span>
+            </button>
           </div>
         )}
       </div>
@@ -1712,6 +1724,20 @@ export default function App() {
               </div>
               
               <FamilySharing items={items} />
+            </section>
+          </div>
+        )}
+        
+        {/* Leaderboard flik */}
+        {activeTab === 'leaderboard' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="section-header">
+                <h2>🏆 Leaderboard</h2>
+                <p className="section-subtitle">Tävla med dina vänner!</p>
+              </div>
+              
+              <Leaderboard />
             </section>
           </div>
         )}

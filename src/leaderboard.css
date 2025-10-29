@@ -1,0 +1,517 @@
+/* Leaderboard & Competitions - Mobile First */
+
+.leaderboard-container {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+/* === MESSAGE TOAST === */
+.leaderboard-message {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10000;
+  font-weight: 600;
+  animation: slideDown 0.3s ease;
+  max-width: 90%;
+}
+
+.leaderboard-message.success {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+}
+
+.leaderboard-message.error {
+  background: linear-gradient(135deg, #f44336, #e57373);
+  color: white;
+}
+
+/* === USERNAME SETUP === */
+.username-setup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.setup-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  text-align: center;
+}
+
+.setup-card h3 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.setup-card p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.username-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.username-form input {
+  padding: 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 16px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.username-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: var(--card-bg);
+}
+
+.btn-primary {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-secondary {
+  padding: 12px 20px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+/* === NAVIGATION === */
+.leaderboard-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leaderboard-nav button {
+  flex: 1;
+  padding: 12px 20px;
+  border: 2px solid var(--border-color);
+  background: var(--card-bg);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-height: 48px;
+}
+
+.leaderboard-nav button.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.leaderboard-nav button:hover:not(.active) {
+  background: var(--bg-hover);
+}
+
+/* === MY RANK CARD === */
+.my-rank-card {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.rank-badge {
+  font-size: 48px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.rank-info {
+  flex: 1;
+}
+
+.rank-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rank-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* === TIMEFRAME FILTER === */
+.timeframe-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.timeframe-filter button {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid var(--border-color);
+  background: var(--card-bg);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.timeframe-filter button.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* === LEADERBOARD LIST === */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboard-item {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.leaderboard-item.is-me {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(102, 187, 106, 0.1));
+  border: 2px solid var(--primary-color);
+}
+
+.leaderboard-item.top-three {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
+}
+
+.item-rank {
+  font-size: 32px;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-username {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.me-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.item-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.item-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* === EMPTY STATES === */
+.empty-leaderboard,
+.empty-friends {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.empty-leaderboard p,
+.empty-friends p {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.empty-subtitle {
+  font-size: 14px !important;
+  opacity: 0.8;
+}
+
+/* === FRIENDS VIEW === */
+.friends-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.add-friend-section {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.add-friend-section h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.add-friend-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add-friend-form input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 15px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.add-friend-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: var(--card-bg);
+}
+
+.demo-btn {
+  width: 100%;
+  padding: 10px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px dashed var(--primary-color);
+  color: var(--primary-color);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.demo-btn:hover {
+  background: rgba(76, 175, 80, 0.2);
+}
+
+/* === FRIENDS LIST === */
+.friends-list {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.friends-list h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.friend-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.friend-card:last-child {
+  margin-bottom: 0;
+}
+
+.friend-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.friend-avatar {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.friend-info {
+  flex: 1;
+}
+
+.friend-username {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.friend-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.remove-friend-btn {
+  background: rgba(244, 67, 54, 0.1);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.remove-friend-btn:hover {
+  background: rgba(244, 67, 54, 0.2);
+  transform: scale(1.1);
+}
+
+/* === DARK MODE === */
+:root {
+  --card-bg: white;
+  --bg-secondary: #f5f5f5;
+  --bg-hover: #e8e8e8;
+  --border-color: #e0e0e0;
+  --text-secondary: #666;
+  --text-primary: #333;
+  --primary-color: #4CAF50;
+}
+
+[data-theme="dark"] {
+  --card-bg: #2a2a2a;
+  --bg-secondary: #1e1e1e;
+  --bg-hover: #333;
+  --border-color: #444;
+  --text-secondary: #aaa;
+  --text-primary: #e0e0e0;
+  --primary-color: #66BB6A;
+}
+
+/* === ANIMATIONS === */
+@keyframes slideDown {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 480px) {
+  .leaderboard-container {
+    padding: 12px;
+  }
+
+  .setup-card {
+    padding: 24px;
+  }
+
+  .my-rank-card {
+    padding: 16px;
+  }
+
+  .rank-badge {
+    font-size: 36px;
+  }
+
+  .rank-value {
+    font-size: 20px;
+  }
+
+  .item-stats {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .add-friend-form {
+    flex-direction: column;
+  }
+}
