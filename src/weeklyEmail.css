@@ -1,0 +1,295 @@
+/* Weekly Email Signup - Mobile First */
+
+/* Trigger button (när inte expanded) */
+.email-trigger-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  margin: 16px 0;
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.email-trigger-btn:active {
+  transform: scale(0.98);
+}
+
+/* Main signup card */
+.email-signup-card {
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+  animation: slideInUp 0.4s ease-out;
+  color: white;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.email-icon {
+  font-size: 56px;
+  text-align: center;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+  animation: bounceIn 0.6s ease-out;
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.email-content h3 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+  text-align: center;
+  color: white;
+}
+
+.email-description {
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+  opacity: 0.95;
+  text-align: center;
+}
+
+/* Form */
+.email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.email-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.email-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.email-input:focus {
+  outline: none;
+  border-color: white;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.email-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.email-submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.email-submit-btn:active {
+  transform: scale(0.98);
+}
+
+.email-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Messages */
+.email-message {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.email-message.success {
+  background: rgba(76, 175, 80, 0.3);
+  border: 2px solid rgba(76, 175, 80, 0.5);
+}
+
+.email-message.error {
+  background: rgba(244, 67, 54, 0.3);
+  border: 2px solid rgba(244, 67, 54, 0.5);
+}
+
+/* Privacy text */
+.email-privacy {
+  font-size: 13px;
+  opacity: 0.8;
+  text-align: center;
+  margin: 0;
+}
+
+/* Close button */
+.email-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.email-close:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.9);
+}
+
+/* Subscribed state */
+.email-signup-card.subscribed {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.email-signup-card.subscribed ul {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+
+.email-signup-card.subscribed li {
+  padding: 10px 0;
+  font-size: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.email-signup-card.subscribed li:last-child {
+  border-bottom: none;
+}
+
+.subscribed-email {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 12px 16px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  margin: 16px 0;
+  font-size: 15px;
+}
+
+.unsubscribe-btn {
+  width: 100%;
+  padding: 14px;
+  background: rgba(244, 67, 54, 0.3);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Touch-friendly */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.unsubscribe-btn:active {
+  background: rgba(244, 67, 54, 0.5);
+  transform: scale(0.98);
+}
+
+/* Responsive - larger screens */
+@media (min-width: 768px) {
+  .email-signup-card {
+    padding: 32px;
+    border-radius: 20px;
+  }
+  
+  .email-icon {
+    font-size: 64px;
+  }
+  
+  .email-content h3 {
+    font-size: 26px;
+  }
+  
+  .email-description {
+    font-size: 16px;
+  }
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .email-signup-card {
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.5);
+}
+
+[data-theme="light"] .email-signup-card {
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .email-signup-card,
+  .email-icon {
+    animation: none;
+  }
+  
+  .email-submit-btn:active,
+  .email-trigger-btn:active,
+  .email-close:active,
+  .unsubscribe-btn:active {
+    transform: none;
+  }
+}

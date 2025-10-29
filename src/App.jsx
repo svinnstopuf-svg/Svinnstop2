@@ -6,6 +6,7 @@ import ShoppingList from './ShoppingList'
 import Onboarding from './Onboarding'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
+import WeeklyEmailSignup from './WeeklyEmailSignup'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -247,7 +248,7 @@ export default function App() {
     
     // Ladda senaste aktiva tab
     const savedTab = localStorage.getItem('svinnstop_active_tab')
-    if (savedTab && ['add', 'shopping', 'inventory', 'recipes'].includes(savedTab)) {
+    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email'].includes(savedTab)) {
       setActiveTab(savedTab)
     }
     
@@ -911,6 +912,17 @@ export default function App() {
               <span className="menu-icon">💰</span>
               <span className="menu-text">Mina besparingar</span>
             </button>
+            
+            <button 
+              className="settings-menu-item"
+              onClick={() => {
+                setActiveTab('email');
+                setShowSettingsMenu(false);
+              }}
+            >
+              <span className="menu-icon">📧</span>
+              <span className="menu-text">Veckosammanfattning</span>
+            </button>
           </div>
         )}
       </div>
@@ -1521,6 +1533,20 @@ export default function App() {
               </div>
               
               <SavingsBanner />
+            </section>
+          </div>
+        )}
+        
+        {/* Veckosammanfattning flik */}
+        {activeTab === 'email' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="section-header">
+                <h2>📧 Veckosammanfattningar</h2>
+                <p className="section-subtitle">Få ett email varje måndag med dina utgående varor, receptförslag och statistik</p>
+              </div>
+              
+              <WeeklyEmailSignup />
             </section>
           </div>
         )}
