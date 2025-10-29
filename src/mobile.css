@@ -445,9 +445,16 @@ button[type="submit"]:hover,
 
 .item-checkbox {
   flex-shrink: 0;
-  position: relative;
-  padding: 8px;
-  margin: -8px;
+}
+
+/* When in bulk edit mode, position checkbox absolutely */
+.items .bulk-edit-mode .item-checkbox {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0;
+  margin: 0;
 }
 
 .item-checkbox input[type="checkbox"] {
