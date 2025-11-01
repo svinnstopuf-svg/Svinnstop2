@@ -97,7 +97,7 @@ export default function FamilySharing({ items }) {
     if (result.success) {
       setMessage({
         type: 'success',
-        text: result.syncEnabled ? '✅ Synkronisering aktiverad' : '⚠️ Synkronisering avaktiverad'
+        text: result.syncEnabled ? '✅ Synkronisering aktiverad' : '⚠️ Synkronisering inaktiverad'
       })
       loadFamilyData()
     }

@@ -712,7 +712,7 @@ export default function App() {
     })
     
     // Visa bekräftelse
-    console.log(`✅ ${inventoryItem.name} lades till i ditt kölskåp med utgångsdatum ${inventoryItem.expiresAt}`)
+    console.log(`✅ ${inventoryItem.name} lades till i ditt kylskåp med utgångsdatum ${inventoryItem.expiresAt}`)
   }
   
   // Aktivera notifikationer
@@ -728,7 +728,7 @@ export default function App() {
     }
   }
   
-  // Avaktivera notifikationer
+  // Inaktivera notifikationer
   const disableNotifications = () => {
     setNotificationsEnabled(false)
     // Rensa alla schemalagda notifikationer
@@ -986,7 +986,7 @@ export default function App() {
               }}
             >
               <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
-              <span className="menu-text">{notificationsEnabled ? 'Avaktivera notiser' : 'Aktivera notiser'}</span>
+              <span className="menu-text">{notificationsEnabled ? 'Inaktivera notiser' : 'Aktivera notiser'}</span>
             </button>
             
             <button 
@@ -1030,7 +1030,7 @@ export default function App() {
               }}
             >
               <span className="menu-icon">🏆</span>
-              <span className="menu-text">Achievements</span>
+              <span className="menu-text">Utmärkelser</span>
             </button>
             
             <button 
@@ -1041,7 +1041,7 @@ export default function App() {
               }}
             >
               <span className="menu-icon">👨‍👩‍👧‍👦</span>
-              <span className="menu-text">Family Sharing</span>
+              <span className="menu-text">Familjegrupp</span>
             </button>
             
             <button 
@@ -1052,7 +1052,7 @@ export default function App() {
               }}
             >
               <span className="menu-icon">🏆</span>
-              <span className="menu-text">Leaderboard</span>
+              <span className="menu-text">Topplista</span>
             </button>
           </div>
         )}
@@ -1218,7 +1218,7 @@ export default function App() {
                     disabled={!form.name || !form.expiresAt || form.quantity <= 0}
                     className="btn-primary btn-large"
                   >
-                    ➕ Lägg in i mitt kylskåp
+                    ➕ Lägg till i mitt kylskåp
                   </button>
                   {form.name && form.expiresAt && form.quantity > 0 && (
                     <div className="form-preview">
@@ -1468,8 +1468,8 @@ export default function App() {
                   {suggestions.length === 0 ? (
                     <div className="empty-recipes">
                       <p>{items.length === 0 
-                        ? '📦 Lägg till varor i ditt kölskåp för att få personliga receptförslag!' 
-                        : '🔍 Inga recept hittades med dina nuvarande matvaror. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
+                        ? '📦 Lägg till varor i ditt kylskåp för att få personliga receptförslag!' 
+                        : '🔍 Inga recept hittades med dina nuvarande varor. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
                       </p>
                     </div>
                   ) : (
@@ -1719,8 +1719,8 @@ export default function App() {
           <div className="tab-panel">
             <section className="card">
               <div className="section-header">
-                <h2>👨‍👩‍👧‍👦 Family Sharing</h2>
-                <p className="section-subtitle">Dela matvarulistan med hela familjen</p>
+                <h2>👨‍👩‍👧‍👦 Familjegrupp</h2>
+                <p className="section-subtitle">Dela varulistan med hela familjen</p>
               </div>
               
               <FamilySharing items={items} />
@@ -1733,7 +1733,7 @@ export default function App() {
           <div className="tab-panel">
             <section className="card">
               <div className="section-header">
-                <h2>🏆 Leaderboard</h2>
+                <h2>🏆 Topplista</h2>
                 <p className="section-subtitle">Tävla med dina vänner!</p>
               </div>
               

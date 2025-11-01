@@ -130,7 +130,7 @@ export default function Leaderboard() {
       {!hasUsername && (
         <div className="username-setup">
           <div className="setup-card">
-            <h3>🎮 Välkommen till Leaderboard!</h3>
+            <h3>🎮 Välkommen till topplistan!</h3>
             <p>Sätt ditt användarnamn för att börja tävla med vänner</p>
             
             <div className="username-form">
@@ -158,7 +158,7 @@ export default function Leaderboard() {
               className={view === 'leaderboard' ? 'active' : ''}
               onClick={() => setView('leaderboard')}
             >
-              🏆 Leaderboard
+              🏆 Topplista
             </button>
             <button
               className={view === 'friends' ? 'active' : ''}
@@ -231,7 +231,7 @@ export default function Leaderboard() {
 
               {leaderboard.length === 1 && (
                 <div className="empty-leaderboard">
-                  <p>👥 Lägg till vänner för att se dem på leaderboarden!</p>
+                  <p>👥 Lägg till vänner för att se dem på topplistan!</p>
                   <button 
                     className="btn-secondary"
                     onClick={() => setView('friends')}

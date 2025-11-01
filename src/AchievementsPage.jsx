@@ -41,7 +41,7 @@ export default function AchievementsPage() {
     <div className="achievements-page">
       {/* Header with overall stats */}
       <div className="achievements-header">
-        <h1>🏆 Achievements & Badges</h1>
+        <h1>🏆 Utmärkelser & Badges</h1>
         
         <div className="overall-stats">
           <div className="stat-card">
@@ -54,14 +54,14 @@ export default function AchievementsPage() {
           </div>
           <div className="stat-card">
             <div className="stat-value">{overallProgress}%</div>
-            <div className="stat-label">Completion</div>
+            <div className="stat-label">Avklarat</div>
           </div>
         </div>
 
         {/* Score progress bar */}
         <div className="score-progress">
           <div className="progress-label">
-            <span>Total Progress</span>
+            <span>Totalt framsteg</span>
             <span>{achievementScore.percentage}%</span>
           </div>
           <div className="progress-bar">
@@ -75,7 +75,7 @@ export default function AchievementsPage() {
 
       {/* Tier Progress */}
       <div className="tier-progress-section">
-        <h2>Badge Tiers</h2>
+        <h2>Badge-nivåer</h2>
         <div className="tier-cards">
           {Object.values(BADGE_TIERS).map(tier => {
             const progress = tierProgress[tier.name] || { unlocked: 0, total: 0, percentage: 0 }
