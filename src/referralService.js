@@ -34,8 +34,8 @@ export function getReferralData() {
     console.error('Kunde inte läsa referral data:', error)
   }
   
-  // Default structure
-  return {
+  // Default structure - skapa och spara direkt
+  const defaultData = {
     myCode: generateReferralCode(),
     referredBy: null, // Kod från personen som bjöd in mig
     referrals: [], // Personer jag har bjudit in
@@ -44,6 +44,11 @@ export function getReferralData() {
     lifetimePremium: false,
     createdAt: new Date().toISOString()
   }
+  
+  // Spara direkt så koden inte ändras vid refresh
+  saveReferralData(defaultData)
+  
+  return defaultData
 }
 
 // Spara referral data
