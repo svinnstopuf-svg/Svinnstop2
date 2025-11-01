@@ -18,7 +18,7 @@ export const CATEGORIES = {
   COOK: 'Kock',
   ORGANIZER: 'Organisatör',
   SOCIAL: 'Social',
-  STREAK: 'Streak',
+  STREAK: 'Aktivitet',
   SPECIAL: 'Speciell'
 }
 
