@@ -108,7 +108,7 @@ export default function AchievementsPage() {
       {/* Category Filter */}
       <div className="category-tabs">
         <button
-          className={selectedCategory === 'all' ? 'active' : ''}
+          className={selectedCategory === 'all' ? 'active notranslate' : 'notranslate'}
           onClick={() => setSelectedCategory('all')}
         >
           alla
@@ -116,7 +116,7 @@ export default function AchievementsPage() {
         {Object.values(CATEGORIES).map(category => (
           <button
             key={category}
-            className={selectedCategory === category ? 'active' : ''}
+            className={`${selectedCategory === category ? 'active' : ''} ${category === 'Aktivitet' ? 'notranslate' : ''}`}
             onClick={() => setSelectedCategory(category)}
           >
             {category}
