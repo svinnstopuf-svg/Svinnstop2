@@ -87,7 +87,7 @@ export default function SavingsBanner() {
               <div className="comparison-item">
                 <div className="comparison-icon">⛽</div>
                 <div className="comparison-value">{Math.round(savingsData.totalSaved / 50)} L</div>
-                <div className="comparison-label">Bensin</div>
+                <div className="comparison-label notranslate">Bensin</div>
               </div>
               <div className="comparison-item">
                 <div className="comparison-icon">🎬</div>
@@ -97,7 +97,7 @@ export default function SavingsBanner() {
               <div className="comparison-item">
                 <div className="comparison-icon">☕</div>
                 <div className="comparison-value">{Math.round(savingsData.totalSaved / 40)}</div>
-                <div className="comparison-label">Kaffelånge</div>
+                <div className="comparison-label notranslate">Kaffe</div>
               </div>
               <div className="comparison-item">
                 <div className="comparison-icon">🍕</div>
