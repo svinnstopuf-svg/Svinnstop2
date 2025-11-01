@@ -113,18 +113,15 @@ export default function AchievementsPage() {
         >
           alla
         </button>
-        {Object.values(CATEGORIES).map(category => {
-          const isAktivitet = category === 'Aktivitet'
-          return (
-            <button
-              key={category}
-              className={`${selectedCategory === category ? 'active' : ''} ${isAktivitet ? 'notranslate' : ''}`}
-              onClick={() => setSelectedCategory(category)}
-            >
-              {isAktivitet ? 'Aktivitet' : category}
-            </button>
-          )
-        })}
+        {Object.values(CATEGORIES).map(category => (
+          <button
+            key={category}
+            className={selectedCategory === category ? 'active notranslate' : 'notranslate'}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
       </div>
 
       {/* Achievement List */}
