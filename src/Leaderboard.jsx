@@ -260,14 +260,6 @@ export default function Leaderboard() {
                     Lägg till
                   </button>
                 </div>
-                
-                {/* Demo button */}
-                <button 
-                  className="demo-btn"
-                  onClick={handleGenerateMockFriends}
-                >
-                  🎲 Generera demo-vänner
-                </button>
               </div>
 
               {/* Friends List */}
