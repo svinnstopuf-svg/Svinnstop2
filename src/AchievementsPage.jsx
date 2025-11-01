@@ -110,7 +110,7 @@ export default function AchievementsPage() {
         <button
           className="active"
         >
-          Alla
+          alla
         </button>
         {Object.values(CATEGORIES).map(category => (
           <button
