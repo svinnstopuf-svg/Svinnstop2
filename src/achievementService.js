@@ -97,7 +97,7 @@ export const ACHIEVEMENTS = [
     id: 'money_100',
     category: CATEGORIES.SAVER,
     tier: BADGE_TIERS.BRONZE,
-    title: 'Första Hundrappen',
+    title: 'Första Hundralappen',
     description: 'Spara 100 kr',
     icon: '💰',
     requirement: 100,
