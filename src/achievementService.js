@@ -305,7 +305,7 @@ export const ACHIEVEMENTS = [
     id: 'special_earlybird',
     category: CATEGORIES.SPECIAL,
     tier: BADGE_TIERS.SILVER,
-    title: 'Tidig Fågel',
+    title: 'Morgonpigg',
     description: 'Logga in före kl 06:00',
     icon: '🌅',
     requirement: 1,

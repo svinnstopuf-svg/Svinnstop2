@@ -108,8 +108,7 @@ export default function AchievementsPage() {
       {/* Category Filter */}
       <div className="category-tabs">
         <button
-          className={selectedCategory === 'all' ? 'active' : ''}
-          onClick={() => setSelectedCategory('all')}
+          className="active"
         >
           Alla
         </button>
