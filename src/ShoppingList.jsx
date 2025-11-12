@@ -214,44 +214,43 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                   <span className="item-emoji">{item.emoji || '📦'}</span>
                   <div className="item-details">
                     <span className="item-name">{item.name}</span>
-                    {item.isFood && (
-                      <span className="food-indicator">🍽️ Matvara → Mina varor</span>
-                    )}
                   </div>
                 </label>
                   <div className="item-quantity-actions">
-                    <span className="quantity-display">Antal: {item.quantity} {item.unit}</span>
+                    <span className="quantity-display">{item.quantity} {item.unit}</span>
                     <div className="quantity-controls">
+                      <div className="combined-qty-btn">
+                        <button 
+                          className="qty-decrease"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const newQuantity = Math.max(0.1, item.quantity - 0.5)
+                            setShoppingItems(prev => prev.map(i => 
+                              i.id === item.id ? {...i, quantity: newQuantity} : i
+                            ))
+                          }}
+                          disabled={item.completed}
+                          title="Minska"
+                        >
+                          −
+                        </button>
+                        <button 
+                          className="qty-increase"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const newQuantity = item.quantity + 0.5
+                            setShoppingItems(prev => prev.map(i => 
+                              i.id === item.id ? {...i, quantity: newQuantity} : i
+                            ))
+                          }}
+                          disabled={item.completed}
+                          title="Öka"
+                        >
+                          +
+                        </button>
+                      </div>
                       <button 
-                        className="qty-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const newQuantity = Math.max(0.1, item.quantity - 0.5)
-                          setShoppingItems(prev => prev.map(i => 
-                            i.id === item.id ? {...i, quantity: newQuantity} : i
-                          ))
-                        }}
-                        disabled={item.completed}
-                        title="Minska"
-                      >
-                        -
-                      </button>
-                      <button 
-                        className="qty-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const newQuantity = item.quantity + 0.5
-                          setShoppingItems(prev => prev.map(i => 
-                            i.id === item.id ? {...i, quantity: newQuantity} : i
-                          ))
-                        }}
-                        disabled={item.completed}
-                        title="Öka"
-                      >
-                        +
-                      </button>
-                      <button 
-                        className="remove-btn"
+                        className="remove-btn-shopping"
                         onClick={(e) => {
                           e.stopPropagation()
                           removeItem(item.id)

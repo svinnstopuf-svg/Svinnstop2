@@ -1909,7 +1909,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .shopping-item .item-name {
   font-weight: 600;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .shopping-item .food-indicator {
@@ -2041,64 +2041,93 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .item-quantity-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-end;
   margin-left: auto;
 }
 
 .quantity-display {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .quantity-controls {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
 }
 
-.qty-btn, .remove-btn {
-  width: 28px;
-  height: 28px;
+/* Combined quantity button */
+.combined-qty-btn {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  height: 32px;
+}
+
+.qty-decrease,
+.qty-increase {
+  width: 36px;
+  height: 32px;
   border: none;
-  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.qty-decrease {
+  border-right: 1px solid var(--glass-border);
+}
+
+.qty-decrease:hover:not(:disabled),
+.qty-increase:hover:not(:disabled) {
+  background: var(--accent-solid);
+  color: white;
+}
+
+.qty-decrease:disabled,
+.qty-increase:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.qty-decrease:active:not(:disabled),
+.qty-increase:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.remove-btn-shopping {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--danger);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 600;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
 }
 
-.qty-btn {
-  background: var(--glass);
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
-}
-
-.qty-btn:hover:not(:disabled) {
-  background: var(--accent-solid);
-  color: white;
-  transform: scale(1.1);
-}
-
-.qty-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.remove-btn {
-  background: var(--danger);
-  color: white;
-  margin-left: 4px;
-}
-
-.remove-btn:hover {
+.remove-btn-shopping:hover {
   background: var(--danger-solid);
-  transform: scale(1.1);
+  transform: scale(1.05);
+}
+
+.remove-btn-shopping:active {
+  transform: scale(0.95);
 }
 
 /* === RECIPE ENHANCEMENTS === */
