@@ -1881,7 +1881,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .shopping-item .item-main {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
 }
 
@@ -1897,7 +1897,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   display: flex;
   align-items: center;
   cursor: pointer;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -1918,7 +1918,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .shopping-item .item-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
@@ -1931,18 +1931,20 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   letter-spacing: -0.01em;
 }
 
-.shopping-item .item-quantity-text {
+.shopping-item .item-quantity-display {
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 600;
   background: rgba(0, 0, 0, 0.05);
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
   display: inline-block;
   width: fit-content;
+  margin-left: 4px;
+  white-space: nowrap;
 }
 
-[data-theme="dark"] .shopping-item .item-quantity-text {
+[data-theme="dark"] .shopping-item .item-quantity-display {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -2123,30 +2125,32 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 }
 
 .trash-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--danger);
   border-radius: 10px;
-  background: var(--danger);
-  color: white;
+  background: transparent;
+  color: var(--danger);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 22px;
-  font-weight: 300;
+  font-size: 24px;
+  font-weight: 400;
   line-height: 1;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .trash-btn:hover {
-  background: var(--danger-hover);
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  background: var(--danger);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 .trash-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 
 /* === RECIPE ENHANCEMENTS === */

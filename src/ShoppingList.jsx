@@ -215,22 +215,22 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                     <span className="item-emoji">{item.emoji || '📦'}</span>
                     <div className="item-info">
                       <span className="item-name">{item.name}</span>
-                      <span className="item-quantity-text">{item.quantity} {item.unit}</span>
                     </div>
                   </div>
                 </label>
+                <span className="item-quantity-display">{item.quantity} {item.unit}</span>
                 <div className="item-actions">
                   <div className="qty-control">
                     <button 
                       className="qty-btn qty-minus"
                       onClick={(e) => {
                         e.stopPropagation()
-                        const newQuantity = Math.max(0.1, item.quantity - 0.5)
+                        const newQuantity = Math.max(0.5, item.quantity - 0.5)
                         setShoppingItems(prev => prev.map(i => 
                           i.id === item.id ? {...i, quantity: newQuantity} : i
                         ))
                       }}
-                      disabled={item.completed}
+                      disabled={item.completed || item.quantity <= 0.5}
                       title="Minska"
                       aria-label="Minska antal"
                     >
