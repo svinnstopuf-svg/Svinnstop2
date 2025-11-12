@@ -173,8 +173,13 @@ body {
 }
 
 .undo-btn {
-  width: 44px;
+  position: fixed;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: 200;
+  width: auto;
   height: 44px;
+  padding: 0 var(--spacing-md);
   border-radius: var(--radius-full);
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -182,7 +187,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  gap: var(--spacing-xs);
+  font-size: var(--font-sm);
+  font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-md);

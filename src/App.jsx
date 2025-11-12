@@ -951,17 +951,15 @@ export default function App() {
         />
       )}
       
-      <div className="settings-menu-container">
-        <button 
-          className="undo-btn" 
-          onClick={undoLastAction}
-          disabled={!canUndo}
-          title="Ångra senaste borttagning"
-          aria-label="Ångra senaste borttagning"
-        >
-          ↶
-        </button>
-      </div>
+      <button 
+        className="undo-btn" 
+        onClick={undoLastAction}
+        disabled={!canUndo}
+        title="Ångra senaste borttagning"
+        aria-label="Ångra senaste borttagning"
+      >
+        ↶️ Ångra
+      </button>
       
     <div className="container">
       <header>
