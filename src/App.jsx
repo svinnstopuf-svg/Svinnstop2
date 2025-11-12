@@ -1078,29 +1078,22 @@ export default function App() {
         </div>
       </header>
       
-      {/* Enhanced Tab Navigation */}
+      {/* Optimized 4-Tab Navigation */}
       <nav className="tab-navigation">
-        <button 
-          className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
-        >
-          <span className="tab-icon">📦</span>
-          <span className="tab-label">Mina varor</span>
-          {items.length > 0 && <span className="tab-badge">{items.length}</span>}
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
-          onClick={() => setActiveTab('add')}
-        >
-          <span className="tab-icon">➕</span>
-          <span className="tab-label">Lägg in</span>
-        </button>
         <button 
           className={`tab-button ${activeTab === 'shopping' ? 'active' : ''}`}
           onClick={() => setActiveTab('shopping')}
         >
-          <span className="tab-icon">🛍️</span>
+          <span className="tab-icon">📋</span>
           <span className="tab-label">Inköpslista</span>
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventory')}
+        >
+          <span className="tab-icon">🏠</span>
+          <span className="tab-label">Kylskåp</span>
+          {items.length > 0 && <span className="tab-badge">{items.length}</span>}
         </button>
         <button 
           className={`tab-button ${activeTab === 'recipes' ? 'active' : ''}`}
@@ -1110,24 +1103,40 @@ export default function App() {
           <span className="tab-label">Recept</span>
           {suggestions.length > 0 && <span className="tab-badge">{suggestions.length}</span>}
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          <span className="tab-icon">👤</span>
+          <span className="tab-label">Profil</span>
+        </button>
       </nav>
       
       {/* Tab Content */}
       <div className="tab-content">
         
-        {/* Lägg till vara flik */}
-        {activeTab === 'add' && (
+        {/* Inköpslista-fliken - primär användning */}
+        {activeTab === 'shopping' && (
+          <div className="tab-panel">
+            <ShoppingList 
+              onAddToInventory={handleDirectAddToInventory}
+            />
+          </div>
+        )}
+        
+        {/* Kylskåp-fliken - kombinerat: lägg till + mina varor */}
+        {activeTab === 'inventory' && (
           <div className="tab-panel">
             <section className="card add-item-card">
               <div className="card-header">
-                <h2>➕ Lägg in vara</h2>
-                <p className="card-subtitle">Fyll i information om varan du vill lägga till</p>
+                <h2>Lägg in vara</h2>
+                <p className="card-subtitle">Fyll i information om varan</p>
               </div>
               
               <form onSubmit={onAdd} className="add-form">
                 <div className="form-section">
                   <label className="form-label">
-                    <span className="label-text">🏷️ Namn på vara</span>
+                    <span className="label-text">Namn på vara</span>
                     <div className="input-with-suggestions">
                       <input 
                         name="name" 
@@ -1162,7 +1171,7 @@ export default function App() {
                 
                 <div className="form-row">
                   <label className="form-label">
-                    <span className="label-text">📊 Antal</span>
+                    <span className="label-text">Antal</span>
                     <div className="quantity-input-container">
                       <input 
                         type="number" 
@@ -1182,7 +1191,7 @@ export default function App() {
                   </label>
                   
                   <label className="form-label">
-                    <span className="label-text">📅 Utgångsdatum</span>
+                    <span className="label-text">Utgångsdatum</span>
                     <div className="expiry-input-container">
                       <input 
                         type="date" 
@@ -1218,35 +1227,24 @@ export default function App() {
                     disabled={!form.name || !form.expiresAt || form.quantity <= 0}
                     className="btn-primary btn-large"
                   >
-                    ➕ Lägg till i mitt kylskåp
+                    Lägg till i kylskåp
                   </button>
                   {form.name && form.expiresAt && form.quantity > 0 && (
                     <div className="form-preview">
-                      <small>✨ Lägger till: <strong>{form.quantity} {suggestedUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
+                      <small>Lägger till: <strong>{form.quantity} {suggestedUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
                     </div>
                   )}
                 </div>
               </form>
             </section>
-          </div>
-        )}
-        
-        {/* Inköpslista flik */}
-        {activeTab === 'shopping' && (
-          <div className="tab-panel">
-            <ShoppingList 
-              onDirectAddToInventory={handleDirectAddToInventory}
-            />
-          </div>
-        )}
-        
-        {/* Mina varor flik */}
-        {activeTab === 'inventory' && (
+            
+            {/* Mina varor section */}
+            <section className="card inventory-card">
           <div className="tab-panel">
             <section className="card inventory-card">
               <div className="card-header">
                 <div className="header-main">
-                  <h2>📦 Mina varor</h2>
+                  <h2>Mina varor</h2>
                   {items.length > 0 && (
                     <div className="inventory-stats">
                       <span className="stat-item">{items.length} varor totalt</span>
@@ -1261,7 +1259,7 @@ export default function App() {
                       className={`bulk-edit-toggle ${bulkEditMode ? 'active' : ''}`}
                       title={bulkEditMode ? 'Avsluta redigering' : 'Ändra utgångsdatum för flera varor'}
                     >
-                      {bulkEditMode ? '✕ Avsluta redigering' : '📋 Redigera flera'}
+                      {bulkEditMode ? '✕ Avsluta' : 'Redigera flera'}
                     </button>
                   )}
                 </div>
@@ -1293,19 +1291,19 @@ export default function App() {
                       className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
                       onClick={() => setFilter('all')}
                     >
-                      📦 Alla varor
+                      Alla
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expiring' ? 'active' : ''}`}
                       onClick={() => setFilter('expiring')}
                     >
-                      ⚠️ Går ut snart
+                      Går ut snart
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expired' ? 'active' : ''}`}
                       onClick={() => setFilter('expired')}
                     >
-                      ❌ Utgångna
+                      Utgångna
                     </button>
                   </div>
                 </div>
@@ -1314,7 +1312,6 @@ export default function App() {
                 <div className="bulk-edit-panel">
                   <div className="bulk-edit-header">
                     <div className="bulk-status">
-                      <span className="bulk-icon">📋</span>
                       <span className="bulk-text">Redigerings-läge</span>
                       <span className="bulk-count">{selectedItems.size} av {filtered.length} valda</span>
                     </div>
@@ -1322,10 +1319,10 @@ export default function App() {
                   
                   <div className="bulk-actions-row">
                     <button onClick={selectAllVisible} className="bulk-action-btn">
-                      ✓ Välj alla synliga
+                      Välj alla synliga
                     </button>
                     <button onClick={deselectAll} className="bulk-action-btn">
-                      ✕ Rensa urval
+                      Rensa urval
                     </button>
                   </div>
                   
@@ -1333,7 +1330,7 @@ export default function App() {
                     <>
                       <div className="bulk-date-section">
                         <div className="bulk-date-header">
-                          <h4>📅 Ändra utgångsdatum</h4>
+                          <h4>Ändra utgångsdatum</h4>
                           <span className="selected-count">{selectedItems.size} varor valda</span>
                         </div>
                         <div className="bulk-date-controls">
@@ -1350,7 +1347,7 @@ export default function App() {
                             className="bulk-apply-btn"
                             disabled={!bulkExpiryDate}
                           >
-                            ✅ Uppdatera {selectedItems.size} varor
+                            Uppdatera {selectedItems.size} varor
                           </button>
                         </div>
                       </div>
@@ -1358,9 +1355,9 @@ export default function App() {
                       <div className="bulk-delete-section">
                         <button 
                           onClick={bulkDeleteItems}
-                          className="bulk-delete-btn"
+                          className="bulk-delete-btn btn-danger"
                         >
-                          🗑️ Ta bort {selectedItems.size} valda varor
+                          Ta bort {selectedItems.size} valda varor
                         </button>
                       </div>
                     </>
@@ -1372,10 +1369,10 @@ export default function App() {
                 <div className="empty-state">
                   <p>
                     <span>{items.length === 0 
-                      ? '🍽️ Inga varor ännu. Börja genom att lägga till din första vara i "Lägg till"-fliken!'
+                      ? 'Inga varor ännu. Börja genom att lägga till din första vara!'
                       : searchQuery.trim() 
-                        ? `🔍 Inga varor hittades för "${searchQuery}". Försök med andra sökord.`
-                        : '📋 Inga varor matchar det valda filtret. Försök med ett annat filter.'}</span>
+                        ? `Inga varor hittades för "${searchQuery}". Försök med andra sökord.`
+                        : 'Inga varor matchar det valda filtret. Försök med ett annat filter.'}</span>
                   </p>
                 </div>
               ) : (
@@ -1414,7 +1411,7 @@ export default function App() {
                             title="Justera utgångsdatum"
                             aria-label="Justera utgångsdatum"
                           >
-                            📝
+                            ✏️
                           </button>
                           <button 
                             className="remove-btn" 
@@ -1440,7 +1437,7 @@ export default function App() {
           <div className="tab-panel">
             <section className="card">
               <div className="section-header">
-                <h2>🍳 Recept</h2>
+                <h2>Recept</h2>
                 <p className="section-subtitle">Hitta inspiration för din matlagning</p>
               </div>
               
@@ -1450,14 +1447,14 @@ export default function App() {
                   className={`recipe-tab-btn ${recipeTab === 'mine' ? 'active' : ''}`}
                   onClick={() => setRecipeTab('mine')}
                 >
-                  🍽️ Mina recept
+                  Mina recept
                   {suggestions.length > 0 && <span className="tab-count">{suggestions.length}</span>}
                 </button>
                 <button 
                   className={`recipe-tab-btn ${recipeTab === 'recommended' ? 'active' : ''}`}
                   onClick={() => setRecipeTab('recommended')}
                 >
-                  🍳 Rekommenderade
+                  Rekommenderade
                   <span className="tab-count">{recommendedRecipes.length}</span>
                 </button>
               </div>
@@ -1665,13 +1662,107 @@ export default function App() {
           </div>
         )}
         
-        {/* Besparingar flik */}
+        {/* Profil-flik - samlad plats för alla inställningar och funktioner */}
+        {activeTab === 'profile' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="card-header">
+                <h2>Profil & Inställningar</h2>
+                <p className="card-subtitle">Hantera ditt konto och appinställningar</p>
+              </div>
+              
+              {/* Snabblänkar till huvudfunktioner */}
+              <div className="profile-menu">
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('savings')}
+                >
+                  <span className="menu-icon">💰</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Mina besparingar</span>
+                    <span className="menu-description">Se hur mycket du har sparat</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('achievements')}
+                >
+                  <span className="menu-icon">🏆</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Utmärkelser</span>
+                    <span className="menu-description">Dina prestationer</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('leaderboard')}
+                >
+                  <span className="menu-icon">🏆</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Topplista</span>
+                    <span className="menu-description">Tävla med vänner</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('family')}
+                >
+                  <span className="menu-icon">👥</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Familjegrupp</span>
+                    <span className="menu-description">Dela med familjen</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('referral')}
+                >
+                  <span className="menu-icon">🎁</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Bjud in vänner</span>
+                    <span className="menu-description">Tjäna Premium gratis</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('email')}
+                >
+                  <span className="menu-icon">📧</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Veckosammanfattning</span>
+                    <span className="menu-description">Email varje måndag</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+        
+        {/* Separata flikar för profilfunktioner (nås från profil-menyn) */}
         {activeTab === 'savings' && (
           <div className="tab-panel">
             <section className="card">
-              <div className="section-header">
-                <h2>💰 Mina besparingar</h2>
-                <p className="section-subtitle">Se hur mycket du har sparat genom att rädda mat från att slängas</p>
+              <div className="card-header">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setActiveTab('profile')}
+                  style={{marginBottom: '16px'}}
+                >
+                  ← Tillbaka till Profil
+                </button>
+                <h2>Mina besparingar</h2>
+                <p className="card-subtitle">Se hur mycket du har sparat genom att rädda mat från att slängas</p>
               </div>
               
               <SavingsBanner />
@@ -1679,13 +1770,19 @@ export default function App() {
           </div>
         )}
         
-        {/* Veckosammanfattning flik */}
         {activeTab === 'email' && (
           <div className="tab-panel">
             <section className="card">
-              <div className="section-header">
-                <h2>📧 Veckosammanfattningar</h2>
-                <p className="section-subtitle">Få ett email varje måndag med dina utgående varor, receptförslag och statistik</p>
+              <div className="card-header">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setActiveTab('profile')}
+                  style={{marginBottom: '16px'}}
+                >
+                  ← Tillbaka till Profil
+                </button>
+                <h2>Veckosammanfattning</h2>
+                <p className="card-subtitle">Få ett email varje måndag med dina utgående varor och receptförslag</p>
               </div>
               
               <WeeklyEmailSignup />
@@ -1693,13 +1790,19 @@ export default function App() {
           </div>
         )}
         
-        {/* Referral Program flik */}
         {activeTab === 'referral' && (
           <div className="tab-panel">
             <section className="card">
-              <div className="section-header">
-                <h2>🎁 Bjud in vänner</h2>
-                <p className="section-subtitle">Tjäna Premium gratis genom att bjuda in vänner!</p>
+              <div className="card-header">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setActiveTab('profile')}
+                  style={{marginBottom: '16px'}}
+                >
+                  ← Tillbaka till Profil
+                </button>
+                <h2>Bjud in vänner</h2>
+                <p className="card-subtitle">Tjäna Premium gratis genom att bjuda in vänner!</p>
               </div>
               
               <ReferralProgram />
@@ -1707,20 +1810,32 @@ export default function App() {
           </div>
         )}
         
-        {/* Achievements & Badges flik */}
         {activeTab === 'achievements' && (
           <div className="tab-panel">
+            <button 
+              className="btn-secondary"
+              onClick={() => setActiveTab('profile')}
+              style={{marginBottom: '16px', marginLeft: '16px'}}
+            >
+              ← Tillbaka till Profil
+            </button>
             <AchievementsPage />
           </div>
         )}
         
-        {/* Family Sharing flik */}
         {activeTab === 'family' && (
           <div className="tab-panel">
             <section className="card">
-              <div className="section-header">
-                <h2>👨‍👩‍👧‍👦 Familjegrupp</h2>
-                <p className="section-subtitle">Dela varulistan med hela familjen</p>
+              <div className="card-header">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setActiveTab('profile')}
+                  style={{marginBottom: '16px'}}
+                >
+                  ← Tillbaka till Profil
+                </button>
+                <h2>Familjegrupp</h2>
+                <p className="card-subtitle">Dela varulistan med hela familjen</p>
               </div>
               
               <FamilySharing items={items} />
@@ -1728,13 +1843,19 @@ export default function App() {
           </div>
         )}
         
-        {/* Leaderboard flik */}
         {activeTab === 'leaderboard' && (
           <div className="tab-panel">
             <section className="card">
-              <div className="section-header">
-                <h2>🏆 Topplista</h2>
-                <p className="section-subtitle">Tävla med dina vänner!</p>
+              <div className="card-header">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setActiveTab('profile')}
+                  style={{marginBottom: '16px'}}
+                >
+                  ← Tillbaka till Profil
+                </button>
+                <h2>Topplista</h2>
+                <p className="card-subtitle">Tävla med dina vänner!</p>
               </div>
               
               <Leaderboard />
