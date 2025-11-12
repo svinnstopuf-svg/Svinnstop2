@@ -962,12 +962,10 @@ export default function App() {
       </button>
       
     <div className="container">
-      <header>
+      <header className="header">
         <div className="header-content">
-          <div className="header-text">
-            <h1 className="app-title"><span className="notranslate">Svinnstop</span></h1>
-            <p>{'Spåra din inköpta mat, utgångsdatum och se receptidéer.'}</p>
-          </div>
+          <h1 className="app-title"><span className="notranslate">Svinnstop</span></h1>
+          <p className="header-subtitle">Spåra din inköpta mat, utgångsdatum och se receptidéer</p>
         </div>
       </header>
       
@@ -1150,7 +1148,7 @@ export default function App() {
                       className={`bulk-edit-toggle ${bulkEditMode ? 'active' : ''}`}
                       title={bulkEditMode ? 'Avsluta redigering' : 'Ändra utgångsdatum för flera varor'}
                     >
-                      {bulkEditMode ? '✕ Avsluta' : 'Redigera flera'}
+                      {bulkEditMode ? '✕ Avsluta' : 'Redigera varor'}
                     </button>
                   )}
                 </div>
@@ -1290,20 +1288,11 @@ export default function App() {
                             <span className="item-quantity">{i.quantity} {i.unit}</span>
                           </div>
                           <div className="item-sub">
-                            <span className="item-expiry">Utgång: {i.expiresAt || '—'}</span>
                             <span className="status">{status}</span>
                           </div>
                         </div>
                         {!bulkEditMode && (
                           <div className="item-actions">
-                          <button 
-                            className="edit-btn" 
-                            onClick={() => handleEditExpiry(i)}
-                            title="Justera utgångsdatum"
-                            aria-label="Justera utgångsdatum"
-                          >
-                            ✏️
-                          </button>
                           <button 
                             className="remove-btn" 
                             onClick={(e) => onRemove(i.id, e)}

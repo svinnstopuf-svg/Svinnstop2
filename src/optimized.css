@@ -122,7 +122,7 @@ body {
   max-width: 100%;
   margin: 0 auto;
   padding: var(--spacing-md);
-  padding-top: 72px; /* Header space */
+  padding-top: 110px; /* Header space - increased for larger header */
   padding-bottom: 88px; /* Bottom nav space */
   min-height: 100vh;
 }
@@ -144,7 +144,7 @@ body {
   z-index: 100;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
   box-shadow: var(--shadow-sm);
 }
 
@@ -152,15 +152,24 @@ body {
   max-width: 640px;
   margin: 0 auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-xs);
 }
 
 .app-title {
-  font-size: var(--font-2xl);
+  font-size: var(--font-3xl);
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.header-subtitle {
+  font-size: var(--font-base);
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -759,7 +768,7 @@ button:disabled {
 
 .filters {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   flex-wrap: wrap;
   font-size: var(--font-sm);
 }
