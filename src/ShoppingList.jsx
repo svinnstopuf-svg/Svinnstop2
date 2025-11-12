@@ -210,57 +210,60 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                   className="shopping-checkbox"
                   id={`shopping-${item.id}`}
                 />
-                <label htmlFor={`shopping-${item.id}`} className="item-content">
-                  <span className="item-emoji">{item.emoji || '📦'}</span>
-                  <div className="item-details">
-                    <span className="item-name">{item.name}</span>
-                  </div>
-                </label>
-                  <div className="item-quantity-actions">
-                    <span className="quantity-display">{item.quantity} {item.unit}</span>
-                    <div className="quantity-controls">
-                      <div className="combined-qty-btn">
-                        <button 
-                          className="qty-decrease"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const newQuantity = Math.max(0.1, item.quantity - 0.5)
-                            setShoppingItems(prev => prev.map(i => 
-                              i.id === item.id ? {...i, quantity: newQuantity} : i
-                            ))
-                          }}
-                          disabled={item.completed}
-                          title="Minska"
-                        >
-                          −
-                        </button>
-                        <button 
-                          className="qty-increase"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const newQuantity = item.quantity + 0.5
-                            setShoppingItems(prev => prev.map(i => 
-                              i.id === item.id ? {...i, quantity: newQuantity} : i
-                            ))
-                          }}
-                          disabled={item.completed}
-                          title="Öka"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <button 
-                        className="remove-btn-shopping"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeItem(item.id)
-                        }}
-                        title="Ta bort vara"
-                      >
-                        🗑️
-                      </button>
+                <label htmlFor={`shopping-${item.id}`} className="item-content-wrapper">
+                  <div className="item-left">
+                    <span className="item-emoji">{item.emoji || '📦'}</span>
+                    <div className="item-info">
+                      <span className="item-name">{item.name}</span>
+                      <span className="item-quantity-text">{item.quantity} {item.unit}</span>
                     </div>
                   </div>
+                </label>
+                <div className="item-actions">
+                  <div className="qty-control">
+                    <button 
+                      className="qty-btn qty-minus"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const newQuantity = Math.max(0.1, item.quantity - 0.5)
+                        setShoppingItems(prev => prev.map(i => 
+                          i.id === item.id ? {...i, quantity: newQuantity} : i
+                        ))
+                      }}
+                      disabled={item.completed}
+                      title="Minska"
+                      aria-label="Minska antal"
+                    >
+                      −
+                    </button>
+                    <button 
+                      className="qty-btn qty-plus"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const newQuantity = item.quantity + 0.5
+                        setShoppingItems(prev => prev.map(i => 
+                          i.id === item.id ? {...i, quantity: newQuantity} : i
+                        ))
+                      }}
+                      disabled={item.completed}
+                      title="Öka"
+                      aria-label="Öka antal"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button 
+                    className="trash-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      removeItem(item.id)
+                    }}
+                    title="Ta bort vara"
+                    aria-label="Ta bort vara"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
           ))

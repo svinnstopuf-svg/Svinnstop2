@@ -1878,38 +1878,57 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
+  width: 100%;
 }
 
 .shopping-checkbox {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
   accent-color: var(--accent-solid);
+  flex-shrink: 0;
 }
 
-.shopping-item .item-content {
+.shopping-item .item-content-wrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.shopping-item .item-left {
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: pointer;
   flex: 1;
+  min-width: 0;
 }
 
 .shopping-item .item-emoji {
-  font-size: 20px;
+  font-size: 24px;
+  flex-shrink: 0;
 }
 
-.shopping-item .item-details {
+.shopping-item .item-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .shopping-item .item-name {
   font-weight: 600;
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.shopping-item .item-quantity-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .shopping-item .food-indicator {
@@ -2037,41 +2056,26 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   transform: scale(0.95);
 }
 
-/* New quantity and remove controls */
-.item-quantity-actions {
+/* Mobile-first quantity and remove controls */
+.shopping-item .item-actions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
-  margin-left: auto;
-}
-
-.quantity-display {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.quantity-controls {
-  display: flex;
-  gap: 6px;
   align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
-/* Combined quantity button */
-.combined-qty-btn {
+.qty-control {
   display: flex;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--glass-border);
   background: var(--glass);
-  height: 32px;
+  border: 1px solid var(--glass-border);
 }
 
-.qty-decrease,
-.qty-increase {
+.qty-btn {
   width: 36px;
-  height: 32px;
+  height: 36px;
   border: none;
   background: transparent;
   color: var(--text-primary);
@@ -2079,35 +2083,32 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-.qty-decrease {
+.qty-btn.qty-minus {
   border-right: 1px solid var(--glass-border);
 }
 
-.qty-decrease:hover:not(:disabled),
-.qty-increase:hover:not(:disabled) {
+.qty-btn:hover:not(:disabled) {
   background: var(--accent-solid);
   color: white;
 }
 
-.qty-decrease:disabled,
-.qty-increase:disabled {
+.qty-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.qty-decrease:active:not(:disabled),
-.qty-increase:active:not(:disabled) {
-  transform: scale(0.95);
+.qty-btn:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
-.remove-btn-shopping {
-  width: 32px;
-  height: 32px;
+.trash-btn {
+  width: 36px;
+  height: 36px;
   border: none;
   border-radius: 8px;
   background: var(--danger);
@@ -2116,18 +2117,19 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+  transition: all 0.15s ease;
 }
 
-.remove-btn-shopping:hover {
+.trash-btn:hover {
   background: var(--danger-solid);
   transform: scale(1.05);
 }
 
-.remove-btn-shopping:active {
-  transform: scale(0.95);
+.trash-btn:active {
+  transform: scale(0.9);
 }
 
 /* === RECIPE ENHANCEMENTS === */
