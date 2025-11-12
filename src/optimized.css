@@ -410,6 +410,11 @@ button[type="submit"]:active {
   border: 1px solid var(--border);
 }
 
+[data-theme="dark"] .btn-secondary {
+  background: var(--gray-800);
+  border-color: var(--gray-700);
+}
+
 .btn-danger {
   background: var(--danger);
   color: white;
@@ -771,6 +776,11 @@ button:disabled {
   transition: var(--transition);
 }
 
+[data-theme="dark"] .filters label {
+  background: var(--gray-800);
+  border-color: var(--gray-700);
+}
+
 .filters input[type="radio"] {
   margin: 0;
   width: 16px;
@@ -788,13 +798,26 @@ button:disabled {
 }
 
 [data-theme="dark"] .bulk-edit-panel {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .bulk-edit-toggle {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-sm);
   min-height: 40px;
+}
+
+[data-theme="dark"] .bulk-edit-toggle {
+  background: var(--gray-800);
+  border-color: var(--gray-700);
+  color: var(--text);
+}
+
+[data-theme="dark"] .bulk-edit-toggle.active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
 }
 
 /* === PROFILE MENU === */
