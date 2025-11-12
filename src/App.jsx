@@ -951,112 +951,6 @@ export default function App() {
         />
       )}
       
-      <div className="settings-menu-container">
-        <button 
-          className="settings-toggle" 
-          onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-          title="Inställningar"
-          aria-label="Öppna inställningsmeny"
-        >
-          ⚙️
-        </button>
-        
-        {showSettingsMenu && (
-          <div className="settings-dropdown">
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                toggleTheme();
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
-              <span className="menu-text">{theme === 'dark' ? 'Ljust läge' : 'Mörkt läge'}</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                if (notificationsEnabled) {
-                  disableNotifications();
-                } else {
-                  enableNotifications();
-                }
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
-              <span className="menu-text">{notificationsEnabled ? 'Inaktivera notiser' : 'Aktivera notiser'}</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                setActiveTab('savings');
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">💰</span>
-              <span className="menu-text">Mina besparingar</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                setActiveTab('email');
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">📧</span>
-              <span className="menu-text">Veckosammanfattning</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                setActiveTab('referral');
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">🎁</span>
-              <span className="menu-text">Bjud in vänner</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                setActiveTab('achievements');
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">🏆</span>
-              <span className="menu-text">Utmärkelser</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                setActiveTab('family');
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">👨‍👩‍👧‍👦</span>
-              <span className="menu-text">Familjegrupp</span>
-            </button>
-            
-            <button 
-              className="settings-menu-item"
-              onClick={() => {
-                setActiveTab('leaderboard');
-                setShowSettingsMenu(false);
-              }}
-            >
-              <span className="menu-icon">🏆</span>
-              <span className="menu-text">Topplista</span>
-            </button>
-          </div>
-        )}
-      </div>
       
       <button 
         className="undo-btn" 
@@ -1240,8 +1134,6 @@ export default function App() {
             
             {/* Mina varor section */}
             <section className="card inventory-card">
-          <div className="tab-panel">
-            <section className="card inventory-card">
               <div className="card-header">
                 <div className="header-main">
                   <h2>Mina varor</h2>
@@ -1291,13 +1183,13 @@ export default function App() {
                       className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
                       onClick={() => setFilter('all')}
                     >
-                      Alla
+                      Alla varor
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expiring' ? 'active' : ''}`}
                       onClick={() => setFilter('expiring')}
                     >
-                      Går ut snart
+                      Kommer snart
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expired' ? 'active' : ''}`}
@@ -1673,6 +1565,38 @@ export default function App() {
               
               {/* Snabblänkar till huvudfunktioner */}
               <div className="profile-menu">
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => {
+                    toggleTheme();
+                  }}
+                >
+                  <span className="menu-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+                  <div className="menu-content">
+                    <span className="menu-title">{theme === 'dark' ? 'Ljust läge' : 'Mörkt läge'}</span>
+                    <span className="menu-description">Byt utseende på appen</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => {
+                    if (notificationsEnabled) {
+                      disableNotifications();
+                    } else {
+                      enableNotifications();
+                    }
+                  }}
+                >
+                  <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
+                  <div className="menu-content">
+                    <span className="menu-title">{notificationsEnabled ? 'Inaktivera notiser' : 'Aktivera notiser'}</span>
+                    <span className="menu-description">{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'}</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
                 <button 
                   className="profile-menu-item"
                   onClick={() => setActiveTab('savings')}
