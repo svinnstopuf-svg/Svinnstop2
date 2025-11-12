@@ -95,11 +95,11 @@ export function getSuggestedUnitKey(itemName) {
     return 'grams'
   }
   
-  // Ris/Pasta/Sädesslag
+  // Ris/Pasta/Sädesslag - använd kg för större förpackningar
   if (name.includes('rice') || name.includes('ris') || name.includes('reis') ||
       name.includes('pasta') || name.includes('pasta') || name.includes('nudeln') ||
       name.includes('flour') || name.includes('mjöl') || name.includes('mehl')) {
-    return 'grams'
+    return 'kg'
   }
   
   // Konserver

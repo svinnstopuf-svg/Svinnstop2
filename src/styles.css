@@ -1918,7 +1918,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .shopping-item .item-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
@@ -1932,10 +1932,18 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 }
 
 .shopping-item .item-quantity-text {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  font-weight: 500;
-  margin-top: 2px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  width: fit-content;
+}
+
+[data-theme="dark"] .shopping-item .item-quantity-text {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .shopping-item .food-indicator {
