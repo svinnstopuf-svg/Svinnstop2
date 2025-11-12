@@ -2129,24 +2129,28 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   height: 44px;
   border: 2px solid var(--danger);
   border-radius: 10px;
-  background: transparent;
+  background: white;
   color: var(--danger);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 24px;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1;
   transition: all 0.2s ease;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .trash-btn {
+  background: var(--bg-card);
 }
 
 .trash-btn:hover {
   background: var(--danger);
   color: white;
   transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 }
 
 .trash-btn:active {
