@@ -172,7 +172,6 @@ body {
   z-index: 200;
 }
 
-.settings-toggle,
 .undo-btn {
   width: 44px;
   height: 44px;
@@ -183,26 +182,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-lg);
+  font-size: 24px;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-md);
   -webkit-tap-highlight-color: transparent;
 }
 
-.settings-toggle:active,
 .undo-btn:active {
   transform: scale(0.95);
-}
-
-.undo-btn {
-  position: fixed;
-  top: var(--spacing-md);
-  right: calc(var(--spacing-md) + 52px);
-  width: auto;
-  padding: 0 var(--spacing-md);
-  font-size: var(--font-sm);
-  font-weight: 600;
 }
 
 .undo-btn:disabled {

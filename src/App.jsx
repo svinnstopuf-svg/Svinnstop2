@@ -951,16 +951,17 @@ export default function App() {
         />
       )}
       
-      
-      <button 
-        className="undo-btn" 
-        onClick={undoLastAction}
-        disabled={!canUndo}
-        title={'Ångra senaste borttagning'}
-        aria-label={'Ångra senaste borttagning'}
-      >
-        {'↶️ Ångra'}
-      </button>
+      <div className="settings-menu-container">
+        <button 
+          className="undo-btn" 
+          onClick={undoLastAction}
+          disabled={!canUndo}
+          title="Ångra senaste borttagning"
+          aria-label="Ångra senaste borttagning"
+        >
+          ↶
+        </button>
+      </div>
       
     <div className="container">
       <header>
@@ -1183,19 +1184,19 @@ export default function App() {
                       className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
                       onClick={() => setFilter('all')}
                     >
-                      Alla varor
+                      <span className="notranslate">Alla</span>
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expiring' ? 'active' : ''}`}
                       onClick={() => setFilter('expiring')}
                     >
-                      Kommer snart
+                      <span className="notranslate">Går ut snart</span>
                     </button>
                     <button 
                       className={`filter-tab ${filter === 'expired' ? 'active' : ''}`}
                       onClick={() => setFilter('expired')}
                     >
-                      Utgångna
+                      <span className="notranslate">Utgångna</span>
                     </button>
                   </div>
                 </div>
