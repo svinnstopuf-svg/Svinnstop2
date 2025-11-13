@@ -30,16 +30,7 @@
 
 .savings-icon {
   font-size: 3rem;
-  animation: bounce 2s ease-in-out infinite;
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  /* Animation removed - icon should be still */
 }
 
 .savings-main {
@@ -92,14 +83,12 @@
 }
 
 .stat-label {
-  font-size: 0.625rem; /* Reduced from 0.7rem to fit longer words like "Utmärkelser" */
+  font-size: 0.55rem; /* Further reduced to fit full words without ellipsis */
   opacity: 0.9;
   margin-top: 0.25rem;
-  font-weight: 500;
+  font-weight: 600; /* Slightly bolder for better readability at smaller size */
   line-height: 1.2;
   white-space: nowrap; /* Prevent wrapping to keep text on one line */
-  overflow: hidden;
-  text-overflow: ellipsis; /* Add ellipsis if text is still too long */
   max-width: 100%;
 }
 
@@ -533,7 +522,7 @@
   }
 
   .stat-label {
-    font-size: 0.6rem; /* Further reduced on mobile to ensure fit */
+    font-size: 0.5rem; /* Reduced to show full text without ellipsis on mobile */
   }
 
   .stat-divider {
