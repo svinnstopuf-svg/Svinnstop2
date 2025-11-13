@@ -224,14 +224,20 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                     <button 
                       className="qty-btn qty-minus"
                       onClick={(e) => {
+                        e.preventDefault()
                         e.stopPropagation()
                         // Use step of 1 for pieces (stycken), 0.5 for other units
                         const step = item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5
                         const minValue = item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5
-                        const newQuantity = Math.max(minValue, item.quantity - step)
-                        setShoppingItems(prev => prev.map(i => 
-                          i.id === item.id ? {...i, quantity: newQuantity} : i
-                        ))
+                        const currentQty = Number(item.quantity) || 1
+                        const newQuantity = Math.max(minValue, currentQty - step)
+                        
+                        setShoppingItems(prev => {
+                          const updated = prev.map(i => 
+                            i.id === item.id ? {...i, quantity: newQuantity} : i
+                          )
+                          return updated
+                        })
                       }}
                       disabled={item.completed || item.quantity <= (item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5)}
                       title="Minska"
@@ -242,13 +248,19 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                     <button 
                       className="qty-btn qty-plus"
                       onClick={(e) => {
+                        e.preventDefault()
                         e.stopPropagation()
                         // Use step of 1 for pieces (stycken), 0.5 for other units
                         const step = item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5
-                        const newQuantity = item.quantity + step
-                        setShoppingItems(prev => prev.map(i => 
-                          i.id === item.id ? {...i, quantity: newQuantity} : i
-                        ))
+                        const currentQty = Number(item.quantity) || 1
+                        const newQuantity = currentQty + step
+                        
+                        setShoppingItems(prev => {
+                          const updated = prev.map(i => 
+                            i.id === item.id ? {...i, quantity: newQuantity} : i
+                          )
+                          return updated
+                        })
                       }}
                       disabled={item.completed}
                       title="Öka"
