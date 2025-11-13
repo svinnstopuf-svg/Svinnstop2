@@ -930,8 +930,8 @@
   }
 }
 
-/* Tab Navigation */
-.tab-navigation {
+/* Tab Navigation for content tabs (NOT bottom nav) */
+.content-tab-navigation {
   display: flex;
   background: var(--card-bg);
   border-radius: 12px;
@@ -990,18 +990,18 @@
 
 /* Responsiv design för tabs */
 @media (max-width: 768px) {
-  .tab-navigation {
+  .content-tab-navigation {
     padding: 2px;
     margin-bottom: 16px;
   }
   
-  .tab-button {
+  .content-tab-navigation .tab-button {
     padding: 10px 12px;
     font-size: 13px;
   }
   
   /* Gör tabs scrollbara på små skärmar */
-  .tab-navigation {
+  .content-tab-navigation {
     justify-content: flex-start;
   }
   
