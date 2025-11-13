@@ -92,12 +92,14 @@
 }
 
 .stat-label {
-  font-size: 0.7rem;
+  font-size: 0.625rem; /* Reduced from 0.7rem to fit longer words like "Utmärkelser" */
   opacity: 0.9;
   margin-top: 0.25rem;
   font-weight: 500;
   line-height: 1.2;
-  word-wrap: break-word;
+  white-space: nowrap; /* Prevent wrapping to keep text on one line */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Add ellipsis if text is still too long */
   max-width: 100%;
 }
 
@@ -531,7 +533,7 @@
   }
 
   .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem; /* Further reduced on mobile to ensure fit */
   }
 
   .stat-divider {
