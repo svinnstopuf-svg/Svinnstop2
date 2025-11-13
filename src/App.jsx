@@ -1010,7 +1010,7 @@ export default function App() {
         {activeTab === 'shopping' && (
           <div className="tab-panel">
             <ShoppingList 
-              onAddToInventory={handleDirectAddToInventory}
+              onDirectAddToInventory={handleDirectAddToInventory}
             />
           </div>
         )}
