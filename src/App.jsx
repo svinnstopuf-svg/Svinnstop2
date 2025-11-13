@@ -1034,7 +1034,6 @@ export default function App() {
                         value={form.name} 
                         onChange={onChange} 
                         placeholder="t.ex. mjölk, äpplen, kött..."
-                        autoFocus
                         required
                         autoComplete="off"
                         className="form-input"
@@ -1068,8 +1067,8 @@ export default function App() {
                         type="number" 
                         name="quantity" 
                         min="0" 
-                        step="0.1"
-                        inputMode="decimal"
+                        step={suggestedUnitKey === 'pieces' ? '1' : '0.1'}
+                        inputMode={suggestedUnitKey === 'pieces' ? 'numeric' : 'decimal'}
                         value={form.quantity} 
                         onChange={onChange}
                         onFocus={(e) => e.target.select()}

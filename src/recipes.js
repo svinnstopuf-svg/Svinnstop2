@@ -221,8 +221,8 @@ export function suggestRecipes(items, internetRecipes = []) {
     })
   })
   
-  // FIX: Ändra från ALLA ingredienser till MINST 2 ingredienser för att visa fler recept
-  const viableRecipes = languageRecipes.map(recipe => {
+  // Visa endast recept där vi har ALLA ingredienser
+  const viableRecipes = languageRecipes.filter(recipe => {
     let matchCount = 0
     let totalIngredients = recipe.ingredients.length
     
@@ -238,17 +238,9 @@ export function suggestRecipes(items, internetRecipes = []) {
       }
     })
     
-    return {
-      recipe,
-      matchCount,
-      matchPercentage: (matchCount / totalIngredients) * 100
-    }
-  }).filter(({ matchCount, matchPercentage }) => {
-    // Visa recept om:
-    // - Vi har minst 2 ingredienser ELLER
-    // - Vi har minst 30% av ingredienserna
-    return matchCount >= 2 || matchPercentage >= 30
-  }).map(({ recipe }) => recipe)
+    // Bara visa recept där vi har ALLA ingredienser (100% match)
+    return matchCount === totalIngredients
+  })
   
   // Beräkna prioritet baserat på utgångsdatum och sortera
   const prioritizedRecipes = viableRecipes.map(recipe => {

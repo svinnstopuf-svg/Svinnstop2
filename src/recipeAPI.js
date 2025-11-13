@@ -1097,7 +1097,9 @@ function getAdditionalSwedishRecipes() {
       instructions: 'Sätt ugn på 250°C. Kavla ut degen och bred på tomatsås. Strö ost. Grilla kebabköttet och lägg på pizzan med skivad lök. Grilla 10-12 min. Ringla kebabsås över.',
       cookingTime: '25 minuter',
       difficulty: 'Medel',
-      tags: ['pizza', 'snabbt', 'festmat']
+      tags: ['pizza', 'snabbt', 'festmat'],
+      category: 'Turkisk', // Moved from Italian category
+      area: 'Turkish'
     },
     {
       id: 'extra-8',
