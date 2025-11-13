@@ -1136,8 +1136,8 @@ export default function App() {
                   <h2>Mina varor</h2>
                   {items.length > 0 && (
                     <div className="inventory-stats">
-                      <span className="stat-item">{items.length} varor totalt</span>
-                      <span className="stat-item">{filtered.filter(i => daysUntil(i.expiresAt) <= 3 && daysUntil(i.expiresAt) >= 0).length} går ut snart</span>
+                      <span className="stat-item"><span className="notranslate">{items.length} varor totalt</span></span>
+                      <span className="stat-item"><span className="notranslate">{filtered.filter(i => daysUntil(i.expiresAt) <= 3 && daysUntil(i.expiresAt) >= 0).length} går ut snart</span></span>
                     </div>
                   )}
                 </div>

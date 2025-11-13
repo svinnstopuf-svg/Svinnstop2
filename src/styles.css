@@ -1133,6 +1133,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   border-radius: 6px;
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap; /* Keep text on single line */
 }
 
 /* Enhanced Food Suggestions */
