@@ -83,12 +83,15 @@
 }
 
 .stat-label {
-  font-size: 0.55rem; /* Further reduced to fit full words without ellipsis */
+  font-size: 0.65rem; /* Increased slightly since we allow multi-line */
   opacity: 0.9;
   margin-top: 0.25rem;
-  font-weight: 600; /* Slightly bolder for better readability at smaller size */
-  line-height: 1.2;
-  white-space: nowrap; /* Prevent wrapping to keep text on one line */
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: keep-all; /* Keep words intact, don't break them */
+  overflow-wrap: normal; /* Don't break words in the middle */
+  hyphens: none; /* No hyphenation */
+  text-align: center;
   max-width: 100%;
 }
 
@@ -522,7 +525,7 @@
   }
 
   .stat-label {
-    font-size: 0.5rem; /* Reduced to show full text without ellipsis on mobile */
+    font-size: 0.6rem; /* Increased slightly since multi-line is allowed */
   }
 
   .stat-divider {
