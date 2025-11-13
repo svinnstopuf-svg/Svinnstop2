@@ -1083,25 +1083,6 @@ function getAdditionalSwedishRecipes() {
       tags: ['fisk', 'hälsosamt', 'snabbt']
     },
     {
-      id: 'extra-7',
-      name: 'Kebabpizza',
-      servings: 4,
-      ingredients: [
-        { name: 'pizzadeg', quantity: 400, unit: 'g' },
-        { name: 'kebabkött', quantity: 300, unit: 'g' },
-        { name: 'tomatsås', quantity: 2, unit: 'dl' },
-        { name: 'ost', quantity: 300, unit: 'g' },
-        { name: 'lök', quantity: 1, unit: 'stycke' },
-        { name: 'kebabsås', quantity: 2, unit: 'dl' }
-      ],
-      instructions: 'Sätt ugn på 250°C. Kavla ut degen och bred på tomatsås. Strö ost. Grilla kebabköttet och lägg på pizzan med skivad lök. Grilla 10-12 min. Ringla kebabsås över.',
-      cookingTime: '25 minuter',
-      difficulty: 'Medel',
-      tags: ['pizza', 'snabbt', 'festmat'],
-      category: 'Turkisk', // Moved from Italian category
-      area: 'Turkish'
-    },
-    {
       id: 'extra-8',
       name: 'Fiskgratäng',
       servings: 4,
