@@ -1117,8 +1117,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .header-main {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Increased spacing within header */
-  margin-bottom: 16px; /* Space between header stats and buttons below */
+  gap: 8px;
 }
 
 .inventory-stats {
