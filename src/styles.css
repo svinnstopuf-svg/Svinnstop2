@@ -196,7 +196,7 @@ body::before {
 
 /* Modern card headers */
 .card-header {
-  margin-bottom: 32px;
+  margin-bottom: 24px; /* Space between header and content below */
   text-align: left;
 }
 
@@ -1025,10 +1025,11 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 
 /* Enhanced Search and Filter */
 .inventory-controls {
+  margin-top: 20px; /* Add space above search section */
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 16px; /* Space between search and filters */
 }
 
 .search-container {
@@ -1080,18 +1081,20 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 
 .filter-tabs {
   display: flex;
-  gap: 4px;
+  gap: 8px; /* Increased gap between filter buttons */
   background: var(--input-bg);
-  padding: 4px;
+  padding: 6px; /* Slightly more padding for airiness */
   border-radius: 8px;
   border: 1px solid var(--border);
+  margin-top: 12px; /* Space above filter tabs */
+  margin-bottom: 16px; /* Space below filter tabs before items list */
 }
 
 .filter-tab {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 8px 12px;
+  padding: 10px 14px; /* Slightly more padding for better touch targets */
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
@@ -1114,7 +1117,8 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 .header-main {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px; /* Increased spacing within header */
+  margin-bottom: 16px; /* Space between header stats and buttons below */
 }
 
 .inventory-stats {
