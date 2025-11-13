@@ -1208,7 +1208,7 @@ export default function App() {
                   
                   <div className="bulk-actions-row">
                     <button onClick={selectAllVisible} className="bulk-action-btn">
-                      Välj alla synliga
+                      Välj alla
                     </button>
                     <button onClick={deselectAll} className="bulk-action-btn">
                       Rensa urval
