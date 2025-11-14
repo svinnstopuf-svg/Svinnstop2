@@ -14,7 +14,26 @@ export default function Leaderboard() {
   const [username, setUsernameInput] = useState('')
 
   useEffect(() => {
-    loadData()
+    // Vänta på autentisering innan vi laddar data
+    const checkAuthAndLoad = () => {
+      const data = loadData()
+      if (data !== null) {
+        return true
+      }
+      return false
+    }
+    
+    // Försök ladda direkt
+    if (!checkAuthAndLoad()) {
+      // Om autentisering inte klar, vänta och försök igen
+      const authCheckInterval = setInterval(() => {
+        if (checkAuthAndLoad()) {
+          clearInterval(authCheckInterval)
+        }
+      }, 100)
+      
+      return () => clearInterval(authCheckInterval)
+    }
     
     // Lyssna på vänners stats i realtid
     const unsubscribe = leaderboardService.listenToFriendsStats((friends) => {
@@ -32,6 +51,11 @@ export default function Leaderboard() {
 
   function loadData() {
     const data = leaderboardService.getLeaderboardData()
+    if (!data) {
+      console.log('⏳ Waiting for authentication...')
+      return null
+    }
+    
     const board = leaderboardService.getLeaderboard(timeframe)
     
     // Sync with current savings data
@@ -51,6 +75,7 @@ export default function Leaderboard() {
     
     setLeaderboardData(data)
     setLeaderboard(board)
+    return data
   }
 
   async function handleSetUsername() {
@@ -126,7 +151,7 @@ export default function Leaderboard() {
   }, [message])
 
   const hasUsername = leaderboardData && leaderboardData.myStats.username
-  const myRank = leaderboardService.getMyRank(timeframe)
+  const myRank = leaderboardData ? leaderboardService.getMyRank(timeframe) : { rank: 0, totalUsers: 0 }
 
   // Rank emoji
   function getRankEmoji(rank) {
@@ -134,6 +159,20 @@ export default function Leaderboard() {
     if (rank === 2) return '🥈'
     if (rank === 3) return '🥉'
     return `#${rank}`
+  }
+
+  // Visa laddning om data ännu inte laddats
+  if (!leaderboardData) {
+    return (
+      <div className="leaderboard-container">
+        <div className="username-setup">
+          <div className="setup-card">
+            <h3>⏳ Laddar...</h3>
+            <p>Väntar på autentisering</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -7,10 +7,11 @@ import { ref, set, get, onValue, update, push } from 'firebase/database'
 // Get user-specific storage key
 function getUserStorageKey() {
   const user = auth.currentUser
-  if (user) {
-    return `svinnstop_leaderboard_${user.uid}`
+  if (!user) {
+    console.warn('⚠️ getUserStorageKey called before auth ready')
+    return null // Returnera null istället för fallback
   }
-  return 'svinnstop_leaderboard' // Fallback
+  return `svinnstop_leaderboard_${user.uid}`
 }
 
 const STORAGE_KEY = 'svinnstop_leaderboard'
@@ -100,6 +101,10 @@ export async function migrateUsernameToIndex() {
 export function getLeaderboardData() {
   try {
     const storageKey = getUserStorageKey()
+    if (!storageKey) {
+      console.warn('⚠️ Cannot get leaderboard data: user not authenticated')
+      return null // Returnera null om ingen user
+    }
     const data = localStorage.getItem(storageKey)
     if (data) {
       return JSON.parse(data)
@@ -127,6 +132,10 @@ export function getLeaderboardData() {
 function saveLeaderboardData(data) {
   try {
     const storageKey = getUserStorageKey()
+    if (!storageKey) {
+      console.warn('⚠️ Cannot save leaderboard data: user not authenticated')
+      return
+    }
     data.lastUpdated = new Date().toISOString()
     localStorage.setItem(storageKey, JSON.stringify(data))
   } catch (error) {
