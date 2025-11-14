@@ -21,6 +21,27 @@ body {
   overflow-x: hidden;
 }
 
+/* Hide Google Translate widget and icon */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+.goog-te-ftab,
+.goog-te-menu-value,
+.goog-te-gadget,
+#goog-gt-tt,
+.goog-logo-link,
+.goog-te-gadget img,
+.skiptranslate {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Prevent Google Translate from adding top margin */
+body {
+  top: 0 !important;
+}
+
 /* CSS Variables för teman */
 :root {
   --primary-color: #4CAF50;
