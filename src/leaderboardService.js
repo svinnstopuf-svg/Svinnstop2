@@ -297,7 +297,7 @@ export async function addFriend(friendUsername) {
     const friendRef = ref(database, `users/${user.uid}/friends/${friendUserId}`)
     await set(friendRef, {
       userId: friendUserId,
-      username: friendProfile.username,
+      username: friendProfile.displayName,
       addedAt: new Date().toISOString(),
       status: 'active'
     })
@@ -309,7 +309,7 @@ export async function addFriend(friendUsername) {
       const reverseFriendRef = ref(database, `users/${friendUserId}/friends/${user.uid}`)
       await set(reverseFriendRef, {
         userId: user.uid,
-        username: myProfile.username,
+        username: myProfile.displayName,
         addedAt: new Date().toISOString(),
         status: 'active'
       })
@@ -322,7 +322,7 @@ export async function addFriend(friendUsername) {
     
     const newFriend = {
       userId: friendUserId,
-      username: friendProfile.username,
+      username: friendProfile.displayName,
       itemsSaved: friendStats.itemsSaved || 0,
       moneySaved: friendStats.moneySaved || 0,
       streak: friendStats.streak || 0,
