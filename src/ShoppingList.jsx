@@ -218,7 +218,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                     </div>
                   </div>
                 </label>
-                <span className="item-quantity-display">{item.quantity} {item.unit}</span>
+                <span className="item-quantity-display notranslate" translate="no">{item.quantity} {item.unit}</span>
                 <div className="item-actions">
                   <div className="qty-control">
                     <button 
