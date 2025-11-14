@@ -68,7 +68,7 @@ const SWEDISH_FOODS = [
   { name: 'blomkål', category: 'grönsak', emoji: '🥬', defaultDays: 7, unit: 'st' },
   { name: 'spenat', category: 'grönsak', emoji: '🥬', defaultDays: 5, unit: 'g' },
   { name: 'sallad iceberg', category: 'grönsak', emoji: '🥬', defaultDays: 7, unit: 'st' },
-  { name: 'sallad', category: 'grönsak', emoji: '🥬', defaultDays: 5, unit: 'st' },
+  { name: 'sallad', category: 'grönsak', emoji: '🥬', defaultDays: 5, unit: 'g' },
   { name: 'ruccola', category: 'grönsak', emoji: '🥬', defaultDays: 5, unit: 'g' },
   { name: 'champinjoner', category: 'grönsak', emoji: '🍄', defaultDays: 7, unit: 'g' },
   { name: 'avokado', category: 'grönsak', emoji: '🥑', defaultDays: 5, unit: 'st' },
