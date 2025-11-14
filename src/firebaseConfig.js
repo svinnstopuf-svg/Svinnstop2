@@ -10,14 +10,13 @@ import { getDatabase } from 'firebase/database'
 // 4. Kopiera firebaseConfig-objektet hit
 
 const firebaseConfig = {
-  // PLACEHOLDER - Byt ut mot din egen Firebase-konfiguration
-  apiKey: "AIzaSyDEMO_KEY_REPLACE_ME",
-  authDomain: "svinnstop-demo.firebaseapp.com",
-  databaseURL: "https://svinnstop-demo-default-rtdb.firebaseio.com",
-  projectId: "svinnstop-demo",
-  storageBucket: "svinnstop-demo.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  apiKey: "AIzaSyBAZ-C8LxZkZPAdaWC5HkKLeR0iHt-BbKo",
+  authDomain: "svinnstop.firebaseapp.com",
+  databaseURL: "https://svinnstop-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "svinnstop",
+  storageBucket: "svinnstop.firebasestorage.app",
+  messagingSenderId: "20081992396",
+  appId: "1:20081992396:web:0dfed2d8d002c9c6dc5869"
 }
 
 // Initialize Firebase
