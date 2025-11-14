@@ -1,6 +1,7 @@
 // Firebase Configuration for Svinnstop
 import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth'
 
 // TEMPORARY CONFIG - MÅSTE BYTAS UT MOT DIN EGEN FIREBASE CONFIG
 // Gå till Firebase Console (https://console.firebase.google.com/)
@@ -22,15 +23,44 @@ const firebaseConfig = {
 // Initialize Firebase
 let app
 let database
+let auth
 
 try {
   app = initializeApp(firebaseConfig)
   database = getDatabase(app)
+  auth = getAuth(app)
   console.log('✅ Firebase initialized successfully')
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error)
   console.warn('⚠️ App will run in local-only mode without family sharing sync')
 }
 
-export { database }
+// Initialize anonymous authentication
+export async function initAuth() {
+  if (!auth) {
+    console.warn('⚠️ Firebase auth not available')
+    return null
+  }
+
+  return new Promise((resolve) => {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        console.log('✅ Firebase: User authenticated', user.uid)
+        resolve(user)
+      } else {
+        // Sign in anonymously
+        try {
+          const userCredential = await signInAnonymously(auth)
+          console.log('✅ Firebase: Anonymous sign-in successful', userCredential.user.uid)
+          resolve(userCredential.user)
+        } catch (error) {
+          console.error('❌ Firebase: Anonymous sign-in failed', error)
+          resolve(null)
+        }
+      }
+    })
+  })
+}
+
+export { database, auth }
 export default app

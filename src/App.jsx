@@ -18,6 +18,7 @@ import { savingsTracker } from './savingsTracker'
 import { achievementService } from './achievementService'
 import { syncInventoryToFirebase, listenToInventoryChanges } from './inventorySync'
 import { getFamilyData } from './familyService'
+import { initAuth } from './firebaseConfig'
 import './mobile.css'
 import './newFeatures.css'
 
@@ -278,6 +279,13 @@ export default function App() {
     
   // Track daily login for achievements
     achievementService.trackDailyLogin()
+    
+    // Initialize Firebase Authentication
+    initAuth().then(user => {
+      if (user) {
+        console.log('🔐 Firebase authentication ready')
+      }
+    })
   }, [])
   
   // Separat useEffect för Firebase sync som lyssnar på familySyncTrigger
