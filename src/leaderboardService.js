@@ -4,6 +4,15 @@
 import { database, auth } from './firebaseConfig'
 import { ref, set, get, onValue, update, push } from 'firebase/database'
 
+// Get user-specific storage key
+function getUserStorageKey() {
+  const user = auth.currentUser
+  if (user) {
+    return `svinnstop_leaderboard_${user.uid}`
+  }
+  return 'svinnstop_leaderboard' // Fallback
+}
+
 const STORAGE_KEY = 'svinnstop_leaderboard'
 const FRIENDS_KEY = 'svinnstop_friends'
 
@@ -90,7 +99,8 @@ export async function migrateUsernameToIndex() {
 // Hämta leaderboard data
 export function getLeaderboardData() {
   try {
-    const data = localStorage.getItem(STORAGE_KEY)
+    const storageKey = getUserStorageKey()
+    const data = localStorage.getItem(storageKey)
     if (data) {
       return JSON.parse(data)
     }
@@ -116,8 +126,9 @@ export function getLeaderboardData() {
 // Spara leaderboard data
 function saveLeaderboardData(data) {
   try {
+    const storageKey = getUserStorageKey()
     data.lastUpdated = new Date().toISOString()
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    localStorage.setItem(storageKey, JSON.stringify(data))
   } catch (error) {
     console.error('Kunde inte spara leaderboard data:', error)
   }

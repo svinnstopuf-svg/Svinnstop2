@@ -44,6 +44,11 @@ export default function Leaderboard() {
       streak: achievementData.stats.currentStreak || 0
     })
     
+    console.log('📊 Loaded leaderboard data:', {
+      username: data.myStats.username,
+      handle: data.myStats.handle
+    })
+    
     setLeaderboardData(data)
     setLeaderboard(board)
   }
