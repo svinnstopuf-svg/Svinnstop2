@@ -198,10 +198,16 @@ function saveLearnedIngredient(ingredient) {
   )
   
   if (!exists) {
+    // Använd AI för att bestämma emoji och kategori
+    const { getSmartProductCategory } = require('./smartExpiryAI')
+    const { getProductCategory } = require('./expiryDateAI')
+    const categoryWithEmoji = getProductCategory(ingredient.name)
+    const emoji = categoryWithEmoji.split(' ')[0] || '🍳'
+    
     learned.push({
       name: ingredient.name,
-      category: 'recept',
-      emoji: '🍳',
+      category: categoryWithEmoji,
+      emoji: emoji,
       defaultDays: 7,
       unit: ingredient.unit || 'st',
       learnedFrom: 'recipe'
@@ -209,6 +215,7 @@ function saveLearnedIngredient(ingredient) {
     
     try {
       localStorage.setItem(LEARNED_INGREDIENTS_KEY, JSON.stringify(learned))
+      console.log(`✅ Lärde mig ingrediens: ${ingredient.name} ${emoji}`)
     } catch (e) {
       console.warn('Kunde inte spara lärd ingrediens:', e)
     }

@@ -836,16 +836,23 @@ export default function App() {
       )
       
       if (!existingItem) {
-        // Använd AI för att hitta rätt kategori och emoji
-        const categoryInfo = getSmartProductCategory(ingredient.name)
-        const categoryWithEmoji = categoryInfo.category
-        // Extrahera bara emoji från kategoristringen (t.ex. '🥛' från '🥛 Mejeri')
-        const emoji = categoryWithEmoji.split(' ')[0] || '📋'
+        // Kolla först om varan finns i matvarubanken (inkl. lärda ingredienser)
+        const allFoods = JSON.parse(localStorage.getItem('svinnstop_learned_ingredients') || '[]')
+        const matchedFood = allFoods.find(f => f.name.toLowerCase() === ingredient.name.toLowerCase())
+        
+        let emoji = '📋'
+        let category = 'recept'
+        
+        if (matchedFood) {
+          // Använd emoji och kategori från lärd ingrediens
+          emoji = matchedFood.emoji
+          category = matchedFood.category
+        }
         
         const newShoppingItem = {
           id: Date.now() + Math.random(),
           name: ingredient.name,
-          category: categoryWithEmoji,
+          category: category,
           emoji: emoji,
           unit: ingredient.unit,
           quantity: ingredient.quantity,
