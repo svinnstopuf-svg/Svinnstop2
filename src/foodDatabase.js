@@ -1,4 +1,6 @@
 // Svensk matvarudatabas för autocomplete
+import { getProductCategory } from './expiryDateAI'
+
 const SWEDISH_FOODS = [
   // Mejeri
   { name: 'mjölk', category: 'mejeri', emoji: '🥛', defaultDays: 7, unit: 'L' },
@@ -199,8 +201,6 @@ function saveLearnedIngredient(ingredient) {
   
   if (!exists) {
     // Använd AI för att bestämma emoji och kategori
-    const { getSmartProductCategory } = require('./smartExpiryAI')
-    const { getProductCategory } = require('./expiryDateAI')
     const categoryWithEmoji = getProductCategory(ingredient.name)
     const emoji = categoryWithEmoji.split(' ')[0] || '🍳'
     
