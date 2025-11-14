@@ -16,7 +16,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
   useEffect(() => {
     loadFamilyData()
     
-    // Starta realtime synkronisering om i familj
+    // Starta realtime synk om i familj
     const data = familyService.getFamilyData()
     if (data.familyId && data.syncEnabled) {
       const unsubscribe = familyService.startMemberSync((members) => {
@@ -116,7 +116,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
     if (result.success) {
       setMessage({
         type: 'success',
-        text: result.syncEnabled ? '✅ Synkronisering aktiverad' : '⚠️ Synkronisering inaktiverad'
+        text: result.syncEnabled ? '✅ Synk aktiverad' : '⚠️ Synk inaktiverad'
       })
       loadFamilyData()
     }
@@ -177,7 +177,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
     if (result.success) {
       setMessage({
         type: 'success',
-        text: '🔄 Synkronisering klar!'
+        text: '🔄 Synk klar!'
       })
       loadFamilyData()
     }
@@ -233,7 +233,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
           <div className="benefits-list">
             <h4>Fördelar med Family Sharing:</h4>
             <ul>
-              <li>✅ Synkroniserad matvarulista för hela familjen</li>
+              <li>✅ Synkad matvarulista för hela familjen</li>
               <li>✅ Alla kan lägga till och ta bort varor</li>
               <li>✅ Se vad som finns hemma när du handlar</li>
               <li>✅ Färre dubbelköp och mindre svinn</li>
@@ -392,8 +392,8 @@ export default function FamilySharing({ items, onFamilyChange }) {
           {/* Sync Toggle */}
           <div className="sync-control">
             <div className="sync-info">
-              <h4>🔄 Auto-synkronisering</h4>
-              <p>Synkronisera automatiskt med familjemedlemmar</p>
+              <h4>🔄 Auto-synk</h4>
+              <p>Synka automatiskt med familjemedlemmar</p>
               {familyData.lastSyncAt && (
                 <small>Senast: {new Date(familyData.lastSyncAt).toLocaleString('sv-SE')}</small>
               )}
@@ -413,7 +413,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
               className="sync-now-btn"
               onClick={handleManualSync}
             >
-              🔄 Synkronisera nu
+              🔄 Synka nu
             </button>
           )}
 
