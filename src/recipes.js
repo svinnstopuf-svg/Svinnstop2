@@ -285,7 +285,7 @@ export function suggestRecipes(items, internetRecipes = []) {
       }
       return a.servings - b.servings // Mindre portioner först vid lika urgency
     })
-    .slice(0, 8) // FIX: Visa ännu fler recept (8 istället för 5)
+    // Visa alla recept som matchar (ingen begränsning)
     .map(recipe => ({
       ...recipe,
       // Lägg till info om vilka av dina varor som kommer användas
