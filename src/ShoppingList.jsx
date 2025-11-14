@@ -212,7 +212,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                 />
                 <label htmlFor={`shopping-${item.id}`} className="item-content-wrapper">
                   <div className="item-left">
-                    <span className="item-emoji">{item.emoji || '📦'}</span>
                     <div className="item-info">
                       <span className="item-name notranslate" translate="no">{item.name}</span>
                     </div>
