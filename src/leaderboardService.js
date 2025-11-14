@@ -220,12 +220,15 @@ export async function addFriend(friendUsername) {
     console.log('✅ Found user via index:', actualUsername, friendUserId)
     
     // Hämta användarens profil
+    console.log('🔍 Fetching profile for user:', friendUserId)
     const friendProfileSnap = await get(ref(database, `users/${friendUserId}/profile`))
     if (!friendProfileSnap.exists()) {
+      console.error('❌ Profile not found for user:', friendUserId)
       return { success: false, error: 'Användarprofil hittades inte' }
     }
     
     const friendProfile = friendProfileSnap.val()
+    console.log('✅ Profile found:', friendProfile)
     
     // Lägg till vän i Firebase (bådå sidorna)
     const friendRef = ref(database, `users/${user.uid}/friends/${friendUserId}`)
