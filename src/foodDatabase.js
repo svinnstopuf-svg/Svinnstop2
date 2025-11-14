@@ -184,7 +184,8 @@ const SWEDISH_FOODS = [
   { name: 'marsipan', category: 'bakning', emoji: '🥜', defaultDays: 180, unit: 'g' },
   { name: 'sylt', category: 'sötsak', emoji: '🍓', defaultDays: 365, unit: 'dl' },
   { name: 'gelatin', category: 'bakning', emoji: '🥄', defaultDays: 1095, unit: 'g' },
-  { name: 'savoiardkex', category: 'bakning', emoji: '🍪', defaultDays: 180, unit: 'st' },
+  { name: 'savoiardkex', category: 'bakning', emoji: '🍪', defaultDays: 180, unit: 'g' },
+  { name: 'savoiardikex', category: 'bakning', emoji: '🍪', defaultDays: 180, unit: 'g' },
 ]
 
 // Fuzzy search funktion
