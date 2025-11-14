@@ -292,6 +292,11 @@ export default function App() {
           referralService.syncReferralCodeToFirebase()
             .then(() => console.log('✅ Referral code synced'))
             .catch(err => console.warn('⚠️ Could not sync referral code:', err))
+          
+          // Migrera användarnamn till index
+          leaderboardService.migrateUsernameToIndex()
+            .then(() => console.log('✅ Username index migrated'))
+            .catch(err => console.warn('⚠️ Could not migrate username:', err))
         } else {
           console.warn('⚠️ Firebase auth not initialized - app will work in local mode')
         }

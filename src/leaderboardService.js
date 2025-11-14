@@ -14,6 +14,32 @@ export const TIMEFRAMES = {
   ALL_TIME: 'all_time'
 }
 
+// Migrera befintliga användarnamn till index (körs en gång)
+export async function migrateUsernameToIndex() {
+  const user = auth.currentUser
+  if (!user) return
+
+  const data = getLeaderboardData()
+  if (!data.myStats.username) return
+
+  try {
+    // Kolla om indexet redan finns
+    const indexRef = ref(database, `usernames/${data.myStats.username.toLowerCase()}`)
+    const indexSnap = await get(indexRef)
+    
+    if (!indexSnap.exists()) {
+      // Skapa index
+      await set(indexRef, {
+        uid: user.uid,
+        username: data.myStats.username
+      })
+      console.log('✅ Firebase: Username index created for', data.myStats.username)
+    }
+  } catch (error) {
+    console.error('❌ Firebase: Failed to migrate username', error)
+  }
+}
+
 // Hämta leaderboard data
 export function getLeaderboardData() {
   try {
@@ -489,5 +515,6 @@ export const leaderboardService = {
   generateMockFriends,
   getMyRank,
   listenToFriendsStats,
+  migrateUsernameToIndex,
   TIMEFRAMES
 }
