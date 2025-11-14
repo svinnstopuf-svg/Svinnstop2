@@ -1127,10 +1127,10 @@ function getAdditionalSwedishRecipes() {
         { name: 'bananer', quantity: 2, unit: 'stycken' },
         { name: 'chilisås', quantity: 1, unit: 'dl' },
         { name: 'grädde', quantity: 3, unit: 'dl' },
-        { name: 'jordötter', quantity: 1, unit: 'dl' },
+        { name: 'jordnötter', quantity: 1, unit: 'dl' },
         { name: 'ris', quantity: 300, unit: 'g' }
       ],
-      instructions: 'Koka ris. Koka och strimla kyckling. Stek bacon knaprig. Sätt ugn på 225°C. Varva kyckling, bacon och banan i form. Vispa grädde med chilisås. Häll över. Strö jordötter. Grädda 20 min. Servera med ris.',
+      instructions: 'Koka ris. Koka och strimla kyckling. Stek bacon knaprig. Sätt ugn på 225°C. Varva kyckling, bacon och banan i form. Vispa grädde med chilisås. Häll över. Strö jordnötter. Grädda 20 min. Servera med ris.',
       cookingTime: '45 minuter',
       difficulty: 'Medel',
       tags: ['kyckling', 'klassiskt', 'swedish']
