@@ -19,6 +19,8 @@ import { achievementService } from './achievementService'
 import { syncInventoryToFirebase, listenToInventoryChanges } from './inventorySync'
 import { getFamilyData } from './familyService'
 import { initAuth } from './firebaseConfig'
+import { referralService } from './referralService'
+import { leaderboardService } from './leaderboardService'
 import './mobile.css'
 import './newFeatures.css'
 
@@ -285,6 +287,11 @@ export default function App() {
       .then(user => {
         if (user) {
           console.log('🔐 Firebase authentication ready')
+          
+          // Synka referral-kod till Firebase
+          referralService.syncReferralCodeToFirebase()
+            .then(() => console.log('✅ Referral code synced'))
+            .catch(err => console.warn('⚠️ Could not sync referral code:', err))
         } else {
           console.warn('⚠️ Firebase auth not initialized - app will work in local mode')
         }

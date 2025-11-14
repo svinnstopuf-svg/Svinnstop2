@@ -1,4 +1,7 @@
 // Referral Program Service - Viral Growth Engine
+import { database, auth } from './firebaseConfig'
+import { ref, set, get, onValue, update } from 'firebase/database'
+
 const STORAGE_KEY = 'svinnstop_referral_data'
 
 // Belöningsstruktur
@@ -21,6 +24,52 @@ export function generateReferralCode(userId) {
                Math.random().toString(36).substr(2, 4).toUpperCase()
   
   return code
+}
+
+// Synka referral-kod till Firebase
+export async function syncReferralCodeToFirebase() {
+  const user = auth.currentUser
+  if (!user) return
+
+  const data = getReferralData()
+  
+  try {
+    // Spara min referral-kod i Firebase
+    const codeRef = ref(database, `referralCodes/${data.myCode}`)
+    await set(codeRef, {
+      userId: user.uid,
+      code: data.myCode,
+      createdAt: data.createdAt
+    })
+    
+    // Spara min user-data
+    const userRef = ref(database, `users/${user.uid}/referralData`)
+    await set(userRef, {
+      myCode: data.myCode,
+      createdAt: data.createdAt
+    })
+    
+    console.log('✅ Firebase: Referral code synced', data.myCode)
+  } catch (error) {
+    console.error('❌ Firebase: Failed to sync referral code', error)
+  }
+}
+
+// Lyssna på referrals i realtid
+export function listenToReferrals(callback) {
+  const user = auth.currentUser
+  if (!user) return null
+
+  const referralsRef = ref(database, `users/${user.uid}/referrals`)
+  return onValue(referralsRef, (snap) => {
+    const referralsObj = snap.val() || {}
+    const referrals = Object.values(referralsObj)
+    console.log('✅ Firebase: Referrals updated', referrals.length)
+    
+    if (callback) {
+      callback(referrals)
+    }
+  })
 }
 
 // Hämta referral data
@@ -48,6 +97,11 @@ export function getReferralData() {
   // Spara direkt så koden inte ändras vid refresh
   saveReferralData(defaultData)
   
+  // Synka till Firebase
+  syncReferralCodeToFirebase().catch(err => 
+    console.warn('Could not sync referral code:', err)
+  )
+  
   return defaultData
 }
 
@@ -60,8 +114,8 @@ function saveReferralData(data) {
   }
 }
 
-// Använd en referral kod (när någon ny använder min kod)
-export function useReferralCode(code) {
+// Använd en referral kod (när någon ny använder min kod) - Firebase version
+export async function useReferralCode(code) {
   if (!code || typeof code !== 'string') {
     return { success: false, error: 'Ogiltig kod' }
   }
@@ -85,13 +139,47 @@ export function useReferralCode(code) {
     }
   }
   
-  // Spara vem som bjöd in mig
-  data.referredBy = code.toUpperCase()
-  saveReferralData(data)
-  
-  return { 
-    success: true, 
-    message: '🎉 Referral kod aktiverad!' 
+  // Validera koden mot Firebase
+  const user = auth.currentUser
+  if (!user) {
+    return { success: false, error: 'Du måste vara inloggad' }
+  }
+
+  try {
+    const codeRef = ref(database, `referralCodes/${code.toUpperCase()}`)
+    const codeSnap = await get(codeRef)
+    
+    if (!codeSnap.exists()) {
+      return { success: false, error: 'Ogiltig referral kod' }
+    }
+    
+    const referrerUserId = codeSnap.val().userId
+    
+    // Lägg till mig som referral hos referrer
+    const referralRef = ref(database, `users/${referrerUserId}/referrals/${user.uid}`)
+    await set(referralRef, {
+      userId: user.uid,
+      joinedAt: new Date().toISOString(),
+      status: 'active'
+    })
+    
+    // Spara vem som bjöd in mig
+    const myUserRef = ref(database, `users/${user.uid}/referredBy`)
+    await set(myUserRef, code.toUpperCase())
+    
+    console.log('✅ Firebase: Referral code used successfully')
+    
+    // Spara lokalt också
+    data.referredBy = code.toUpperCase()
+    saveReferralData(data)
+    
+    return { 
+      success: true, 
+      message: '🎉 Referral kod aktiverad!' 
+    }
+  } catch (error) {
+    console.error('❌ Firebase: Failed to use referral code', error)
+    return { success: false, error: 'Kunde inte använda referral kod' }
   }
 }
 
@@ -240,5 +328,7 @@ export const referralService = {
   hasPremium,
   getNextMilestone,
   getShareableContent,
-  resetReferralData
+  resetReferralData,
+  syncReferralCodeToFirebase,
+  listenToReferrals
 }

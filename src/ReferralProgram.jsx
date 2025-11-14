@@ -13,6 +13,13 @@ export default function ReferralProgram() {
   useEffect(() => {
     loadReferralData()
     checkUrlForReferralCode()
+    
+    // Lyssna på referrals i realtid
+    const unsubscribe = referralService.listenToReferrals((referrals) => {
+      setReferralData(prev => ({ ...prev, referrals }))
+    })
+    
+    return unsubscribe
   }, [])
 
   function loadReferralData() {
@@ -30,10 +37,10 @@ export default function ReferralProgram() {
     }
   }
 
-  function handleEnterCode(e) {
+  async function handleEnterCode(e) {
     e.preventDefault()
     
-    const result = referralService.useReferralCode(codeInput)
+    const result = await referralService.useReferralCode(codeInput)
     
     if (result.success) {
       setCodeMessage('✅ ' + result.message)

@@ -1,6 +1,9 @@
 // Leaderboard & Competitions Service
 // Låter användare tävla med vänner om vem som sparar mest
 
+import { database, auth } from './firebaseConfig'
+import { ref, set, get, onValue, update, push } from 'firebase/database'
+
 const STORAGE_KEY = 'svinnstop_leaderboard'
 const FRIENDS_KEY = 'svinnstop_friends'
 
@@ -47,8 +50,8 @@ function saveLeaderboardData(data) {
   }
 }
 
-// Sätt användarnamn
-export function setUsername(username) {
+// Sätt användarnamn - Firebase version
+export async function setUsername(username) {
   if (!username || typeof username !== 'string' || username.trim().length === 0) {
     return { success: false, error: 'Ogiltigt användarnamn' }
   }
@@ -63,6 +66,22 @@ export function setUsername(username) {
   data.myStats.username = username.trim()
   saveLeaderboardData(data)
 
+  // Synka till Firebase
+  const user = auth.currentUser
+  if (user) {
+    try {
+      const userRef = ref(database, `users/${user.uid}/profile`)
+      await set(userRef, {
+        username: username.trim(),
+        userId: data.myStats.userId,
+        createdAt: data.myStats.joinedAt
+      })
+      console.log('✅ Firebase: Username synced')
+    } catch (error) {
+      console.error('❌ Firebase: Failed to sync username', error)
+    }
+  }
+
   return {
     success: true,
     username: username.trim(),
@@ -71,7 +90,7 @@ export function setUsername(username) {
 }
 
 // Uppdatera mina stats (anropas från savingsTracker och achievementService)
-export function updateMyStats(updates) {
+export async function updateMyStats(updates) {
   const data = getLeaderboardData()
   
   data.myStats = {
@@ -80,11 +99,29 @@ export function updateMyStats(updates) {
   }
 
   saveLeaderboardData(data)
+  
+  // Synka till Firebase
+  const user = auth.currentUser
+  if (user) {
+    try {
+      const statsRef = ref(database, `users/${user.uid}/stats`)
+      await set(statsRef, {
+        itemsSaved: data.myStats.itemsSaved || 0,
+        moneySaved: data.myStats.moneySaved || 0,
+        streak: data.myStats.streak || 0,
+        lastUpdated: new Date().toISOString()
+      })
+      console.log('✅ Firebase: Stats synced')
+    } catch (error) {
+      console.error('❌ Firebase: Failed to sync stats', error)
+    }
+  }
+  
   return data.myStats
 }
 
-// Lägg till vän via användarnamn (i riktig app skulle detta vara API call)
-export function addFriend(friendUsername) {
+// Lägg till vän via användarnamn - Firebase version
+export async function addFriend(friendUsername) {
   if (!friendUsername || typeof friendUsername !== 'string') {
     return { success: false, error: 'Ogiltigt användarnamn' }
   }
@@ -119,24 +156,73 @@ export function addFriend(friendUsername) {
     }
   }
 
-  // I riktig app skulle vi söka efter användaren via API
-  // För demo skapar vi en mock friend
-  const newFriend = {
-    userId: `user_mock_${Date.now()}`,
-    username: friendUsername,
-    itemsSaved: Math.floor(Math.random() * 50),
-    moneySaved: Math.floor(Math.random() * 1000),
-    streak: Math.floor(Math.random() * 30),
-    addedAt: new Date().toISOString(),
-    status: 'active' // 'active', 'pending', 'blocked'
+  // Sök efter användare i Firebase
+  const user = auth.currentUser
+  if (!user) {
+    return { success: false, error: 'Du måste vara inloggad' }
   }
 
-  data.friends.push(newFriend)
-  saveLeaderboardData(data)
+  try {
+    // Hämta alla användare och sök efter username
+    const usersRef = ref(database, 'users')
+    const usersSnap = await get(usersRef)
+    
+    if (!usersSnap.exists()) {
+      return { success: false, error: 'Användare hittades inte' }
+    }
+    
+    const users = usersSnap.val()
+    let friendUserId = null
+    let friendProfile = null
+    
+    // Leta efter användare med matchande username
+    for (const [uid, userData] of Object.entries(users)) {
+      if (userData.profile && userData.profile.username.toLowerCase() === friendUsername.toLowerCase()) {
+        friendUserId = uid
+        friendProfile = userData.profile
+        break
+      }
+    }
+    
+    if (!friendUserId) {
+      return { success: false, error: 'Användare hittades inte' }
+    }
+    
+    // Lägg till vän i Firebase
+    const friendRef = ref(database, `users/${user.uid}/friends/${friendUserId}`)
+    await set(friendRef, {
+      userId: friendUserId,
+      username: friendProfile.username,
+      addedAt: new Date().toISOString(),
+      status: 'active'
+    })
+    
+    // Hämta vänens stats
+    const friendStatsSnap = await get(ref(database, `users/${friendUserId}/stats`))
+    const friendStats = friendStatsSnap.exists() ? friendStatsSnap.val() : {}
+    
+    const newFriend = {
+      userId: friendUserId,
+      username: friendProfile.username,
+      itemsSaved: friendStats.itemsSaved || 0,
+      moneySaved: friendStats.moneySaved || 0,
+      streak: friendStats.streak || 0,
+      addedAt: new Date().toISOString(),
+      status: 'active'
+    }
 
-  return {
-    success: true,
-    friend: newFriend
+    data.friends.push(newFriend)
+    saveLeaderboardData(data)
+    
+    console.log('✅ Firebase: Friend added')
+
+    return {
+      success: true,
+      friend: newFriend
+    }
+  } catch (error) {
+    console.error('❌ Firebase: Failed to add friend', error)
+    return { success: false, error: 'Kunde inte lägga till vän' }
   }
 }
 
@@ -337,6 +423,44 @@ export function generateMockFriends(count = 5) {
   }
 }
 
+// Lyssna på vänners stats i realtid
+export function listenToFriendsStats(callback) {
+  const user = auth.currentUser
+  if (!user) return null
+
+  const friendsRef = ref(database, `users/${user.uid}/friends`)
+  return onValue(friendsRef, async (snap) => {
+    const friendsObj = snap.val() || {}
+    const friendsList = []
+    
+    // Hämta stats för varje vän
+    for (const [friendId, friendData] of Object.entries(friendsObj)) {
+      try {
+        const statsSnap = await get(ref(database, `users/${friendId}/stats`))
+        const stats = statsSnap.exists() ? statsSnap.val() : {}
+        
+        friendsList.push({
+          userId: friendId,
+          username: friendData.username,
+          itemsSaved: stats.itemsSaved || 0,
+          moneySaved: stats.moneySaved || 0,
+          streak: stats.streak || 0,
+          addedAt: friendData.addedAt,
+          status: friendData.status
+        })
+      } catch (error) {
+        console.error('Failed to fetch friend stats:', error)
+      }
+    }
+    
+    console.log('✅ Firebase: Friends stats updated', friendsList.length)
+    
+    if (callback) {
+      callback(friendsList)
+    }
+  })
+}
+
 // Hämta min position i leaderboard
 export function getMyRank(timeframe = TIMEFRAMES.ALL_TIME) {
   const leaderboard = getLeaderboard(timeframe)
@@ -361,5 +485,6 @@ export const leaderboardService = {
   getCompetitionLeaderboard,
   generateMockFriends,
   getMyRank,
+  listenToFriendsStats,
   TIMEFRAMES
 }

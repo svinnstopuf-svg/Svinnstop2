@@ -15,6 +15,15 @@ export default function Leaderboard() {
 
   useEffect(() => {
     loadData()
+    
+    // Lyssna på vänners stats i realtid
+    const unsubscribe = leaderboardService.listenToFriendsStats((friends) => {
+      setLeaderboardData(prev => ({ ...prev, friends }))
+      const board = leaderboardService.getLeaderboard(timeframe)
+      setLeaderboard(board)
+    })
+    
+    return unsubscribe
   }, [timeframe])
 
   function loadData() {
@@ -35,13 +44,13 @@ export default function Leaderboard() {
     setLeaderboard(board)
   }
 
-  function handleSetUsername() {
+  async function handleSetUsername() {
     if (!username.trim()) {
       setMessage({ type: 'error', text: '❌ Ange ett användarnamn' })
       return
     }
 
-    const result = leaderboardService.setUsername(username)
+    const result = await leaderboardService.setUsername(username)
     
     if (result.success) {
       setMessage({ 
@@ -55,13 +64,13 @@ export default function Leaderboard() {
     }
   }
 
-  function handleAddFriend() {
+  async function handleAddFriend() {
     if (!friendUsername.trim()) {
       setMessage({ type: 'error', text: '❌ Ange ett användarnamn' })
       return
     }
 
-    const result = leaderboardService.addFriend(friendUsername)
+    const result = await leaderboardService.addFriend(friendUsername)
     
     if (result.success) {
       setMessage({ 
