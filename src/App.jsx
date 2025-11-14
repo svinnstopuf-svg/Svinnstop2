@@ -181,7 +181,7 @@ export default function App() {
   const [showFoodSuggestions, setShowFoodSuggestions] = useState(false)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [pendingShoppingItem, setPendingShoppingItem] = useState(null)
-  const [activeTab, setActiveTab] = useState('add')
+  const [activeTab, setActiveTab] = useState('fridge')
   const [bulkEditMode, setBulkEditMode] = useState(false)
   const [bulkExpiryDate, setBulkExpiryDate] = useState('')
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
