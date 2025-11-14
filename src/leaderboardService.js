@@ -24,7 +24,7 @@ export const TIMEFRAMES = {
   ALL_TIME: 'all_time'
 }
 
-// Generera unik handle (t.ex. alex#1234)
+// Generera unik handle (t.ex. alex-1234)
 async function generateUniqueHandle(displayName) {
   const baseName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '')
   let attempts = 0
@@ -32,7 +32,7 @@ async function generateUniqueHandle(displayName) {
   
   while (attempts < maxAttempts) {
     const randomNum = Math.floor(1000 + Math.random() * 9000) // 4 siffror
-    const handle = `${baseName}#${randomNum}`
+    const handle = `${baseName}-${randomNum}`
     
     // Kolla om handlen redan finns
     const handleRef = ref(database, `handles/${handle}`)
@@ -46,7 +46,7 @@ async function generateUniqueHandle(displayName) {
   }
   
   // Fallback: lägg till timestamp
-  return `${baseName}#${Date.now().toString().slice(-4)}`
+  return `${baseName}-${Date.now().toString().slice(-4)}`
 }
 
 // Migrera befintliga användarnamn till handle-system (körs en gång)
@@ -271,12 +271,12 @@ export async function addFriend(friendUsername) {
   }
 
   try {
-    // Sök via handle (t.ex. alex#1234)
+    // Sök via handle (t.ex. alex-1234)
     const handleIndexRef = ref(database, `handles/${friendUsername.toLowerCase()}`)
     const indexSnap = await get(handleIndexRef)
     
     if (!indexSnap.exists()) {
-      return { success: false, error: `Användaren "${friendUsername}" hittades inte. Använd formatet: namn#1234` }
+      return { success: false, error: `Användaren "${friendUsername}" hittades inte. Använd formatet: namn-1234` }
     }
     
     const { uid: friendUserId, displayName } = indexSnap.val()
