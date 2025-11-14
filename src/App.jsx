@@ -281,11 +281,18 @@ export default function App() {
     achievementService.trackDailyLogin()
     
     // Initialize Firebase Authentication
-    initAuth().then(user => {
-      if (user) {
-        console.log('🔐 Firebase authentication ready')
-      }
-    })
+    initAuth()
+      .then(user => {
+        if (user) {
+          console.log('🔐 Firebase authentication ready')
+        } else {
+          console.warn('⚠️ Firebase auth not initialized - app will work in local mode')
+        }
+      })
+      .catch(error => {
+        console.error('❌ Failed to initialize Firebase auth:', error)
+        console.warn('⚠️ App will continue without authentication')
+      })
   }, [])
   
   // Separat useEffect för Firebase sync som lyssnar på familySyncTrigger
