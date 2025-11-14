@@ -836,11 +836,17 @@ export default function App() {
       )
       
       if (!existingItem) {
+        // Använd AI för att hitta rätt kategori och emoji
+        const categoryInfo = getSmartProductCategory(ingredient.name)
+        const categoryWithEmoji = categoryInfo.category
+        // Extrahera bara emoji från kategoristringen (t.ex. '🥛' från '🥛 Mejeri')
+        const emoji = categoryWithEmoji.split(' ')[0] || '📋'
+        
         const newShoppingItem = {
           id: Date.now() + Math.random(),
           name: ingredient.name,
-          category: 'recept',
-          emoji: '📋',
+          category: categoryWithEmoji,
+          emoji: emoji,
           unit: ingredient.unit,
           quantity: ingredient.quantity,
           completed: false,
