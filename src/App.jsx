@@ -189,6 +189,7 @@ export default function App() {
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
   const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
+  const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -277,16 +278,27 @@ export default function App() {
     
   // Track daily login for achievements
     achievementService.trackDailyLogin()
-    
-    // Lyssna på Firebase inventory changes om i familj
+  }, [])
+  
+  // Separat useEffect för Firebase sync som lyssnar på familySyncTrigger
+  useEffect(() => {
     const family = getFamilyData()
+    
     if (family.familyId && family.syncEnabled) {
+      console.log('🔄 Starting Firebase inventory sync for family:', family.familyId)
       const unsubscribe = listenToInventoryChanges((firebaseInventory) => {
+        console.log('📥 Received inventory from Firebase:', firebaseInventory.length, 'items')
         setItems(firebaseInventory)
       })
-      return unsubscribe
+      
+      return () => {
+        if (unsubscribe) {
+          console.log('👋 Stopping Firebase inventory sync')
+          unsubscribe()
+        }
+      }
     }
-  }, [])
+  }, [familySyncTrigger])
 
   // FIX: Debounce localStorage writes för att undvika race conditions
   useEffect(() => {
@@ -1766,7 +1778,10 @@ export default function App() {
                 <p className="card-subtitle">Dela varulistan med hela familjen</p>
               </div>
               
-              <FamilySharing items={items} />
+              <FamilySharing 
+                items={items} 
+                onFamilyChange={() => setFamilySyncTrigger(prev => prev + 1)}
+              />
             </section>
           </div>
         )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { familyService, ROLES } from './familyService'
 import './familySharing.css'
 
-export default function FamilySharing({ items }) {
+export default function FamilySharing({ items, onFamilyChange }) {
   const [familyData, setFamilyData] = useState(null)
   const [view, setView] = useState('overview') // 'overview', 'create', 'join'
   const [formData, setFormData] = useState({
@@ -15,6 +15,15 @@ export default function FamilySharing({ items }) {
 
   useEffect(() => {
     loadFamilyData()
+    
+    // Starta realtime synkronisering om i familj
+    const data = familyService.getFamilyData()
+    if (data.familyId && data.syncEnabled) {
+      const unsubscribe = familyService.startMemberSync((members) => {
+        setFamilyData(prev => ({ ...prev, members }))
+      })
+      return unsubscribe
+    }
   }, [])
 
   function loadFamilyData() {
@@ -38,6 +47,11 @@ export default function FamilySharing({ items }) {
       loadFamilyData()
       setView('overview')
       setFormData({ familyName: '', creatorName: '', joinCode: '', memberName: '' })
+      
+      // Trigga Firebase sync
+      if (onFamilyChange) {
+        onFamilyChange()
+      }
     } else {
       setMessage({
         type: 'error',
@@ -62,6 +76,11 @@ export default function FamilySharing({ items }) {
       loadFamilyData()
       setView('overview')
       setFormData({ familyName: '', creatorName: '', joinCode: '', memberName: '' })
+      
+      // Trigga Firebase sync
+      if (onFamilyChange) {
+        onFamilyChange()
+      }
     } else {
       setMessage({
         type: 'error',

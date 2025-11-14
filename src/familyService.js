@@ -98,14 +98,21 @@ export async function createFamily(familyName, creatorName) {
     }
   }
 
-  await set(familyRef, familyPayload)
-  await set(codeRef, { familyId, familyName, createdAt: now })
+  try {
+    await set(familyRef, familyPayload)
+    await set(codeRef, { familyId, familyName, createdAt: now })
+    console.log('✅ Firebase: Family created successfully', familyId)
+  } catch (error) {
+    console.error('❌ Firebase: Failed to create family', error)
+    return { success: false, error: 'Kunde inte skapa familjegrupp. Kontrollera Firebase-konfigurationen.' }
+  }
 
   // Spara lokalt
   data.familyId = familyId
   data.familyCode = familyCode
   data.familyName = familyName
   data.myRole = ROLES.OWNER
+  data.myMemberId = memberId
   data.members = [
     { id: memberId, name: creatorName, role: ROLES.OWNER, joinedAt: now, isMe: true }
   ]
@@ -144,30 +151,60 @@ export async function joinFamily(familyCode, memberName) {
   }
 
   // Validera koden i Firebase
-  const codeSnap = await get(ref(database, `codes/${uppercaseCode}`))
+  let codeSnap
+  try {
+    codeSnap = await get(ref(database, `codes/${uppercaseCode}`))
+    console.log('✅ Firebase: Code validation successful for', uppercaseCode)
+  } catch (error) {
+    console.error('❌ Firebase: Failed to validate code', error)
+    return { success: false, error: 'Kunde inte ansluta till Firebase. Kontrollera din internetanslutning.' }
+  }
+  
   if (!codeSnap.exists()) {
+    console.warn('⚠️ Firebase: Code not found', uppercaseCode)
     return { success: false, error: 'Fel kod. Kontrollera och försök igen.' }
   }
   const { familyId, familyName } = codeSnap.val()
+  console.log('✅ Firebase: Joining family', familyId, familyName)
 
   const memberId = `member_${Date.now()}`
   const now = new Date().toISOString()
 
   // Lägg till medlem i familj i Firebase
   const memberRef = ref(database, `families/${familyId}/members/${memberId}`)
-  await set(memberRef, {
-    id: memberId,
-    name: memberName,
-    role: ROLES.MEMBER,
-    joinedAt: now
-  })
+  try {
+    await set(memberRef, {
+      id: memberId,
+      name: memberName,
+      role: ROLES.MEMBER,
+      joinedAt: now
+    })
+    console.log('✅ Firebase: Member added successfully', memberId)
+  } catch (error) {
+    console.error('❌ Firebase: Failed to add member', error)
+    return { success: false, error: 'Kunde inte gå med i familjegrupp. Försök igen.' }
+  }
 
-  // Spara lokalt
+  // Hämta ALLA medlemmar från Firebase
+  const familySnap = await get(ref(database, `families/${familyId}/members`))
+  const allMembers = []
+  if (familySnap.exists()) {
+    const membersObj = familySnap.val()
+    Object.values(membersObj).forEach(member => {
+      allMembers.push({
+        ...member,
+        isMe: member.id === memberId
+      })
+    })
+  }
+
+  // Spara lokalt med alla medlemmar
   data.familyId = familyId
   data.familyCode = uppercaseCode
   data.familyName = familyName
   data.myRole = ROLES.MEMBER
-  data.members = [ { id: memberId, name: memberName, role: ROLES.MEMBER, joinedAt: now, isMe: true } ]
+  data.myMemberId = memberId
+  data.members = allMembers
   data.syncEnabled = true
   data.createdAt = now
   data.invitePending = false
@@ -214,7 +251,32 @@ export function leaveFamily() {
   }
 }
 
-// Aktivera/avaktivera synkronisering med realtime listener
+// Starta realtime-synkronisering av medlemmar
+export function startMemberSync(callback) {
+  const data = getFamilyData()
+  
+  if (!data.familyId || !data.syncEnabled) {
+    return null
+  }
+
+  const familyRef = ref(database, `families/${data.familyId}/members`)
+  return onValue(familyRef, (snap) => {
+    const membersObj = snap.val() || {}
+    const members = Object.values(membersObj)
+    const d = getFamilyData()
+    const myMemberId = d.myMemberId
+    
+    d.members = members.map(m => ({ ...m, isMe: m.id === myMemberId }))
+    d.lastSyncAt = new Date().toISOString()
+    saveFamilyData(d)
+    
+    if (callback) {
+      callback(d.members)
+    }
+  })
+}
+
+// Aktivera/avaktivera synkronisering
 export function toggleSync(enabled) {
   const data = getFamilyData()
 
@@ -225,20 +287,6 @@ export function toggleSync(enabled) {
   data.syncEnabled = !!enabled
   saveFamilyData(data)
 
-  if (enabled) {
-    // Lyssna på ändringar i familjemedlemmar och spara lokalt
-    const familyRef = ref(database, `families/${data.familyId}/members`)
-    onValue(familyRef, (snap) => {
-      const membersObj = snap.val() || {}
-      const members = Object.values(membersObj)
-      const d = getFamilyData()
-      d.members = members.map(m => ({ ...m, isMe: m.id === d.members.find(x => x.isMe)?.id }))
-      d.lastSyncAt = new Date().toISOString()
-      saveFamilyData(d)
-    })
-  }
-
-  return { success: true, enabled: data.syncEnabled }
   return {
     success: true,
     syncEnabled: enabled
