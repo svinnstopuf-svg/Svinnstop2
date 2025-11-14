@@ -422,6 +422,7 @@ export const familyService = {
   joinFamily,
   leaveFamily,
   toggleSync,
+  startMemberSync,
   isInFamily,
   getShareableCode,
   syncItems,
