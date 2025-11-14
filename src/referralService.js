@@ -77,7 +77,10 @@ export function getReferralData() {
   try {
     const data = localStorage.getItem(STORAGE_KEY)
     if (data) {
-      return JSON.parse(data)
+      const parsed = JSON.parse(data)
+      // Synka från Firebase i bakgrunden
+      syncFromFirebase()
+      return parsed
     }
   } catch (error) {
     console.error('Kunde inte läsa referral data:', error)
@@ -103,6 +106,91 @@ export function getReferralData() {
   )
   
   return defaultData
+}
+
+// Synka referrals och rewards från Firebase
+async function syncFromFirebase() {
+  const user = auth.currentUser
+  if (!user) return
+  
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    
+    // Hämta referrals från Firebase
+    const referralsSnap = await get(ref(database, `users/${user.uid}/referrals`))
+    const referralsObj = referralsSnap.val() || {}
+    const firebaseReferrals = Object.values(referralsObj)
+    
+    // Hämta rewards från Firebase  
+    const rewardsSnap = await get(ref(database, `users/${user.uid}/rewards`))
+    const rewardsObj = rewardsSnap.val() || {}
+    const firebaseRewards = Object.values(rewardsObj)
+    
+    // Hämta premium status från Firebase
+    const premiumSnap = await get(ref(database, `users/${user.uid}/premium`))
+    const premiumData = premiumSnap.val() || {}
+    
+    // Uppdatera data om det finns skillnader
+    const referralCount = firebaseReferrals.length
+    
+    // Kolla om vi behöver lägga till nya belöningar
+    if (REWARDS[referralCount] && !firebaseRewards.find(r => r.referralCount === referralCount)) {
+      const reward = REWARDS[referralCount]
+      const rewardData = {
+        type: reward.type,
+        value: reward.value,
+        label: reward.label,
+        earnedAt: new Date().toISOString(),
+        referralCount: referralCount
+      }
+      
+      // Spara belöningen till Firebase
+      const rewardRef = ref(database, `users/${user.uid}/rewards/${referralCount}`)
+      await set(rewardRef, rewardData)
+      
+      // Uppdatera premium status
+      const premiumRef = ref(database, `users/${user.uid}/premium`)
+      if (reward.value === 'lifetime') {
+        await set(premiumRef, {
+          lifetimePremium: true,
+          premiumUntil: null
+        })
+      } else {
+        const today = new Date()
+        const currentPremiumDate = premiumData.premiumUntil ? new Date(premiumData.premiumUntil) : today
+        const newPremiumDate = currentPremiumDate > today ? currentPremiumDate : today
+        newPremiumDate.setDate(newPremiumDate.getDate() + reward.value)
+        
+        await set(premiumRef, {
+          lifetimePremium: premiumData.lifetimePremium || false,
+          premiumUntil: newPremiumDate.toISOString()
+        })
+      }
+      
+      console.log('✅ Firebase: Reward auto-granted', reward.label)
+      
+      // Hämta uppdaterad rewards
+      const updatedRewardsSnap = await get(ref(database, `users/${user.uid}/rewards`))
+      const updatedRewardsObj = updatedRewardsSnap.val() || {}
+      firebaseRewards.push(...Object.values(updatedRewardsObj).filter(r => r.referralCount === referralCount))
+      
+      // Hämta uppdaterad premium
+      const updatedPremiumSnap = await get(ref(database, `users/${user.uid}/premium`))
+      const updatedPremiumData = updatedPremiumSnap.val() || {}
+      Object.assign(premiumData, updatedPremiumData)
+    }
+    
+    // Uppdatera localStorage
+    data.referrals = firebaseReferrals
+    data.rewards = firebaseRewards
+    data.lifetimePremium = premiumData.lifetimePremium || false
+    data.premiumUntil = premiumData.premiumUntil || null
+    
+    saveReferralData(data)
+    console.log('✅ Firebase: Referral data synced', firebaseReferrals.length, 'referrals,', firebaseRewards.length, 'rewards')
+  } catch (error) {
+    console.error('❌ Firebase: Failed to sync referral data', error)
+  }
 }
 
 // Spara referral data

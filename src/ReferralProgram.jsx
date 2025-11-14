@@ -15,13 +15,15 @@ export default function ReferralProgram() {
     checkUrlForReferralCode()
     
     // Lyssna på referrals i realtid
-    const unsubscribe = referralService.listenToReferrals((referrals) => {
-      setReferralData(prev => ({ ...prev, referrals }))
+    const unsubscribeReferrals = referralService.listenToReferrals((referrals) => {
+      console.log('🔄 Referrals updated from Firebase:', referrals.length)
+      // Reload hela referralData för att få uppdaterade belöningar
+      loadReferralData()
     })
     
     return () => {
-      if (unsubscribe && typeof unsubscribe === 'function') {
-        unsubscribe()
+      if (unsubscribeReferrals && typeof unsubscribeReferrals === 'function') {
+        unsubscribeReferrals()
       }
     }
   }, [])
