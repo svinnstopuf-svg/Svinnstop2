@@ -832,6 +832,12 @@ export default function App() {
         item.name.toLowerCase() === ingredient.name.toLowerCase()
       )
       
+      // Normalisera enhet - fixa Google Translate-fel
+      let normalizedUnit = ingredient.unit
+      if (normalizedUnit === 'miljoner' || normalizedUnit === 'militär' || normalizedUnit === 'million') {
+        normalizedUnit = 'ml'
+      }
+      
       if (!existingItem) {
         // Använd getExpiryDateSuggestion som redan finns i SWEDISH_FOODS eller AI
         const foodSuggestion = getExpiryDateSuggestion(ingredient.name)
@@ -842,7 +848,7 @@ export default function App() {
           name: ingredient.name,
           category: 'recept',
           emoji: emoji,
-          unit: ingredient.unit,
+          unit: normalizedUnit,
           quantity: ingredient.quantity,
           completed: false,
           isFood: true,
@@ -853,6 +859,7 @@ export default function App() {
       } else {
         // Uppdatera kvantiteten om varan redan finns
         existingItem.quantity = Math.max(existingItem.quantity, ingredient.quantity)
+        existingItem.unit = normalizedUnit
       }
     })
     
