@@ -17,12 +17,20 @@ export const TIMEFRAMES = {
 // Migrera befintliga användarnamn till index (körs en gång)
 export async function migrateUsernameToIndex() {
   const user = auth.currentUser
-  if (!user) return
+  if (!user) {
+    console.warn('⚠️ No user authenticated for username migration')
+    return
+  }
 
   const data = getLeaderboardData()
-  if (!data.myStats.username) return
+  if (!data.myStats.username) {
+    console.warn('⚠️ No username set for migration')
+    return
+  }
 
   try {
+    console.log('🔄 Migrating username:', data.myStats.username)
+    
     // Kolla om indexet redan finns
     const indexRef = ref(database, `usernames/${data.myStats.username.toLowerCase()}`)
     const indexSnap = await get(indexRef)
@@ -34,6 +42,8 @@ export async function migrateUsernameToIndex() {
         username: data.myStats.username
       })
       console.log('✅ Firebase: Username index created for', data.myStats.username)
+    } else {
+      console.log('ℹ️ Username index already exists for', data.myStats.username)
     }
   } catch (error) {
     console.error('❌ Firebase: Failed to migrate username', error)
@@ -217,7 +227,7 @@ export async function addFriend(friendUsername) {
     
     const friendProfile = friendProfileSnap.val()
     
-    // Lägg till vän i Firebase
+    // Lägg till vän i Firebase (bådå sidorna)
     const friendRef = ref(database, `users/${user.uid}/friends/${friendUserId}`)
     await set(friendRef, {
       userId: friendUserId,
@@ -225,6 +235,20 @@ export async function addFriend(friendUsername) {
       addedAt: new Date().toISOString(),
       status: 'active'
     })
+    
+    // Lägg också till mig som vän hos den andra användaren
+    const myProfileSnap = await get(ref(database, `users/${user.uid}/profile`))
+    if (myProfileSnap.exists()) {
+      const myProfile = myProfileSnap.val()
+      const reverseFriendRef = ref(database, `users/${friendUserId}/friends/${user.uid}`)
+      await set(reverseFriendRef, {
+        userId: user.uid,
+        username: myProfile.username,
+        addedAt: new Date().toISOString(),
+        status: 'active'
+      })
+      console.log('✅ Firebase: Bidirectional friendship created')
+    }
     
     // Hämta vänens stats
     const friendStatsSnap = await get(ref(database, `users/${friendUserId}/stats`))
