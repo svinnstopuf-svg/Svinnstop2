@@ -22,6 +22,7 @@ const SWEDISH_FOODS = [
   // Kött & Fisk
   { name: 'kött nöt', category: 'kött', emoji: '🥩', defaultDays: 3, unit: 'kg' },
   { name: 'kött fläsk', category: 'kött', emoji: '🥩', defaultDays: 3, unit: 'kg' },
+  { name: 'köttfärs', category: 'kött', emoji: '🥩', defaultDays: 2, unit: 'g' },
   { name: 'kyckling', category: 'kött', emoji: '🍗', defaultDays: 2, unit: 'kg' },
   { name: 'kött lamm', category: 'kött', emoji: '🥩', defaultDays: 3, unit: 'kg' },
   { name: 'korv', category: 'kött', emoji: '🌭', defaultDays: 7, unit: 'st' },
@@ -32,8 +33,9 @@ const SWEDISH_FOODS = [
   { name: 'tonfisk konserv', category: 'konserv', emoji: '🥫', defaultDays: 1095, unit: 'st' },
 
   // Grönsaker
-  { name: 'morötter', category: 'grönsak', emoji: '🥕', defaultDays: 14, unit: 'kg' },
+  { name: 'mörötter', category: 'grönsak', emoji: '🥕', defaultDays: 14, unit: 'kg' },
   { name: 'potatis', category: 'grönsak', emoji: '🥔', defaultDays: 21, unit: 'kg' },
+  { name: 'lök', category: 'grönsak', emoji: '🧅', defaultDays: 30, unit: 'stycke' },
   { name: 'lök gul', category: 'grönsak', emoji: '🧅', defaultDays: 30, unit: 'st' },
   { name: 'lök röd', category: 'grönsak', emoji: '🧅', defaultDays: 30, unit: 'st' },
   { name: 'vitlök', category: 'grönsak', emoji: '🧄', defaultDays: 30, unit: 'st' },
@@ -60,6 +62,7 @@ const SWEDISH_FOODS = [
 
   // Bröd & Spannmål  
   { name: 'bröd', category: 'bröd', emoji: '🍞', defaultDays: 5, unit: 'st' },
+  { name: 'brödsmulor', category: 'bröd', emoji: '🍞', defaultDays: 30, unit: 'dl' },
   { name: 'mjöl', category: 'spannmål', emoji: '🌾', defaultDays: 365, unit: 'kg' },
   { name: 'ris', category: 'spannmål', emoji: '🍚', defaultDays: 730, unit: 'kg' },
   { name: 'pasta', category: 'spannmål', emoji: '🍝', defaultDays: 730, unit: 'g' },
