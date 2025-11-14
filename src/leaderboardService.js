@@ -70,12 +70,21 @@ export async function setUsername(username) {
   const user = auth.currentUser
   if (user) {
     try {
+      // Spara i users/{uid}/profile
       const userRef = ref(database, `users/${user.uid}/profile`)
       await set(userRef, {
         username: username.trim(),
         userId: data.myStats.userId,
         createdAt: data.myStats.joinedAt
       })
+      
+      // Skapa username index för sökning
+      const usernameIndexRef = ref(database, `usernames/${username.trim().toLowerCase()}`)
+      await set(usernameIndexRef, {
+        uid: user.uid,
+        username: username.trim()
+      })
+      
       console.log('✅ Firebase: Username synced')
     } catch (error) {
       console.error('❌ Firebase: Failed to sync username', error)
@@ -163,30 +172,24 @@ export async function addFriend(friendUsername) {
   }
 
   try {
-    // Hämta alla användare och sök efter username
-    const usersRef = ref(database, 'users')
-    const usersSnap = await get(usersRef)
+    // Sök via username index
+    const usernameIndexRef = ref(database, `usernames/${friendUsername.toLowerCase()}`)
+    const indexSnap = await get(usernameIndexRef)
     
-    if (!usersSnap.exists()) {
-      return { success: false, error: 'Användare hittades inte' }
+    if (!indexSnap.exists()) {
+      return { success: false, error: `Användaren "${friendUsername}" hittades inte` }
     }
     
-    const users = usersSnap.val()
-    let friendUserId = null
-    let friendProfile = null
+    const { uid: friendUserId, username: actualUsername } = indexSnap.val()
+    console.log('✅ Found user via index:', actualUsername, friendUserId)
     
-    // Leta efter användare med matchande username
-    for (const [uid, userData] of Object.entries(users)) {
-      if (userData.profile && userData.profile.username.toLowerCase() === friendUsername.toLowerCase()) {
-        friendUserId = uid
-        friendProfile = userData.profile
-        break
-      }
+    // Hämta användarens profil
+    const friendProfileSnap = await get(ref(database, `users/${friendUserId}/profile`))
+    if (!friendProfileSnap.exists()) {
+      return { success: false, error: 'Användarprofil hittades inte' }
     }
     
-    if (!friendUserId) {
-      return { success: false, error: 'Användare hittades inte' }
-    }
+    const friendProfile = friendProfileSnap.val()
     
     // Lägg till vän i Firebase
     const friendRef = ref(database, `users/${user.uid}/friends/${friendUserId}`)

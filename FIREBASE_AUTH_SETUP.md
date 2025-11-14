@@ -67,6 +67,12 @@ Authentication är nu implementerad i koden. Du måste aktivera det i Firebase C
         ".read": "auth != null",
         ".write": "auth != null"
       }
+    },
+    "usernames": {
+      "$username": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     }
   }
 }
