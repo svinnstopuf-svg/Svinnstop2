@@ -81,7 +81,9 @@ const SWEDISH_FOODS = [
   { name: 'ketchup', category: 'sås', emoji: '🍅', defaultDays: 90, unit: 'st' },
   { name: 'senap', category: 'sås', emoji: '🟡', defaultDays: 180, unit: 'st' },
   { name: 'majonnäs', category: 'sås', emoji: '🥄', defaultDays: 60, unit: 'st' },
-  { name: 'soja', category: 'sås', emoji: '🥢', defaultDays: 365, unit: 'dl' },
+  { name: 'soja', category: 'sås', emoji: '🥢', defaultDays: 365, unit: 'msk' },
+  { name: 'honung', category: 'sötsak', emoji: '🍯', defaultDays: 1095, unit: 'msk' },
+  { name: 'sirap', category: 'sötsak', emoji: '🍯', defaultDays: 365, unit: 'msk' },
   { name: 'olivolja', category: 'olja', emoji: '🫒', defaultDays: 730, unit: 'dl' },
   { name: 'rapsolja', category: 'olja', emoji: '🌻', defaultDays: 365, unit: 'L' },
 
