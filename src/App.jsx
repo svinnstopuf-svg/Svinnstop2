@@ -826,9 +826,6 @@ export default function App() {
   const addMatvarorToShoppingList = (ingredients) => {
     const currentShoppingList = JSON.parse(localStorage.getItem('svinnstop_shopping_list') || '[]')
     
-    // Lär appen om nya ingredienser från receptet
-    learnIngredientsFromRecipe(ingredients)
-    
     ingredients.forEach(ingredient => {
       // Kolla om varan redan finns i inköpslistan
       const existingItem = currentShoppingList.find(item => 
@@ -836,23 +833,14 @@ export default function App() {
       )
       
       if (!existingItem) {
-        // Kolla först om varan finns i matvarubanken (inkl. lärda ingredienser)
-        const allFoods = JSON.parse(localStorage.getItem('svinnstop_learned_ingredients') || '[]')
-        const matchedFood = allFoods.find(f => f.name.toLowerCase() === ingredient.name.toLowerCase())
-        
-        let emoji = '📋'
-        let category = 'recept'
-        
-        if (matchedFood) {
-          // Använd emoji och kategori från lärd ingrediens
-          emoji = matchedFood.emoji
-          category = matchedFood.category
-        }
+        // Använd getExpiryDateSuggestion som redan finns i SWEDISH_FOODS eller AI
+        const foodSuggestion = getExpiryDateSuggestion(ingredient.name)
+        const emoji = foodSuggestion.emoji || '📋'
         
         const newShoppingItem = {
           id: Date.now() + Math.random(),
           name: ingredient.name,
-          category: category,
+          category: 'recept',
           emoji: emoji,
           unit: ingredient.unit,
           quantity: ingredient.quantity,
@@ -867,6 +855,9 @@ export default function App() {
         existingItem.quantity = Math.max(existingItem.quantity, ingredient.quantity)
       }
     })
+    
+    // Lär appen om nya ingredienser från receptet EFTER att vi lagt till dem
+    learnIngredientsFromRecipe(ingredients)
     
     // Spara uppdaterad lista
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(currentShoppingList))
@@ -1572,10 +1563,10 @@ export default function App() {
                           <ul>
                             {r.ingredients.map((ingredient, idx) => (
                               <li key={idx} className="ingredient-item">
-                                <span className="ingredient-amount notranslate">
+                                <span className="ingredient-amount notranslate" translate="no">
                                   {ingredient.quantity} {ingredient.unit}
                                 </span>
-                                <span className="ingredient-name notranslate">{ingredient.name}</span>
+                                <span className="ingredient-name notranslate" translate="no">{ingredient.name}</span>
                               </li>
                             ))}
                           </ul>
