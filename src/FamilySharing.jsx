@@ -383,7 +383,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
                 <div className="stat-icon">🔄</div>
                 <div className="stat-content">
                   <div className="stat-value">{stats.syncEnabled ? 'På' : 'Av'}</div>
-                  <div className="stat-label">Synk</div>
+                  <div className="stat-label">Sync</div>
                 </div>
               </div>
             </div>
