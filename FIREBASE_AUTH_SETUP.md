@@ -36,8 +36,30 @@ Authentication är nu implementerad i koden. Du måste aktivera det i Firebase C
     },
     "users": {
       "$userId": {
-        ".read": "auth != null",
-        ".write": "$userId === auth.uid"
+        "profile": {
+          ".read": "auth != null",
+          ".write": "$userId === auth.uid"
+        },
+        "stats": {
+          ".read": "auth != null",
+          ".write": "$userId === auth.uid"
+        },
+        "referralData": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "referrals": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "friends": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "referredBy": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        }
       }
     },
     "referralCodes": {
