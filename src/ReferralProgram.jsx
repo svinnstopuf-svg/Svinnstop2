@@ -19,7 +19,11 @@ export default function ReferralProgram() {
       setReferralData(prev => ({ ...prev, referrals }))
     })
     
-    return unsubscribe
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
   }, [])
 
   function loadReferralData() {

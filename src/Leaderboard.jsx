@@ -23,7 +23,11 @@ export default function Leaderboard() {
       setLeaderboard(board)
     })
     
-    return unsubscribe
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
   }, [timeframe])
 
   function loadData() {
