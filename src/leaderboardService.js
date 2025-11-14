@@ -29,7 +29,16 @@ export async function migrateUsernameToIndex() {
   }
 
   try {
-    console.log('🔄 Migrating username:', data.myStats.username)
+    console.log('🔄 Migrating username and profile:', data.myStats.username)
+    
+    // Synka profil till Firebase
+    const profileRef = ref(database, `users/${user.uid}/profile`)
+    await set(profileRef, {
+      username: data.myStats.username,
+      userId: data.myStats.userId,
+      createdAt: data.myStats.joinedAt
+    })
+    console.log('✅ Firebase: Profile synced')
     
     // Kolla om indexet redan finns
     const indexRef = ref(database, `usernames/${data.myStats.username.toLowerCase()}`)
