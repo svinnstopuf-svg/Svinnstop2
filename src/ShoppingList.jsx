@@ -213,11 +213,11 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                 <label htmlFor={`shopping-${item.id}`} className="item-content-wrapper">
                   <div className="item-left">
                     <div className="item-info">
-                      <span className="item-name notranslate" translate="no">{item.name}</span>
+                      <span className="item-name notranslate" translate="no" style={{fontSize: '22px', fontWeight: 600}}>{item.name}</span>
                     </div>
                   </div>
                 </label>
-                <span className="item-quantity-display notranslate" translate="no">{item.quantity} {item.unit}</span>
+                <span className="item-quantity-display notranslate" translate="no" style={{fontSize: '14px', fontWeight: 500}}>{item.quantity} {item.unit}</span>
                 <div className="item-actions">
                   <div className="qty-control">
                     <button 
