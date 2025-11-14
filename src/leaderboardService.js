@@ -14,7 +14,32 @@ export const TIMEFRAMES = {
   ALL_TIME: 'all_time'
 }
 
-// Migrera befintliga användarnamn till index (körs en gång)
+// Generera unik handle (t.ex. alex#1234)
+async function generateUniqueHandle(displayName) {
+  const baseName = displayName.toLowerCase().replace(/[^a-z0-9]/g, '')
+  let attempts = 0
+  const maxAttempts = 10
+  
+  while (attempts < maxAttempts) {
+    const randomNum = Math.floor(1000 + Math.random() * 9000) // 4 siffror
+    const handle = `${baseName}#${randomNum}`
+    
+    // Kolla om handlen redan finns
+    const handleRef = ref(database, `handles/${handle}`)
+    const handleSnap = await get(handleRef)
+    
+    if (!handleSnap.exists()) {
+      return handle
+    }
+    
+    attempts++
+  }
+  
+  // Fallback: lägg till timestamp
+  return `${baseName}#${Date.now().toString().slice(-4)}`
+}
+
+// Migrera befintliga användarnamn till handle-system (körs en gång)
 export async function migrateUsernameToIndex() {
   const user = auth.currentUser
   if (!user) {
@@ -29,31 +54,34 @@ export async function migrateUsernameToIndex() {
   }
 
   try {
-    console.log('🔄 Migrating username and profile:', data.myStats.username)
+    console.log('🔄 Migrating username to handle system:', data.myStats.username)
     
-    // Synka profil till Firebase
+    // Generera handle om det inte finns
+    let handle = data.myStats.handle
+    if (!handle) {
+      handle = await generateUniqueHandle(data.myStats.username)
+      data.myStats.handle = handle
+      saveLeaderboardData(data)
+      console.log('✅ Generated new handle:', handle)
+    }
+    
+    // Synka profil till Firebase med handle
     const profileRef = ref(database, `users/${user.uid}/profile`)
     await set(profileRef, {
-      username: data.myStats.username,
+      displayName: data.myStats.username,
+      handle: handle,
       userId: data.myStats.userId,
       createdAt: data.myStats.joinedAt
     })
-    console.log('✅ Firebase: Profile synced')
+    console.log('✅ Firebase: Profile synced with handle')
     
-    // Kolla om indexet redan finns
-    const indexRef = ref(database, `usernames/${data.myStats.username.toLowerCase()}`)
-    const indexSnap = await get(indexRef)
-    
-    if (!indexSnap.exists()) {
-      // Skapa index
-      await set(indexRef, {
-        uid: user.uid,
-        username: data.myStats.username
-      })
-      console.log('✅ Firebase: Username index created for', data.myStats.username)
-    } else {
-      console.log('ℹ️ Username index already exists for', data.myStats.username)
-    }
+    // Skapa handle index
+    const handleIndexRef = ref(database, `handles/${handle}`)
+    await set(handleIndexRef, {
+      uid: user.uid,
+      displayName: data.myStats.username
+    })
+    console.log('✅ Firebase: Handle index created for', handle)
   } catch (error) {
     console.error('❌ Firebase: Failed to migrate username', error)
   }
@@ -95,7 +123,7 @@ function saveLeaderboardData(data) {
   }
 }
 
-// Sätt användarnamn - Firebase version
+// Sätt användarnamn - Firebase version med handle
 export async function setUsername(username) {
   if (!username || typeof username !== 'string' || username.trim().length === 0) {
     return { success: false, error: 'Ogiltigt användarnamn' }
@@ -108,7 +136,11 @@ export async function setUsername(username) {
     data.myStats.userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 
-  data.myStats.username = username.trim()
+  // Generera unik handle
+  const handle = await generateUniqueHandle(username.trim())
+  
+  data.myStats.username = username.trim() // Display name
+  data.myStats.handle = handle // Unik handle
   saveLeaderboardData(data)
 
   // Synka till Firebase
@@ -118,19 +150,20 @@ export async function setUsername(username) {
       // Spara i users/{uid}/profile
       const userRef = ref(database, `users/${user.uid}/profile`)
       await set(userRef, {
-        username: username.trim(),
+        displayName: username.trim(),
+        handle: handle,
         userId: data.myStats.userId,
         createdAt: data.myStats.joinedAt
       })
       
-      // Skapa username index för sökning
-      const usernameIndexRef = ref(database, `usernames/${username.trim().toLowerCase()}`)
-      await set(usernameIndexRef, {
+      // Skapa handle index för sökning (istället för username)
+      const handleIndexRef = ref(database, `handles/${handle}`)
+      await set(handleIndexRef, {
         uid: user.uid,
-        username: username.trim()
+        displayName: username.trim()
       })
       
-      console.log('✅ Firebase: Username synced')
+      console.log('✅ Firebase: Username synced with handle:', handle)
     } catch (error) {
       console.error('❌ Firebase: Failed to sync username', error)
     }
@@ -139,6 +172,7 @@ export async function setUsername(username) {
   return {
     success: true,
     username: username.trim(),
+    handle: handle,
     userId: data.myStats.userId
   }
 }
@@ -217,16 +251,16 @@ export async function addFriend(friendUsername) {
   }
 
   try {
-    // Sök via username index
-    const usernameIndexRef = ref(database, `usernames/${friendUsername.toLowerCase()}`)
-    const indexSnap = await get(usernameIndexRef)
+    // Sök via handle (t.ex. alex#1234)
+    const handleIndexRef = ref(database, `handles/${friendUsername.toLowerCase()}`)
+    const indexSnap = await get(handleIndexRef)
     
     if (!indexSnap.exists()) {
-      return { success: false, error: `Användaren "${friendUsername}" hittades inte` }
+      return { success: false, error: `Användaren "${friendUsername}" hittades inte. Använd formatet: namn#1234` }
     }
     
-    const { uid: friendUserId, username: actualUsername } = indexSnap.val()
-    console.log('✅ Found user via index:', actualUsername, friendUserId)
+    const { uid: friendUserId, displayName } = indexSnap.val()
+    console.log('✅ Found user via handle:', friendUsername, '(', displayName, ')', friendUserId)
     
     // Hämta användarens profil
     console.log('🔍 Fetching profile for user:', friendUserId)

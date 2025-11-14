@@ -59,7 +59,7 @@ export default function Leaderboard() {
     if (result.success) {
       setMessage({ 
         type: 'success', 
-        text: `✅ Välkommen ${result.username}! Nu kan du tävla med vänner!` 
+        text: `✅ Välkommen ${result.username}! Din handle: ${result.handle}` 
       })
       loadData()
       setUsernameInput('')
@@ -145,6 +145,7 @@ export default function Leaderboard() {
           <div className="setup-card">
             <h3>🎮 Välkommen till topplistan!</h3>
             <p>Sätt ditt användarnamn för att börja tävla med vänner</p>
+            <p style={{fontSize: '0.85rem', color: '#888'}}>Du får en unik handle (t.ex. Alex#1234) som används för att lägga till vänner</p>
             
             <div className="username-form">
               <input
@@ -261,10 +262,15 @@ export default function Leaderboard() {
             <div className="friends-view">
               <div className="add-friend-section">
                 <h3>Lägg till vän</h3>
+                {leaderboardData.myStats.handle && (
+                  <p style={{fontSize: '0.85rem', color: '#888', marginBottom: '8px'}}>
+                    Din handle: <strong>{leaderboardData.myStats.handle}</strong>
+                  </p>
+                )}
                 <div className="add-friend-form">
                   <input
                     type="text"
-                    placeholder="Användarnamn..."
+                    placeholder="t.ex. alex#1234"
                     value={friendUsername}
                     onChange={(e) => setFriendUsername(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddFriend()}
