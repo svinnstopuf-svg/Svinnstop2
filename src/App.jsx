@@ -16,6 +16,8 @@ import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from
 import { notificationService } from './notificationService'
 import { savingsTracker } from './savingsTracker'
 import { achievementService } from './achievementService'
+import { syncInventoryToFirebase, listenToInventoryChanges } from './inventorySync'
+import { getFamilyData } from './familyService'
 import './mobile.css'
 import './newFeatures.css'
 
@@ -273,8 +275,17 @@ export default function App() {
       }, 2000)
     }
     
-    // Track daily login for achievements
+  // Track daily login for achievements
     achievementService.trackDailyLogin()
+    
+    // Lyssna på Firebase inventory changes om i familj
+    const family = getFamilyData()
+    if (family.familyId && family.syncEnabled) {
+      const unsubscribe = listenToInventoryChanges((firebaseInventory) => {
+        setItems(firebaseInventory)
+      })
+      return unsubscribe
+    }
   }, [])
 
   // FIX: Debounce localStorage writes för att undvika race conditions
@@ -289,6 +300,12 @@ export default function App() {
           achievementService.updateStats({
             maxActiveItems: items.length
           })
+        }
+        
+        // Synkronisera till Firebase om i familj
+        const family = getFamilyData()
+        if (family.familyId && family.syncEnabled) {
+          syncInventoryToFirebase(items)
         }
       } catch (error) {
         console.error('Kunde inte spara items till localStorage:', error)

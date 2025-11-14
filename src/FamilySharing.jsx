@@ -22,10 +22,10 @@ export default function FamilySharing({ items }) {
     setFamilyData(data)
   }
 
-  function handleCreateFamily(e) {
+  async function handleCreateFamily(e) {
     e.preventDefault()
     
-    const result = familyService.createFamily(
+    const result = await familyService.createFamily(
       formData.familyName,
       formData.creatorName
     )
@@ -46,10 +46,10 @@ export default function FamilySharing({ items }) {
     }
   }
 
-  function handleJoinFamily(e) {
+  async function handleJoinFamily(e) {
     e.preventDefault()
     
-    const result = familyService.joinFamily(
+    const result = await familyService.joinFamily(
       formData.joinCode,
       formData.memberName
     )

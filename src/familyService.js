@@ -1,6 +1,9 @@
 // Family Sharing Service - Collaborative Food Inventory
 // Allows families to share and sync their food inventory
 
+import { database } from './firebaseConfig'
+import { ref, set, get, onValue, update, push, child } from 'firebase/database'
+
 const STORAGE_KEY = 'svinnstop_family_data'
 
 // Roller
@@ -54,8 +57,8 @@ function saveFamilyData(data) {
   }
 }
 
-// Skapa en ny familjegrupp
-export function createFamily(familyName, creatorName) {
+// Skapa en ny familjegrupp (Firebase)
+export async function createFamily(familyName, creatorName) {
   if (!familyName || !creatorName) {
     return { success: false, error: 'Familjenamn och ditt namn krävs' }
   }
@@ -73,33 +76,49 @@ export function createFamily(familyName, creatorName) {
   const familyId = `family_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   const familyCode = generateFamilyCode()
 
+  const memberId = `member_${Date.now()}`
+  const now = new Date().toISOString()
+
+  // Skriv till Firebase
+  const familyRef = ref(database, `families/${familyId}`)
+  const codeRef = ref(database, `codes/${familyCode}`)
+
+  const familyPayload = {
+    familyId,
+    familyCode,
+    familyName,
+    createdAt: now,
+    members: {
+      [memberId]: {
+        id: memberId,
+        name: creatorName,
+        role: ROLES.OWNER,
+        joinedAt: now
+      }
+    }
+  }
+
+  await set(familyRef, familyPayload)
+  await set(codeRef, { familyId, familyName, createdAt: now })
+
+  // Spara lokalt
   data.familyId = familyId
   data.familyCode = familyCode
   data.familyName = familyName
   data.myRole = ROLES.OWNER
   data.members = [
-    {
-      id: `member_${Date.now()}`,
-      name: creatorName,
-      role: ROLES.OWNER,
-      joinedAt: new Date().toISOString(),
-      isMe: true
-    }
+    { id: memberId, name: creatorName, role: ROLES.OWNER, joinedAt: now, isMe: true }
   ]
   data.syncEnabled = true
-  data.createdAt = new Date().toISOString()
+  data.createdAt = now
 
   saveFamilyData(data)
 
-  return {
-    success: true,
-    familyCode: familyCode,
-    familyName: familyName
-  }
+  return { success: true, familyCode, familyName }
 }
 
-// Gå med i en familjegrupp
-export function joinFamily(familyCode, memberName) {
+// Gå med i en familjegrupp (Firebase)
+export async function joinFamily(familyCode, memberName) {
   if (!familyCode || !memberName) {
     return { success: false, error: 'Familjekod och ditt namn krävs' }
   }
@@ -124,34 +143,38 @@ export function joinFamily(familyCode, memberName) {
     return { success: false, error: 'Ogiltig kod. Koden ska vara 6 tecken.' }
   }
 
-  // Simulerad familjedata (i produktion hämtas från backend)
-  const familyId = `family_shared_${uppercaseCode}`
-  const familyName = 'Min Familj' // Skulle komma från backend
+  // Validera koden i Firebase
+  const codeSnap = await get(ref(database, `codes/${uppercaseCode}`))
+  if (!codeSnap.exists()) {
+    return { success: false, error: 'Fel kod. Kontrollera och försök igen.' }
+  }
+  const { familyId, familyName } = codeSnap.val()
 
+  const memberId = `member_${Date.now()}`
+  const now = new Date().toISOString()
+
+  // Lägg till medlem i familj i Firebase
+  const memberRef = ref(database, `families/${familyId}/members/${memberId}`)
+  await set(memberRef, {
+    id: memberId,
+    name: memberName,
+    role: ROLES.MEMBER,
+    joinedAt: now
+  })
+
+  // Spara lokalt
   data.familyId = familyId
   data.familyCode = uppercaseCode
   data.familyName = familyName
   data.myRole = ROLES.MEMBER
-  data.members = [
-    {
-      id: `member_${Date.now()}`,
-      name: memberName,
-      role: ROLES.MEMBER,
-      joinedAt: new Date().toISOString(),
-      isMe: true
-    }
-  ]
+  data.members = [ { id: memberId, name: memberName, role: ROLES.MEMBER, joinedAt: now, isMe: true } ]
   data.syncEnabled = true
-  data.createdAt = new Date().toISOString()
+  data.createdAt = now
   data.invitePending = false
 
   saveFamilyData(data)
 
-  return {
-    success: true,
-    familyName: familyName,
-    familyCode: uppercaseCode
-  }
+  return { success: true, familyName, familyCode: uppercaseCode }
 }
 
 // Lämna familjegruppen
@@ -191,7 +214,7 @@ export function leaveFamily() {
   }
 }
 
-// Aktivera/avaktivera synkronisering
+// Aktivera/avaktivera synkronisering med realtime listener
 export function toggleSync(enabled) {
   const data = getFamilyData()
 
@@ -199,10 +222,23 @@ export function toggleSync(enabled) {
     return { success: false, error: 'Du är inte medlem i någon grupp' }
   }
 
-  data.syncEnabled = enabled
-
+  data.syncEnabled = !!enabled
   saveFamilyData(data)
 
+  if (enabled) {
+    // Lyssna på ändringar i familjemedlemmar och spara lokalt
+    const familyRef = ref(database, `families/${data.familyId}/members`)
+    onValue(familyRef, (snap) => {
+      const membersObj = snap.val() || {}
+      const members = Object.values(membersObj)
+      const d = getFamilyData()
+      d.members = members.map(m => ({ ...m, isMe: m.id === d.members.find(x => x.isMe)?.id }))
+      d.lastSyncAt = new Date().toISOString()
+      saveFamilyData(d)
+    })
+  }
+
+  return { success: true, enabled: data.syncEnabled }
   return {
     success: true,
     syncEnabled: enabled
