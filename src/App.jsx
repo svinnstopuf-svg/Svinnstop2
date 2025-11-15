@@ -1032,7 +1032,7 @@ export default function App() {
         background: 'var(--bg)',
         color: 'var(--text)'
       }}>
-        <h1 style={{marginBottom: '20px'}}>Svinnstop</h1>
+        <h1 style={{marginBottom: '20px'}} className="notranslate">Svinnstop</h1>
         <div style={{fontSize: '40px', marginBottom: '20px'}}>🔐</div>
         <p>Loggar in...</p>
       </div>

@@ -68,7 +68,7 @@ export default function ReferralProgram() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Gå med i Svinnstop!',
+          title: 'Gå med i Svinnstop!', // Native share, can't add notranslate
           text: text,
           url: url
         })

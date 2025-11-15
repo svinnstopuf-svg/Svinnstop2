@@ -49,7 +49,7 @@ export default function Onboarding({ onComplete }) {
 
         <div className="onboarding-content">
           <div className="onboarding-icon">{step.icon}</div>
-          <h2 className="onboarding-title">{step.title}</h2>
+          <h2 className="onboarding-title notranslate">{step.title}</h2>
           <p className="onboarding-description">{step.description}</p>
           <div className="onboarding-visual">{step.image}</div>
         </div>
