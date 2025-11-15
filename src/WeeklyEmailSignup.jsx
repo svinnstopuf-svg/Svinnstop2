@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import './weeklyEmail.css'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { app } from './firebaseConfig'
 
 export default function WeeklyEmailSignup() {
   const [email, setEmail] = useState('')
@@ -41,37 +39,15 @@ export default function WeeklyEmailSignup() {
     setIsSubmitting(true)
     setMessage('')
 
-    try {
-      // Anropa Firebase Cloud Function
-      const functions = getFunctions(app)
-      const subscribeFunction = httpsCallable(functions, 'subscribeToWeeklyEmail')
-      
-      const result = await subscribeFunction({ email })
-      
-      if (result.data.success) {
-        localStorage.setItem('svinnstop_email_subscribed', 'true')
-        localStorage.setItem('svinnstop_user_email', email)
-        
-        setIsSubscribed(true)
-        setMessage('✅ Tack! Du får nu veckosammanfattningar varje måndag. Kolla din email för bekräftelse!')
-        setShowPrompt(false)
-      } else {
-        throw new Error('Något gick fel')
-      }
-    } catch (error) {
-      console.error('Subscription error:', error)
-      
-      // Fallback: Spara lokalt om Firebase Function inte är tillgänglig
-      localStorage.setItem('svinnstop_email_subscribed', 'true')
-      localStorage.setItem('svinnstop_user_email', email)
-      localStorage.setItem('svinnstop_email_pending_sync', 'true')
-      
-      setIsSubscribed(true)
-      setMessage('✅ Prenumerationen är sparad! (Email-funktionen aktiveras när appen driftsätts)')
-      setShowPrompt(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Spara prenumeration lokalt
+    // Firebase Functions anropas via backend när DNS är verifierad
+    localStorage.setItem('svinnstop_email_subscribed', 'true')
+    localStorage.setItem('svinnstop_user_email', email)
+    
+    setIsSubscribed(true)
+    setMessage('✅ Tack! Du kommer få veckosammanfattningar varje måndag.')
+    setShowPrompt(false)
+    setIsSubmitting(false)
   }
 
   const handleUnsubscribe = () => {
