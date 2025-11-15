@@ -262,22 +262,32 @@ export default function App() {
     const urlParams = new URLSearchParams(window.location.search)
     const hasReferralCode = urlParams.has('ref')
     
-    if (hasReferralCode) {
-      // Om användaren kommer via en referral-länk, öppna referral-fliken direkt
+    // Kolla om användaren har sett onboarding
+    const hasSeenOnboarding = localStorage.getItem('svinnstop_onboarding_seen')
+    
+    if (!hasSeenOnboarding) {
+      // Första gången användaren kommer in
+      setShowOnboarding(true)
+      
+      // Sätt default-flik baserat på om de har en referral-kod
+      if (hasReferralCode) {
+        setActiveTab('referral')
+        console.log('🎁 Referral code detected in URL, will navigate to referral tab after onboarding')
+      } else {
+        setActiveTab('inventory') // Default till kylskåp
+      }
+    } else if (hasReferralCode) {
+      // Inte första gången, men har referral-kod i URL
       console.log('🎁 Referral code detected in URL, navigating to referral tab')
       setActiveTab('referral')
     } else {
       // Ladda senaste aktiva tab
       const savedTab = localStorage.getItem('svinnstop_active_tab')
-      if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral', 'achievements', 'family', 'leaderboard'].includes(savedTab)) {
+      if (savedTab && ['shopping', 'inventory', 'recipes', 'profile'].includes(savedTab)) {
         setActiveTab(savedTab)
+      } else {
+        setActiveTab('inventory') // Default till kylskåp
       }
-    }
-    
-    // Kolla om användaren har sett onboarding
-    const hasSeenOnboarding = localStorage.getItem('svinnstop_onboarding_seen')
-    if (!hasSeenOnboarding) {
-      setShowOnboarding(true)
     }
     
     // Kolla om vi ska visa notifikationsprompt
@@ -983,8 +993,9 @@ export default function App() {
   const handleOnboardingComplete = () => {
     setShowOnboarding(false)
     localStorage.setItem('svinnstop_onboarding_seen', 'true')
-    // Gå till add-fliken efter onboarding
-    setActiveTab('add')
+    
+    // Behåll aktiv flik som redan är satt (inventory eller referral)
+    // Så att användaren hamnar på rätt ställe efter onboarding
     
     // Visa notifikationsprompt efter en kort delay
     setTimeout(() => {
