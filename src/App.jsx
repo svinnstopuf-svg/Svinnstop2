@@ -193,6 +193,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
+  const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -263,6 +264,7 @@ export default function App() {
     
     if (hasReferralCode) {
       // Om användaren kommer via en referral-länk, öppna referral-fliken direkt
+      console.log('🎁 Referral code detected in URL, navigating to referral tab')
       setActiveTab('referral')
     } else {
       // Ladda senaste aktiva tab
@@ -309,10 +311,14 @@ export default function App() {
         } else {
           console.warn('⚠️ Firebase auth not initialized - app will work in local mode')
         }
+        // Auth är klar (oavsett om det lyckades eller ej)
+        setIsAuthReady(true)
       })
       .catch(error => {
         console.error('❌ Failed to initialize Firebase auth:', error)
         console.warn('⚠️ App will continue without authentication')
+        // Auth är klar (misslyckades men vi fortsätte)
+        setIsAuthReady(true)
       })
   }, [])
   
@@ -1012,6 +1018,25 @@ export default function App() {
   // Handle notification prompt dismiss
   const handleNotificationDismiss = () => {
     setShowNotificationPrompt(false)
+  }
+
+  // Visa loading-skärm tills Firebase auth är klar
+  if (!isAuthReady) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: 'var(--bg)',
+        color: 'var(--text)'
+      }}>
+        <h1 style={{marginBottom: '20px'}}>Svinnstop</h1>
+        <div style={{fontSize: '40px', marginBottom: '20px'}}>🔐</div>
+        <p>Loggar in...</p>
+      </div>
+    )
   }
 
   return (
