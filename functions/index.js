@@ -30,29 +30,37 @@ exports.subscribeToWeeklyEmail = functions.https.onCall(async (data, context) =>
     });
 
     // Skicka välkomstmail med Resend
-    // OBS: Använder test-email tills svinnstop.app är verifierad
-    await resend.emails.send({
-      from: "Svinnstop <onboarding@resend.dev>",
-      to: email,
-      subject: "🎉 Välkommen till Svinnstops veckosammanfattningar!",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #10b981;">🎉 Tack för att du prenumererar!</h1>
-          <p>Du kommer nu få veckosammanfattningar varje måndag med:</p>
-          <ul>
-            <li>🥗 Varor som går ut denna vecka</li>
-            <li>🍳 Receptförslag baserat på ditt kylskåp</li>
-            <li>💰 Dina besparingar senaste veckan</li>
-            <li>📊 Statistik och tips</li>
-          </ul>
-          <p>Vi ses nästa måndag!</p>
-          <p style="color: #666; font-size: 12px;">
-            Vill du avsluta? Klicka här: 
-            <a href="https://svinnstop.app/unsubscribe?email=${email}">Avsluta prenumeration</a>
-          </p>
-        </div>
-      `,
-    });
+    console.log("📧 Attempting to send welcome email to:", email);
+
+    try {
+      const emailResult = await resend.emails.send({
+        from: "Svinnstop <noreply@svinnstop.app>",
+        to: email,
+        subject: "🎉 Välkommen till Svinnstops veckosammanfattningar!",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #10b981;">🎉 Tack för att du prenumererar!</h1>
+            <p>Du kommer nu få veckosammanfattningar varje måndag med:</p>
+            <ul>
+              <li>🥗 Varor som går ut denna vecka</li>
+              <li>🍳 Receptförslag baserat på ditt kylskåp</li>
+              <li>💰 Dina besparingar senaste veckan</li>
+              <li>📊 Statistik och tips</li>
+            </ul>
+            <p>Vi ses nästa måndag!</p>
+            <p style="color: #666; font-size: 12px;">
+              Vill du avsluta? Klicka här: 
+              <a href="https://svinnstop.app/unsubscribe?email=${email}">Avsluta prenumeration</a>
+            </p>
+          </div>
+        `,
+      });
+      console.log("✅ Email sent successfully:", JSON.stringify(emailResult));
+    } catch (emailError) {
+      console.error("⚠️ Failed to send welcome email:", emailError);
+      console.error("⚠️ Error details:", JSON.stringify(emailError, null, 2));
+      // Don't throw - subscription is still saved even if email fails
+    }
 
     return {success: true, message: "Prenumeration registrerad!"};
   } catch (error) {
@@ -101,7 +109,7 @@ exports.sendWeeklyEmails = functions.pubsub
           // Detta kräver att användare är inloggade och har sin data i Firestore
           // För nu skickar vi ett generiskt email
           const emailPromise = resend.emails.send({
-            from: "Svinnstop <onboarding@resend.dev>",
+            from: "Svinnstop <noreply@svinnstop.app>",
             to: email,
             subject: "📅 Din veckosammanfattning från Svinnstop",
             html: `

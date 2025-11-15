@@ -49,19 +49,19 @@ export async function initAuth() {
     return new Promise((resolve) => {
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
-          console.log('✅ Firebase: User authenticated', user.uid)
+          console.log('✅ Svinnstop: User authenticated', user.uid)
           unsubscribe()
           resolve(user)
         } else {
           // Sign in anonymously
           try {
             const userCredential = await signInAnonymously(auth)
-            console.log('✅ Firebase: Anonymous sign-in successful', userCredential.user.uid)
+            console.log('✅ Svinnstop: Anonymous sign-in successful', userCredential.user.uid)
             unsubscribe()
             resolve(userCredential.user)
           } catch (error) {
-            console.error('❌ Firebase: Anonymous sign-in failed', error)
-            console.warn('⚠️ App will continue without authentication')
+            console.error('❌ Svinnstop: Anonymous sign-in failed', error)
+            console.warn('⚠️ Svinnstop will continue without authentication')
             unsubscribe()
             resolve(null)
           }
@@ -69,7 +69,7 @@ export async function initAuth() {
       })
     })
   } catch (error) {
-    console.error('❌ Firebase: Auth initialization failed', error)
+    console.error('❌ Svinnstop: Auth initialization failed', error)
     return null
   }
 }

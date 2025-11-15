@@ -297,26 +297,26 @@ export default function App() {
     initAuth()
       .then(user => {
         if (user) {
-          console.log('🔐 Firebase authentication ready')
+          console.log('🔐 Svinnstop authentication ready')
           
           // Synka referral-kod till Firebase
           referralService.syncReferralCodeToFirebase()
-            .then(() => console.log('✅ Referral code synced'))
-            .catch(err => console.warn('⚠️ Could not sync referral code:', err))
+            .then(() => console.log('✅ Svinnstop referral code synced'))
+            .catch(err => console.warn('⚠️ Svinnstop could not sync referral code:', err))
           
           // Migrera användarnamn till index
           leaderboardService.migrateUsernameToIndex()
-            .then(() => console.log('✅ Username index migrated'))
-            .catch(err => console.warn('⚠️ Could not migrate username:', err))
+            .then(() => console.log('✅ Svinnstop username index migrated'))
+            .catch(err => console.warn('⚠️ Svinnstop could not migrate username:', err))
         } else {
-          console.warn('⚠️ Firebase auth not initialized - app will work in local mode')
+          console.warn('⚠️ Svinnstop auth not initialized - app will work in local mode')
         }
         // Auth är klar (oavsett om det lyckades eller ej)
         setIsAuthReady(true)
       })
       .catch(error => {
-        console.error('❌ Failed to initialize Firebase auth:', error)
-        console.warn('⚠️ App will continue without authentication')
+        console.error('❌ Svinnstop failed to initialize auth:', error)
+        console.warn('⚠️ Svinnstop will continue without authentication')
         // Auth är klar (misslyckades men vi fortsätte)
         setIsAuthReady(true)
       })
