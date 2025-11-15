@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
 // TEMPORARY CONFIG - MÅSTE BYTAS UT MOT DIN EGEN FIREBASE CONFIG
 // Gå till Firebase Console (https://console.firebase.google.com/)
@@ -24,11 +25,13 @@ const firebaseConfig = {
 let app
 let database
 let auth
+let functions
 
 try {
   app = initializeApp(firebaseConfig)
   database = getDatabase(app)
   auth = getAuth(app)
+  functions = getFunctions(app)
   console.log('✅ Firebase initialized successfully')
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error)
@@ -71,5 +74,13 @@ export async function initAuth() {
   }
 }
 
-export { database, auth }
+// Helper to call Firebase Functions
+export function callFunction(functionName) {
+  if (!functions) {
+    throw new Error('Firebase Functions not initialized')
+  }
+  return httpsCallable(functions, functionName)
+}
+
+export { database, auth, functions }
 export default app

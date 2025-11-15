@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import './weeklyEmail.css'
+import { callFunction } from './firebaseConfig'
 
 export default function WeeklyEmailSignup() {
   const [email, setEmail] = useState('')
@@ -39,15 +40,26 @@ export default function WeeklyEmailSignup() {
     setIsSubmitting(true)
     setMessage('')
 
-    // Spara prenumeration lokalt
-    // Firebase Functions anropas via backend när DNS är verifierad
-    localStorage.setItem('svinnstop_email_subscribed', 'true')
-    localStorage.setItem('svinnstop_user_email', email)
-    
-    setIsSubscribed(true)
-    setMessage('✅ Tack! Du kommer få veckosammanfattningar varje måndag.')
-    setShowPrompt(false)
-    setIsSubmitting(false)
+    try {
+      // Anropa Firebase Function för att registrera prenumeration och skicka välkomstmail
+      const subscribeFunction = callFunction('subscribeToWeeklyEmail')
+      const result = await subscribeFunction({ email })
+      
+      console.log('✅ Subscription successful:', result)
+      
+      // Spara lokalt också
+      localStorage.setItem('svinnstop_email_subscribed', 'true')
+      localStorage.setItem('svinnstop_user_email', email)
+      
+      setIsSubscribed(true)
+      setMessage('✅ Tack! Kolla din email för bekräftelse. Du kommer få veckosammanfattningar varje måndag.')
+      setShowPrompt(false)
+    } catch (error) {
+      console.error('❌ Subscription error:', error)
+      setMessage('❌ Något gick fel. Försök igen senare.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleUnsubscribe = () => {
