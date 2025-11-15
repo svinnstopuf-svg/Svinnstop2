@@ -257,10 +257,19 @@ export default function App() {
       setTheme(prefersDark ? 'dark' : 'light')
     }
     
-    // Ladda senaste aktiva tab
-    const savedTab = localStorage.getItem('svinnstop_active_tab')
-    if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral', 'achievements', 'family', 'leaderboard'].includes(savedTab)) {
-      setActiveTab(savedTab)
+    // Kolla om URL:en innehåller en referral-kod
+    const urlParams = new URLSearchParams(window.location.search)
+    const hasReferralCode = urlParams.has('ref')
+    
+    if (hasReferralCode) {
+      // Om användaren kommer via en referral-länk, öppna referral-fliken direkt
+      setActiveTab('referral')
+    } else {
+      // Ladda senaste aktiva tab
+      const savedTab = localStorage.getItem('svinnstop_active_tab')
+      if (savedTab && ['add', 'shopping', 'inventory', 'recipes', 'savings', 'email', 'referral', 'achievements', 'family', 'leaderboard'].includes(savedTab)) {
+        setActiveTab(savedTab)
+      }
     }
     
     // Kolla om användaren har sett onboarding
