@@ -327,7 +327,14 @@ export function learnIngredientsFromRecipe(ingredients) {
 
 // Kombinera statiska och lärda matvaror för sökning
 export function getAllFoods() {
-  return [...SWEDISH_FOODS, ...getLearnedIngredients()]
+  const learned = getLearnedIngredients()
+  // Filtrera bort lärda ingredienser som redan finns i SWEDISH_FOODS
+  const filteredLearned = learned.filter(learnedItem => 
+    !SWEDISH_FOODS.some(staticFood => 
+      staticFood.name.toLowerCase() === learnedItem.name.toLowerCase()
+    )
+  )
+  return [...SWEDISH_FOODS, ...filteredLearned]
 }
 
 export { SWEDISH_FOODS }

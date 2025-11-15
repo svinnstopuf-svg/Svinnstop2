@@ -171,15 +171,28 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
             {/* Sökförslag */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="food-suggestions">
-                {suggestions.map(item => (
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--input-bg)'}}>
+                  <span style={{fontSize: '11px', fontWeight: 600, color: 'var(--muted)'}}>Förslag:</span>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setShowSuggestions(false)
+                      setSuggestions([])
+                    }}
+                    style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--muted)', padding: '0 4px'}}
+                    title="Stäng förslag"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {suggestions.map((item, index) => (
                   <button
-                    key={item.name}
+                    key={`${item.name}-${item.category}-${index}`}
                     type="button"
                     className="food-suggestion"
                     onClick={() => addFromSuggestion(item)}
                   >
-                    <span className="suggestion-emoji">{item.emoji}</span>
-                    <span className="suggestion-name">{item.name}</span>
+                    <span className="suggestion-name notranslate" translate="no">{item.name}</span>
                     <span className="suggestion-category">{item.category}</span>
                     {!item.isFood && <span className="non-food-badge">Ej mat</span>}
                   </button>
@@ -202,7 +215,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         ) : (
           shoppingItems.map(item => (
             <div key={item.id} className={`shopping-item ${item.completed ? 'completed' : ''} ${item.isFood ? 'food-item' : 'non-food-item'}`}>
-              <div className="item-main">
+              <div className="item-main" style={{alignItems: 'center'}}>
                 <input
                   type="checkbox"
                   checked={item.completed || false}
@@ -210,14 +223,16 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                   className="shopping-checkbox"
                   id={`shopping-${item.id}`}
                 />
-                <label htmlFor={`shopping-${item.id}`} className="item-content-wrapper">
-                  <div className="item-left">
+                <label htmlFor={`shopping-${item.id}`} className="item-content-wrapper" style={{alignItems: 'center'}}>
+                  <div className="item-left" style={{alignItems: 'center'}}>
                     <div className="item-info">
-                      <span className="item-name notranslate" translate="no" style={{fontSize: '22px', fontWeight: 600}}>{item.name}</span>
+                      <span className="item-name notranslate" translate="no" style={{fontSize: '17px', fontWeight: 600}}>{item.name}</span>
                     </div>
                   </div>
                 </label>
-                <span className="item-quantity-display notranslate" translate="no" style={{fontSize: '14px', fontWeight: 500}}>{item.quantity} {item.unit}</span>
+                <span className="item-quantity-display notranslate" translate="no" style={{fontSize: '13px', fontWeight: 500, alignSelf: 'center'}}>
+                  {item.quantity} {item.quantity === 1 && item.unit === 'stycken' ? 'stycke' : item.unit}
+                </span>
                 <div className="item-actions">
                   <div className="qty-control">
                     <button 

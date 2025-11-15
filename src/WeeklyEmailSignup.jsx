@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './weeklyEmail.css'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import { app } from './firebaseConfig'
 
 export default function WeeklyEmailSignup() {
   const [email, setEmail] = useState('')
@@ -40,48 +42,32 @@ export default function WeeklyEmailSignup() {
     setMessage('')
 
     try {
-      // TODO: Ersätt med din backend endpoint när du har en
-      const response = await fetch('https://your-backend.com/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          type: 'weekly_summary',
-          subscribed_at: new Date().toISOString()
-        })
-      })
-
-      // FALLBACK: Om ingen backend finns än, spara lokalt
-      if (!response || response.status === 404) {
-        console.log('📧 Backend inte tillgänglig - sparar prenumeration lokalt')
-        localStorage.setItem('svinnstop_email_subscribed', 'true')
-        localStorage.setItem('svinnstop_user_email', email)
-        localStorage.setItem('svinnstop_email_pending_sync', 'true')
-        
-        setIsSubscribed(true)
-        setMessage('✅ Prenumerationen är sparad! Vi skickar veckosammanfattningar när appen lanseras.')
-        setShowPrompt(false)
-      } else if (response.ok) {
+      // Anropa Firebase Cloud Function
+      const functions = getFunctions(app)
+      const subscribeFunction = httpsCallable(functions, 'subscribeToWeeklyEmail')
+      
+      const result = await subscribeFunction({ email })
+      
+      if (result.data.success) {
         localStorage.setItem('svinnstop_email_subscribed', 'true')
         localStorage.setItem('svinnstop_user_email', email)
         
         setIsSubscribed(true)
-        setMessage('✅ Tack! Du får nu veckosammanfattningar varje måndag.')
+        setMessage('✅ Tack! Du får nu veckosammanfattningar varje måndag. Kolla din email för bekräftelse!')
         setShowPrompt(false)
       } else {
         throw new Error('Något gick fel')
       }
     } catch (error) {
-      // Fallback vid nätverksfel
-      console.log('📧 Nätverksfel - sparar prenumeration lokalt')
+      console.error('Subscription error:', error)
+      
+      // Fallback: Spara lokalt om Firebase Function inte är tillgänglig
       localStorage.setItem('svinnstop_email_subscribed', 'true')
       localStorage.setItem('svinnstop_user_email', email)
       localStorage.setItem('svinnstop_email_pending_sync', 'true')
       
       setIsSubscribed(true)
-      setMessage('✅ Prenumerationen är sparad lokalt!')
+      setMessage('✅ Prenumerationen är sparad! (Email-funktionen aktiveras när appen driftsätts)')
       setShowPrompt(false)
     } finally {
       setIsSubmitting(false)

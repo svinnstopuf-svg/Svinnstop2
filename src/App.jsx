@@ -1107,16 +1107,28 @@ export default function App() {
                       />
                       {showFoodSuggestions && foodSuggestions.length > 0 && (
                         <div className="food-suggestions">
-                          <div className="suggestions-header">Förslag:</div>
-                          {foodSuggestions.map(food => (
+                          <div className="suggestions-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                            <span>Förslag:</span>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                setShowFoodSuggestions(false)
+                                setFoodSuggestions([])
+                              }}
+                              style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--muted)', padding: '0 4px'}}
+                              title="Stäng förslag"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          {foodSuggestions.map((food, index) => (
                             <button
-                              key={food.name}
+                              key={`${food.name}-${food.category}-${index}`}
                               type="button"
                               className="food-suggestion"
                               onClick={() => selectFoodSuggestion(food)}
                             >
-                              <span className="suggestion-emoji">{food.emoji}</span>
-                              <span className="suggestion-name">{food.name}</span>
+                              <span className="suggestion-name notranslate" translate="no">{food.name}</span>
                               <span className="suggestion-category">{food.category}</span>
                             </button>
                           ))}
@@ -1143,7 +1155,7 @@ export default function App() {
                         className="form-input quantity-input"
                         required
                       />
-                      <span className="unit-display">{suggestedUnit}</span>
+                      <span className="unit-display">{form.quantity === 1 && suggestedUnit === 'stycken' ? 'stycke' : suggestedUnit}</span>
                     </div>
                   </label>
                   
@@ -1188,7 +1200,7 @@ export default function App() {
                   </button>
                   {form.name && form.expiresAt && form.quantity > 0 && (
                     <div className="form-preview">
-                      <small>Lägger till: <strong>{form.quantity} {suggestedUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
+                      <small>Lägger till: <strong>{form.quantity} {form.quantity === 1 && suggestedUnit === 'stycken' ? 'stycke' : suggestedUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
                     </div>
                   )}
                 </div>
@@ -1350,8 +1362,8 @@ export default function App() {
                         )}
                         <div className="item-content">
                           <div className="item-main">
-                            <strong>{i.name}</strong>
-                            <span className="item-quantity">{i.quantity} {i.unit}</span>
+                            <strong className="notranslate" translate="no">{i.name}</strong>
+                            <span className="item-quantity notranslate" translate="no">{i.quantity} {i.quantity === 1 && i.unit === 'stycken' ? 'stycke' : i.unit}</span>
                           </div>
                           <div className="item-sub">
                             <span className="status">{status}</span>
