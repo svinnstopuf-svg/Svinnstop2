@@ -55,13 +55,14 @@
 .savings-stats {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 0.875rem 0.5rem; /* Reduced padding to give more room for content */
+  align-items: stretch; /* Allow items to grow in height */
+  padding: 0.875rem 0.5rem;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   margin-bottom: 1rem;
-  gap: 0.5rem; /* Reduced gap to prevent overflow */
+  gap: 0.5rem;
+  min-height: 95px; /* Ensure enough height for multi-line text */
 }
 
 .stat-item {
@@ -71,8 +72,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  overflow: hidden; /* Prevent content from overflowing */
+  justify-content: flex-start; /* Align to top */
   min-width: 0; /* Allow flex items to shrink below content size */
 }
 
@@ -85,16 +85,15 @@
 }
 
 .stat-label {
-  font-size: 0.48rem; /* Smaller font */
+  font-size: 0.5rem; /* Slightly larger for readability */
   opacity: 0.9;
-  margin-top: 0.3rem;
+  margin-top: 0.4rem;
   font-weight: 600;
-  line-height: 1.05;
+  line-height: 1.15;
   word-break: break-word; /* Break long words if absolutely necessary */
   text-align: center;
-  white-space: normal;
+  white-space: normal; /* Allow wrapping */
   width: 100%;
-  overflow: hidden; /* Prevent overflow */
   box-sizing: border-box;
 }
 
