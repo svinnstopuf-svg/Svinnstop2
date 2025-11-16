@@ -174,9 +174,10 @@ export class NotificationService {
 
   // Visa omedelbar test-notifikation
   async showTestNotification() {
-    if (!this.isEnabled()) {
-      const granted = await this.requestPermission()
-      if (!granted) return
+    // Kontrollera om service worker är registrerad
+    if (!this.registration) {
+      console.warn('Service worker är inte registrerad ännu')
+      return
     }
 
     try {
@@ -186,6 +187,7 @@ export class NotificationService {
         badge: '/badge-72x72.png',
         tag: 'test-notification'
       })
+      console.log('✅ Test-notifikation skickad!')
     } catch (error) {
       console.error('Fel vid test-notifikation:', error)
     }

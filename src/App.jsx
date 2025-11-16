@@ -1156,13 +1156,13 @@ export default function App() {
     // Behåll aktiv flik som redan är satt (inventory eller referral)
     // Så att användaren hamnar på rätt ställe efter onboarding
     
-    // Visa notifikationsprompt efter en kort delay
-    setTimeout(() => {
-      const notificationPrompted = localStorage.getItem('svinnstop_notifications_prompted')
-      if (!notificationPrompted) {
-        setShowNotificationPrompt(true)
-      }
-    }, 1500)
+    // TEMPORARILY DISABLED: Visa notifikationsprompt efter en kort delay
+    // setTimeout(() => {
+    //   const notificationPrompted = localStorage.getItem('svinnstop_notifications_prompted')
+    //   if (!notificationPrompted) {
+    //     setShowNotificationPrompt(true)
+    //   }
+    // }, 1500)
   }
   
   // Handle notification permission granted
@@ -1179,8 +1179,10 @@ export default function App() {
         notificationService.scheduleExpiryNotifications(items)
       }
       
-      // Visa test-notifikation
-      await notificationService.showTestNotification()
+      // Visa test-notifikation (kör asynkront)
+      notificationService.showTestNotification().catch(err => {
+        console.warn('Test-notifikation kunde inte visas:', err)
+      })
     }
   }
   
