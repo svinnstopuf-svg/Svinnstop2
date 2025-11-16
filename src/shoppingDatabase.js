@@ -33,7 +33,7 @@ const SHOPPING_ITEMS = [
   { name: 'kvarg', category: 'mejeri', emoji: '🥄', unit: 'g', isFood: true },
 
   // GRÖNSAKER
-  { name: 'morötter', category: 'grönsak', emoji: '🥕', unit: 'kg', isFood: true },
+  { name: 'morot', category: 'grönsak', emoji: '🥕', unit: 'st', isFood: true },
   { name: 'potatis', category: 'grönsak', emoji: '🥔', unit: 'kg', isFood: true },
   { name: 'lök gul', category: 'grönsak', emoji: '🧅', unit: 'st', isFood: true },
   { name: 'lök röd', category: 'grönsak', emoji: '🧅', unit: 'st', isFood: true },
@@ -56,13 +56,13 @@ const SHOPPING_ITEMS = [
   { name: 'aubergine', category: 'grönsak', emoji: '🍆', unit: 'st', isFood: true },
 
   // FRUKT & BÄR
-  { name: 'äpplen', category: 'frukt', emoji: '🍎', unit: 'kg', isFood: true },
-  { name: 'bananer', category: 'frukt', emoji: '🍌', unit: 'st', isFood: true },
-  { name: 'apelsiner', category: 'frukt', emoji: '🍊', unit: 'kg', isFood: true },
-  { name: 'citroner', category: 'frukt', emoji: '🍋', unit: 'st', isFood: true },
+  { name: 'äpple', category: 'frukt', emoji: '🍎', unit: 'st', isFood: true },
+  { name: 'banan', category: 'frukt', emoji: '🍌', unit: 'st', isFood: true },
+  { name: 'apelsin', category: 'frukt', emoji: '🍊', unit: 'st', isFood: true },
+  { name: 'citron', category: 'frukt', emoji: '🍋', unit: 'st', isFood: true },
   { name: 'lime', category: 'frukt', emoji: '🟢', unit: 'st', isFood: true },
-  { name: 'druvor', category: 'frukt', emoji: '🍇', unit: 'kg', isFood: true },
-  { name: 'jordgubbar', category: 'frukt', emoji: '🍓', unit: 'g', isFood: true },
+  { name: 'druva', category: 'frukt', emoji: '🍇', unit: 'st', isFood: true },
+  { name: 'jordgubbe', category: 'frukt', emoji: '🍓', unit: 'st', isFood: true },
   { name: 'blåbär', category: 'frukt', emoji: '🫐', unit: 'g', isFood: true },
   { name: 'hallon', category: 'frukt', emoji: '🫐', unit: 'g', isFood: true },
   { name: 'kiwi', category: 'frukt', emoji: '🥝', unit: 'st', isFood: true },
@@ -232,8 +232,8 @@ export function getRecommendedItems(category = null, limit = 12) {
   
   // Returnera de mest populära/vanliga varorna först
   const popularItems = [
-    'mjölk', 'bröd', 'ägg', 'smör', 'ost hård', 'bananer', 'äpplen', 
-    'kyckling', 'pasta', 'ris', 'potatis', 'morötter', 'tomat', 'lök gul',
+    'mjölk', 'bröd', 'ägg', 'smör', 'ost hård', 'banan', 'äpple', 
+    'kyckling', 'pasta', 'ris', 'potatis', 'morot', 'tomat', 'lök gul',
     'kaffe', 'yoghurt', 'kött nöt', 'lax', 'grädde', 'filmjölk'
   ]
   
