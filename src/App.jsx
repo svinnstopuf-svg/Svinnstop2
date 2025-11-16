@@ -559,12 +559,23 @@ export default function App() {
       // Track savings if item was used before expiry - ASK USER FIRST
       const daysLeft = daysUntil(itemToRemove.expiresAt)
       if (daysLeft >= 0) {
-        // Fråga användaren om de använde varan eller slängde den
-        const wasUsed = confirm(
-          `Använde du "${itemToRemove.name}"?\n\n` +
-          `✅ OK = Ja, jag använde den (räknas som sparat)\n` +
-          `❌ Avbryt = Nej, jag slängde den (räknas ej)`
-        )
+        // Kolla om det är första gången
+        const hasSeenSavingsPrompt = localStorage.getItem('svinnstop_seen_savings_prompt')
+        
+        let wasUsed
+        if (!hasSeenSavingsPrompt) {
+          // Första gången - visa utförlig förklaring
+          wasUsed = confirm(
+            `Använde du "${itemToRemove.name}"?\n\n` +
+            `✅ OK = Ja, jag använde den (räknas som sparat)\n` +
+            `❌ Avbryt = Nej, jag slängde den (räknas ej)\n\n` +
+            `Tips: Endast använda varor räknas som besparingar!`
+          )
+          localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
+        } else {
+          // Efterföljande gånger - enkel fråga
+          wasUsed = confirm(`Använde du "${itemToRemove.name}"?`)
+        }
         
         // Endast spara besparingar om användaren bekräftar att de använde varan
         if (wasUsed) {
@@ -761,11 +772,23 @@ export default function App() {
       // Om det finns varor som inte gått ut, fråga om de användes
       let lastSavingsResult = null
       if (notExpiredItems.length > 0) {
-        const wereUsed = confirm(
-          `Använde du dessa ${notExpiredItems.length} varor?\n\n` +
-          `✅ OK = Ja, jag använde dem (räknas som sparat)\n` +
-          `❌ Avbryt = Nej, jag slängde dem (räknas ej)`
-        )
+        // Kolla om det är första gången
+        const hasSeenSavingsPrompt = localStorage.getItem('svinnstop_seen_savings_prompt')
+        
+        let wereUsed
+        if (!hasSeenSavingsPrompt) {
+          // Första gången - visa utförlig förklaring
+          wereUsed = confirm(
+            `Använde du dessa ${notExpiredItems.length} varor?\n\n` +
+            `✅ OK = Ja, jag använde dem (räknas som sparat)\n` +
+            `❌ Avbryt = Nej, jag slängde dem (räknas ej)\n\n` +
+            `Tips: Endast använda varor räknas som besparingar!`
+          )
+          localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
+        } else {
+          // Efterföljande gånger - enkel fråga
+          wereUsed = confirm(`Använde du dessa ${notExpiredItems.length} varor?`)
+        }
         
         // Endast spara besparingar om användaren bekräftar
         if (wereUsed) {
