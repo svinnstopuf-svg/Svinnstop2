@@ -47,7 +47,6 @@ const SWEDISH_FOODS = [
   { name: 'tonfisk', category: 'fisk', emoji: '🐟', defaultDays: 365, unit: 'g' },
 
   // Grönsaker
-  { name: 'mörötter', category: 'grönsak', emoji: '🥕', defaultDays: 14, unit: 'kg' },
   { name: 'morot', category: 'grönsak', emoji: '🥕', defaultDays: 14, unit: 'st' },
   { name: 'potatis', category: 'grönsak', emoji: '🥔', defaultDays: 21, unit: 'kg' },
   { name: 'sötpotatis', category: 'grönsak', emoji: '🍠', defaultDays: 14, unit: 'st' },
@@ -79,15 +78,13 @@ const SWEDISH_FOODS = [
   { name: 'koriander', category: 'krydda', emoji: '🌿', defaultDays: 7, unit: 'g' },
 
   // Frukt
-  { name: 'äpplen', category: 'frukt', emoji: '🍎', defaultDays: 14, unit: 'kg' },
   { name: 'äpple', category: 'frukt', emoji: '🍎', defaultDays: 14, unit: 'st' },
-  { name: 'bananer', category: 'frukt', emoji: '🍌', defaultDays: 7, unit: 'st' },
-  { name: 'apelsiner', category: 'frukt', emoji: '🍊', defaultDays: 14, unit: 'kg' },
-  { name: 'citroner', category: 'frukt', emoji: '🍋', defaultDays: 21, unit: 'st' },
+  { name: 'banan', category: 'frukt', emoji: '🍌', defaultDays: 7, unit: 'st' },
+  { name: 'apelsin', category: 'frukt', emoji: '🍊', defaultDays: 14, unit: 'st' },
   { name: 'citron', category: 'frukt', emoji: '🍋', defaultDays: 21, unit: 'st' },
   { name: 'lime', category: 'frukt', emoji: '🍋', defaultDays: 21, unit: 'st' },
-  { name: 'druvor', category: 'frukt', emoji: '🍇', defaultDays: 7, unit: 'kg' },
-  { name: 'jordgubbar', category: 'frukt', emoji: '🍓', defaultDays: 3, unit: 'g' },
+  { name: 'druva', category: 'frukt', emoji: '🍇', defaultDays: 7, unit: 'st' },
+  { name: 'jordgubbe', category: 'frukt', emoji: '🍓', defaultDays: 3, unit: 'st' },
   { name: 'blåbär', category: 'frukt', emoji: '🫐', defaultDays: 5, unit: 'g' },
   { name: 'hallon', category: 'frukt', emoji: '🫐', defaultDays: 3, unit: 'g' },
   { name: 'kokos', category: 'frukt', emoji: '🥥', defaultDays: 365, unit: 'g' },
