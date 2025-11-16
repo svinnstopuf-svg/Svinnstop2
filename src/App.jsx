@@ -798,14 +798,23 @@ export default function App() {
   
   // Aktivera notifikationer
   const enableNotifications = async () => {
-    const success = await notificationService.requestPermission()
-    if (success) {
-      setNotificationsEnabled(true)
-      notificationService.scheduleExpiryNotifications(items)
-      notificationService.showTestNotification()
-      
-      // Spara inställning
-      localStorage.setItem('svinnstop_notifications_enabled', 'true')
+    try {
+      const success = await notificationService.requestPermission()
+      if (success) {
+        setNotificationsEnabled(true)
+        notificationService.scheduleExpiryNotifications(items)
+        notificationService.showTestNotification()
+        
+        // Spara inställning
+        localStorage.setItem('svinnstop_notifications_enabled', 'true')
+        
+        alert('✅ Notifikationer aktiverade! Du kommer nu få påminnelser om utgående varor.')
+      } else {
+        alert('❌ Kunde inte aktivera notifikationer. Kontrollera att du tillåter notifikationer i webbläsaren.')
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error)
+      alert('❌ Ett fel uppstod: ' + error.message)
     }
   }
   
