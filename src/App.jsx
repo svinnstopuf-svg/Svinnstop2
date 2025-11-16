@@ -1768,6 +1768,7 @@ export default function App() {
                   <span className="menu-arrow">›</span>
                 </button>
                 
+                {/* TEMPORARILY HIDDEN - Email feature
                 <button 
                   className="profile-menu-item"
                   onClick={() => setActiveTab('email')}
@@ -1779,6 +1780,7 @@ export default function App() {
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
+                */}
               </div>
             </section>
           </div>
@@ -1805,6 +1807,7 @@ export default function App() {
           </div>
         )}
         
+        {/* TEMPORARILY HIDDEN - Email tab
         {activeTab === 'email' && (
           <div className="tab-panel">
             <section className="card">
@@ -1824,6 +1827,7 @@ export default function App() {
             </section>
           </div>
         )}
+        */}
         
         {activeTab === 'referral' && (
           <div className="tab-panel">
