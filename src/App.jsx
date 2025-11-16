@@ -456,9 +456,11 @@ export default function App() {
     // FIX: Använd functional update för att undvika stale state
     if (name === 'quantity') {
       const numValue = parseFloat(value)
+      // Validera kvantitet: max 50 för att förhindra orealistiska värden
+      const validatedValue = isNaN(numValue) ? 0 : Math.min(Math.max(0, numValue), 50)
       setForm(prevForm => ({ 
         ...prevForm, 
-        [name]: isNaN(numValue) ? 0 : Math.max(0, numValue) 
+        [name]: validatedValue
       }))
     } else if (name === 'name') {
       setForm(prevForm => ({ ...prevForm, [name]: value }))
@@ -534,7 +536,7 @@ export default function App() {
     }, 100)
   }
 
-  const onRemove = (id, event) => {
+  const onRemove = async (id, event) => {
     try {
       if (event) {
         event.stopPropagation()
@@ -554,16 +556,26 @@ export default function App() {
         timestamp: Date.now()
       })
       
-      // Track savings if item was used before expiry
+      // Track savings if item was used before expiry - ASK USER FIRST
       const daysLeft = daysUntil(itemToRemove.expiresAt)
       if (daysLeft >= 0) {
-        const savingsResult = savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+        // Fråga användaren om de använde varan eller slängde den
+        const wasUsed = confirm(
+          `Använde du "${itemToRemove.name}"?\n\n` +
+          `✅ OK = Ja, jag använde den (räknas som sparat)\n` +
+          `❌ Avbryt = Nej, jag slängde den (räknas ej)`
+        )
         
-        // Update achievement stats
-        achievementService.updateStats({
-          itemsSaved: savingsResult.itemsSaved,
-          totalSaved: savingsResult.totalSaved
-        })
+        // Endast spara besparingar om användaren bekräftar att de använde varan
+        if (wasUsed) {
+          const savingsResult = savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+          
+          // Update achievement stats
+          achievementService.updateStats({
+            itemsSaved: savingsResult.itemsSaved,
+            totalSaved: savingsResult.totalSaved
+          })
+        }
       }
       
       // Uppdatera state och localStorage
@@ -743,21 +755,32 @@ export default function App() {
         timestamp: Date.now()
       })
       
-      // Track savings för varor som togs bort innan utgångsdatum
-      let lastSavingsResult = null
-      itemsToDelete.forEach(item => {
-        const daysLeft = daysUntil(item.expiresAt)
-        if (daysLeft >= 0) {
-          lastSavingsResult = savingsTracker.trackSavedItem(item.name, item.quantity || 1)
-        }
-      })
+      // Räkna varor som inte gått ut ännu
+      const notExpiredItems = itemsToDelete.filter(item => daysUntil(item.expiresAt) >= 0)
       
-      // Update achievement stats after all items
-      if (lastSavingsResult) {
-        achievementService.updateStats({
-          itemsSaved: lastSavingsResult.itemsSaved,
-          totalSaved: lastSavingsResult.totalSaved
-        })
+      // Om det finns varor som inte gått ut, fråga om de användes
+      let lastSavingsResult = null
+      if (notExpiredItems.length > 0) {
+        const wereUsed = confirm(
+          `Använde du dessa ${notExpiredItems.length} varor?\n\n` +
+          `✅ OK = Ja, jag använde dem (räknas som sparat)\n` +
+          `❌ Avbryt = Nej, jag slängde dem (räknas ej)`
+        )
+        
+        // Endast spara besparingar om användaren bekräftar
+        if (wereUsed) {
+          notExpiredItems.forEach(item => {
+            lastSavingsResult = savingsTracker.trackSavedItem(item.name, item.quantity || 1)
+          })
+          
+          // Update achievement stats after all items
+          if (lastSavingsResult) {
+            achievementService.updateStats({
+              itemsSaved: lastSavingsResult.itemsSaved,
+              totalSaved: lastSavingsResult.totalSaved
+            })
+          }
+        }
       }
       
       // Ta bort valda varor
