@@ -72,8 +72,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start; /* Align to top */
-  min-width: 0; /* Allow flex items to shrink below content size */
+  justify-content: flex-start;
+  min-width: 0;
+  overflow: visible; /* Allow content to be visible */
 }
 
 .stat-value {
@@ -85,16 +86,18 @@
 }
 
 .stat-label {
-  font-size: 0.5rem; /* Slightly larger for readability */
+  font-size: 0.5rem;
   opacity: 0.9;
   margin-top: 0.4rem;
   font-weight: 600;
   line-height: 1.15;
-  word-break: break-word; /* Break long words if absolutely necessary */
+  word-break: break-word;
   text-align: center;
-  white-space: normal; /* Allow wrapping */
+  white-space: normal;
   width: 100%;
   box-sizing: border-box;
+  overflow: visible; /* Never hide text */
+  text-overflow: clip; /* No ellipsis */
 }
 
 .stat-divider {
@@ -530,11 +533,14 @@
   }
 
   .stat-label {
-    font-size: 0.48rem; /* Smaller but readable */
+    font-size: 0.48rem;
     line-height: 1.15;
     margin-top: 0.4rem;
-    white-space: normal; /* Allow wrapping */
-    word-break: break-word;
+    white-space: normal !important; /* Force wrapping */
+    word-break: break-word !important;
+    overflow: visible !important; /* Never hide */
+    text-overflow: clip !important; /* No ellipsis */
+    max-width: none !important; /* No width constraint */
   }
 
   .stat-divider {
