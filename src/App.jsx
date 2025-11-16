@@ -465,13 +465,21 @@ export default function App() {
     
     // FIX: Använd functional update för att undvika stale state
     if (name === 'quantity') {
-      const numValue = parseFloat(value)
-      // Validera kvantitet: max 50 för att förhindra orealistiska värden
-      const validatedValue = isNaN(numValue) ? 0 : Math.min(Math.max(0, numValue), 50)
-      setForm(prevForm => ({ 
-        ...prevForm, 
-        [name]: validatedValue
-      }))
+      // Tillåt tomt fält så användaren kan ta bort alla siffror
+      if (value === '' || value === null || value === undefined) {
+        setForm(prevForm => ({ 
+          ...prevForm, 
+          [name]: ''
+        }))
+      } else {
+        const numValue = parseFloat(value)
+        // Validera kvantitet: max 50 för att förhindra orealistiska värden
+        const validatedValue = isNaN(numValue) ? 0 : Math.min(Math.max(0, numValue), 50)
+        setForm(prevForm => ({ 
+          ...prevForm, 
+          [name]: validatedValue
+        }))
+      }
     } else if (name === 'name') {
       setForm(prevForm => ({ ...prevForm, [name]: value }))
       
