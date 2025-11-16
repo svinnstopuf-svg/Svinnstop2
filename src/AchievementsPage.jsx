@@ -113,15 +113,17 @@ export default function AchievementsPage() {
         >
           alla
         </button>
-        {Object.values(CATEGORIES).map(category => (
-          <button
-            key={category}
-            className={selectedCategory === category ? 'active notranslate' : 'notranslate'}
-            onClick={() => setSelectedCategory(category)}
-          >
-            {category}
-          </button>
-        ))}
+        {Object.values(CATEGORIES)
+          .filter(category => category !== 'Kock') // Temporarily hide Kock category
+          .map(category => (
+            <button
+              key={category}
+              className={selectedCategory === category ? 'active notranslate' : 'notranslate'}
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
       </div>
 
       {/* Achievement List */}
@@ -147,10 +149,12 @@ export default function AchievementsPage() {
               <span className="stat-icon">💰</span>
               <span className="stat-text">{stats.totalSaved} kr sparat</span>
             </div>
+            {/* TEMPORARILY HIDDEN - Recipes cooked stat
             <div className="stat-item">
               <span className="stat-icon">🍳</span>
               <span className="stat-text">{stats.recipesCooked || 0} recept lagade</span>
             </div>
+            */}
             <div className="stat-item">
               <span className="stat-icon">🔥</span>
               <span className="stat-text">{stats.currentStreak || 0} dagars streak</span>
