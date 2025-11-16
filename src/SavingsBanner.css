@@ -79,20 +79,22 @@
   font-weight: 700;
   line-height: 1;
   white-space: nowrap; /* Prevent wrapping of numbers */
+  display: inline-block; /* Allow measuring width */
 }
 
 .stat-label {
-  font-size: 0.55rem; /* Smaller font size */
+  font-size: 0.5rem; /* Even smaller font size */
   opacity: 0.9;
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.1;
   word-break: normal; /* Don't break words in the middle */
   overflow-wrap: break-word; /* Break to new line at word boundaries */
   text-align: center;
-  max-width: 100%;
   white-space: normal; /* Allow text to wrap to multiple lines */
-  overflow: visible; /* Show all text, no ellipsis */
+  max-width: 90%; /* Constrain to fit within stat value width */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .stat-divider {
