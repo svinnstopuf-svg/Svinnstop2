@@ -1170,18 +1170,15 @@ export default function App() {
     setShowNotificationPrompt(false)
     
     if (granted) {
-      // Aktivera notifikationer i appen
-      const success = await notificationService.requestPermission()
-      if (success) {
-        setNotificationsEnabled(true)
-        localStorage.setItem('svinnstop_notifications_enabled', 'true')
-        // Schemalägg notifikationer för befintliga varor
-        if (items.length > 0) {
-          notificationService.scheduleExpiryNotifications(items)
-        }
-        // Visa test-notifikation
-        notificationService.showTestNotification()
+      // Användaren har redan godkänt i NotificationPrompt, aktivera direkt
+      setNotificationsEnabled(true)
+      localStorage.setItem('svinnstop_notifications_enabled', 'true')
+      // Schemalägg notifikationer för befintliga varor
+      if (items.length > 0) {
+        notificationService.scheduleExpiryNotifications(items)
       }
+      // Visa test-notifikation
+      notificationService.showTestNotification()
     }
   }
   
