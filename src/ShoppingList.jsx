@@ -97,37 +97,37 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   
   // Markera vara som klar/ej klar
   const toggleCompleted = (itemId) => {
-    const item = shoppingItems.find(item => item.id === itemId)
-    
     setShoppingItems(prev => prev.map(item => 
       item.id === itemId 
         ? { ...item, completed: !item.completed }
         : item
     ))
-    
-    // Om det är en matvara som markeras som klar, lägg direkt i inventariet
-    if (item && !item.completed && item.isFood && onDirectAddToInventory) {
-      // Få föreslaget utgångsdatum från matvarudatabasen
-      const suggestion = getExpiryDateSuggestion(item.name)
-      
-      // Skapa ett komplett inventarie-objekt
-      const inventoryItem = {
-        id: Date.now() + Math.random(),
-        name: item.name,
-        quantity: item.quantity || 1,
-        unit: item.unit || suggestion.defaultUnit,
-        expiresAt: suggestion.date,
-        category: suggestion.category,
-        emoji: suggestion.emoji
-      }
-      
-      // Lägg direkt i inventariet
-      onDirectAddToInventory(inventoryItem)
-    }
+    // Viktigt: Vi lägger INTE längre till matvaror i inventariet här.
+    // Detta sker först när användaren klickar på "Rensa klara".
   }
   
-  // Rensa alla klara varor
+  // Rensa alla klara varor OCH registrera matvaror som inköpta
   const clearCompleted = () => {
+    // Först: lägg till alla KLARA matvaror i inventariet (endast en gång)
+    if (onDirectAddToInventory) {
+      shoppingItems
+        .filter(item => item.completed && item.isFood)
+        .forEach(item => {
+          const suggestion = getExpiryDateSuggestion(item.name)
+          const inventoryItem = {
+            id: Date.now() + Math.random(),
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.unit || suggestion.defaultUnit,
+            expiresAt: suggestion.date,
+            category: suggestion.category,
+            emoji: suggestion.emoji
+          }
+          onDirectAddToInventory(inventoryItem)
+        })
+    }
+
+    // Sedan: ta bort alla klara varor från inköpslistan
     setShoppingItems(prev => prev.filter(item => !item.completed))
   }
 
@@ -305,8 +305,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       <div className="shopping-help">
         <p>💡 <strong>Så funkar det:</strong></p>
         <ul style={{margin: '8px 0', paddingLeft: '20px'}}>
-          <li><strong>🍽️ Matvaror:</strong> När du bockar av → Läggs direkt i "Mina varor" med smart utgångsdatum</li>
-          <li><strong>🧯 Andra varor:</strong> När du bockar av → Stannar i listan (rensa med "🗑️ Rensa klara")</li>
+          <li><strong>🍽️ Matvaror:</strong> När du bockar av → Markeras som klara. <em>Först när du klickar på "🗑️ Rensa klara"</em> läggs de i "Mina varor" med smart utgångsdatum.</li>
+          <li><strong>🧯 Andra varor:</strong> När du bockar av → Stannar i listan tills du klickar på "🗑️ Rensa klara"</li>
           <li><strong>🔍 Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
         </ul>
       </div>
