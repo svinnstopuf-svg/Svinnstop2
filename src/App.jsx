@@ -11,6 +11,7 @@ import ReferralProgram from './ReferralProgram'
 import AchievementsPage from './AchievementsPage'
 import FamilySharing from './FamilySharing'
 import Leaderboard from './Leaderboard'
+import ConfirmDialog from './ConfirmDialog'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -194,6 +195,15 @@ export default function App() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
+  
+  // State för anpassad bekräftelsedialog
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    onCancel: null
+  })
 
   // Enkelt setup - låt Google Translate göra sitt jobb
   useEffect(() => {
@@ -549,56 +559,96 @@ export default function App() {
         return
       }
       
-      // Spara åtgärd för att ångra
-      saveAction({
-        type: 'DELETE_SINGLE',
-        data: { item: itemToRemove },
-        timestamp: Date.now()
-      })
-      
       // Track savings if item was used before expiry - ASK USER FIRST
       const daysLeft = daysUntil(itemToRemove.expiresAt)
       if (daysLeft >= 0) {
         // Kolla om det är första gången
         const hasSeenSavingsPrompt = localStorage.getItem('svinnstop_seen_savings_prompt')
         
-        let wasUsed
-        if (!hasSeenSavingsPrompt) {
-          // Första gången - visa utförlig förklaring
-          wasUsed = confirm(
-            `Använde du "${itemToRemove.name}"?\n\n` +
-            `✅ OK = Ja, jag använde den (räknas som sparat)\n` +
-            `❌ Avbryt = Nej, jag slängde den (räknas ej)\n\n` +
-            `Tips: Endast använda varor räknas som besparingar!`
-          )
-          localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
-        } else {
-          // Efterföljande gånger - enkel fråga
-          wasUsed = confirm(`Använde du "${itemToRemove.name}"?`)
-        }
-        
-        // Endast spara besparingar om användaren bekräftar att de använde varan
-        if (wasUsed) {
-          const savingsResult = savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+        // Funktion som hanterar borttagningen efter användarens svar
+        const handleRemoveWithSavings = (wasUsed) => {
+          // Spara åtgärd för att ångra
+          saveAction({
+            type: 'DELETE_SINGLE',
+            data: { item: itemToRemove },
+            timestamp: Date.now()
+          })
           
-          // Update achievement stats
-          achievementService.updateStats({
-            itemsSaved: savingsResult.itemsSaved,
-            totalSaved: savingsResult.totalSaved
+          // Endast spara besparingar om användaren bekräftar att de använde varan
+          if (wasUsed) {
+            const savingsResult = savingsTracker.trackSavedItem(itemToRemove.name, itemToRemove.quantity || 1)
+            
+            // Update achievement stats
+            achievementService.updateStats({
+              itemsSaved: savingsResult.itemsSaved,
+              totalSaved: savingsResult.totalSaved
+            })
+          }
+          
+          // Uppdatera state och localStorage
+          setItems(prev => {
+            const updated = prev.filter(i => i.id !== id)
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+            } catch (error) {
+              console.error('Kunde inte spara till localStorage:', error)
+            }
+            return updated
           })
         }
-      }
-      
-      // Uppdatera state och localStorage
-      setItems(prev => {
-        const updated = prev.filter(i => i.id !== id)
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-        } catch (error) {
-          console.error('Kunde inte spara till localStorage:', error)
+        
+        // Visa anpassad dialog
+        if (!hasSeenSavingsPrompt) {
+          // Första gången - visa utförlig förklaring
+          setConfirmDialog({
+            isOpen: true,
+            title: `Använde du "${itemToRemove.name}"?`,
+            message: `Ja = Varan användes (räknas som sparat)\nNej = Varan slängdes (räknas ej)\n\nTips: Endast använda varor räknas som besparingar!`,
+            onConfirm: () => {
+              localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
+              handleRemoveWithSavings(true)
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+            },
+            onCancel: () => {
+              localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
+              handleRemoveWithSavings(false)
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+            }
+          })
+        } else {
+          // Efterföljande gånger - enkel fråga
+          setConfirmDialog({
+            isOpen: true,
+            title: '',
+            message: `Använde du "${itemToRemove.name}"?`,
+            onConfirm: () => {
+              handleRemoveWithSavings(true)
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+            },
+            onCancel: () => {
+              handleRemoveWithSavings(false)
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+            }
+          })
         }
-        return updated
-      })
+      } else {
+        // Varan har gått ut - ta bort direkt utan att fråga
+        saveAction({
+          type: 'DELETE_SINGLE',
+          data: { item: itemToRemove },
+          timestamp: Date.now()
+        })
+        
+        setItems(prev => {
+          const updated = prev.filter(i => i.id !== id)
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+          } catch (error) {
+            console.error('Kunde inte spara till localStorage:', error)
+          }
+          return updated
+        })
+      }
       
     } catch (error) {
       console.error('Error in onRemove:', error)
@@ -756,53 +806,33 @@ export default function App() {
   const bulkDeleteItems = () => {
     if (selectedItems.size === 0) return
     
-    const confirmed = confirm(`Är du säker på att du vill ta bort ${selectedItems.size} valda varor?`)
-    if (confirmed) {
-      // Spara för undo
-      const itemsToDelete = items.filter(item => selectedItems.has(item.id))
+    // Spara för undo
+    const itemsToDelete = items.filter(item => selectedItems.has(item.id))
+    
+    // Räkna varor som inte gått ut ännu
+    const notExpiredItems = itemsToDelete.filter(item => daysUntil(item.expiresAt) >= 0)
+    
+    // Funktion som hanterar bulk-borttagning med besparingar
+    const handleBulkRemoveWithSavings = (wereUsed) => {
       saveAction({
         type: 'DELETE_BULK',
         data: { items: itemsToDelete },
         timestamp: Date.now()
       })
       
-      // Räkna varor som inte gått ut ännu
-      const notExpiredItems = itemsToDelete.filter(item => daysUntil(item.expiresAt) >= 0)
-      
-      // Om det finns varor som inte gått ut, fråga om de användes
-      let lastSavingsResult = null
-      if (notExpiredItems.length > 0) {
-        // Kolla om det är första gången
-        const hasSeenSavingsPrompt = localStorage.getItem('svinnstop_seen_savings_prompt')
+      // Endast spara besparingar om användaren bekräftar
+      if (wereUsed && notExpiredItems.length > 0) {
+        let lastSavingsResult = null
+        notExpiredItems.forEach(item => {
+          lastSavingsResult = savingsTracker.trackSavedItem(item.name, item.quantity || 1)
+        })
         
-        let wereUsed
-        if (!hasSeenSavingsPrompt) {
-          // Första gången - visa utförlig förklaring
-          wereUsed = confirm(
-            `Använde du dessa ${notExpiredItems.length} varor?\n\n` +
-            `✅ OK = Ja, jag använde dem (räknas som sparat)\n` +
-            `❌ Avbryt = Nej, jag slängde dem (räknas ej)\n\n` +
-            `Tips: Endast använda varor räknas som besparingar!`
-          )
-          localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
-        } else {
-          // Efterföljande gånger - enkel fråga
-          wereUsed = confirm(`Använde du dessa ${notExpiredItems.length} varor?`)
-        }
-        
-        // Endast spara besparingar om användaren bekräftar
-        if (wereUsed) {
-          notExpiredItems.forEach(item => {
-            lastSavingsResult = savingsTracker.trackSavedItem(item.name, item.quantity || 1)
+        // Update achievement stats after all items
+        if (lastSavingsResult) {
+          achievementService.updateStats({
+            itemsSaved: lastSavingsResult.itemsSaved,
+            totalSaved: lastSavingsResult.totalSaved
           })
-          
-          // Update achievement stats after all items
-          if (lastSavingsResult) {
-            achievementService.updateStats({
-              itemsSaved: lastSavingsResult.itemsSaved,
-              totalSaved: lastSavingsResult.totalSaved
-            })
-          }
         }
       }
       
@@ -822,6 +852,49 @@ export default function App() {
       setBulkEditMode(false)
       
       console.log(`✅ Tog bort ${itemsToDelete.length} varor`)
+    }
+    
+    // Om det finns varor som inte gått ut, fråga om de användes
+    if (notExpiredItems.length > 0) {
+      // Kolla om det är första gången
+      const hasSeenSavingsPrompt = localStorage.getItem('svinnstop_seen_savings_prompt')
+      
+      if (!hasSeenSavingsPrompt) {
+        // Första gången - visa utförlig förklaring
+        setConfirmDialog({
+          isOpen: true,
+          title: `Använde du dessa ${notExpiredItems.length} varor?`,
+          message: `Ja = Varorna användes (räknas som sparat)\nNej = Varorna slängdes (räknas ej)\n\nTips: Endast använda varor räknas som besparingar!`,
+          onConfirm: () => {
+            localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
+            handleBulkRemoveWithSavings(true)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
+          },
+          onCancel: () => {
+            localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
+            handleBulkRemoveWithSavings(false)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
+          }
+        })
+      } else {
+        // Efterföljande gånger - enkel fråga
+        setConfirmDialog({
+          isOpen: true,
+          title: '',
+          message: `Använde du dessa ${notExpiredItems.length} varor?`,
+          onConfirm: () => {
+            handleBulkRemoveWithSavings(true)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
+          },
+          onCancel: () => {
+            handleBulkRemoveWithSavings(false)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
+          }
+        })
+      }
+    } else {
+      // Alla varor har gått ut - ta bort direkt
+      handleBulkRemoveWithSavings(false)
     }
   }
   
@@ -1984,6 +2057,14 @@ export default function App() {
         }}
       />
     )}
+    
+    <ConfirmDialog 
+      isOpen={confirmDialog.isOpen}
+      title={confirmDialog.title}
+      message={confirmDialog.message}
+      onConfirm={confirmDialog.onConfirm}
+      onCancel={confirmDialog.onCancel}
+    />
     </>
   )
 }
