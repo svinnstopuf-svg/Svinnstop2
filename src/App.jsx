@@ -1170,26 +1170,17 @@ export default function App() {
     setShowNotificationPrompt(false)
     
     if (granted) {
-      // Registrera service worker och sätt upp notifikationer
-      try {
-        // Registrera Service Worker
-        notificationService.registration = await navigator.serviceWorker.register('/sw.js')
-        notificationService.permission = 'granted'
-        console.log('Service Worker registrerad:', notificationService.registration.scope)
-        
-        setNotificationsEnabled(true)
-        localStorage.setItem('svinnstop_notifications_enabled', 'true')
-        
-        // Schemalägg notifikationer för befintliga varor
-        if (items.length > 0) {
-          notificationService.scheduleExpiryNotifications(items)
-        }
-        
-        // Visa test-notifikation
-        await notificationService.showTestNotification()
-      } catch (error) {
-        console.error('Fel vid aktivering av notifikationer:', error)
+      // Service worker är redan registrerad av notificationService.requestPermission()
+      setNotificationsEnabled(true)
+      localStorage.setItem('svinnstop_notifications_enabled', 'true')
+      
+      // Schemalägg notifikationer för befintliga varor
+      if (items.length > 0) {
+        notificationService.scheduleExpiryNotifications(items)
       }
+      
+      // Visa test-notifikation
+      await notificationService.showTestNotification()
     }
   }
   

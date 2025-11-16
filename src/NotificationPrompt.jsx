@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './NotificationPrompt.css'
+import { notificationService } from './notificationService'
 
 export default function NotificationPrompt({ onPermissionGranted, onDismiss }) {
   const [isRequesting, setIsRequesting] = useState(false)
@@ -8,10 +9,10 @@ export default function NotificationPrompt({ onPermissionGranted, onDismiss }) {
     setIsRequesting(true)
     
     try {
-      // Begär tillstånd från användaren
-      const permission = await Notification.requestPermission()
+      // Använd notificationService för att registrera service worker och begära tillstånd
+      const success = await notificationService.requestPermission()
       
-      if (permission === 'granted') {
+      if (success) {
         // Spara att användaren har aktiverat notiser
         localStorage.setItem('svinnstop_notifications_prompted', 'granted')
         onPermissionGranted(true)
