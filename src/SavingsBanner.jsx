@@ -54,7 +54,7 @@ export default function SavingsBanner() {
         <div className="stat-divider"></div>
         <div className="stat-item">
           <div className="stat-value">{savingsData.achievements.length}</div>
-          <div className="stat-label">Badges</div>
+          <div className="stat-label">Utmärkelser</div>
         </div>
       </div>
 
