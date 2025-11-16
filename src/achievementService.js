@@ -149,40 +149,41 @@ export const ACHIEVEMENTS = [
     getProgress: (data) => ({ current: data.totalSaved, target: 10000 })
   },
 
-  // === KOCK KATEGORIN ===
-  {
-    id: 'cook_bronze',
-    category: CATEGORIES.COOK,
-    tier: BADGE_TIERS.BRONZE,
-    title: 'Nybörjarkock',
-    description: 'Laga 5 recept',
-    icon: '👨‍🍳',
-    requirement: 5,
-    checkProgress: (data) => (data.recipesCooked || 0) >= 5,
-    getProgress: (data) => ({ current: data.recipesCooked || 0, target: 5 })
-  },
-  {
-    id: 'cook_silver',
-    category: CATEGORIES.COOK,
-    tier: BADGE_TIERS.SILVER,
-    title: 'Hemkock',
-    description: 'Laga 25 recept',
-    icon: '🍳',
-    requirement: 25,
-    checkProgress: (data) => (data.recipesCooked || 0) >= 25,
-    getProgress: (data) => ({ current: data.recipesCooked || 0, target: 25 })
-  },
-  {
-    id: 'cook_gold',
-    category: CATEGORIES.COOK,
-    tier: BADGE_TIERS.GOLD,
-    title: 'Mästerkock',
-    description: 'Laga 100 recept',
-    icon: '⭐',
-    requirement: 100,
-    checkProgress: (data) => (data.recipesCooked || 0) >= 100,
-    getProgress: (data) => ({ current: data.recipesCooked || 0, target: 100 })
-  },
+  // === KOCK KATEGORIN (TEMPORARILY DISABLED) ===
+  // These achievements require manual tracking which isn't implemented yet
+  // {
+  //   id: 'cook_bronze',
+  //   category: CATEGORIES.COOK,
+  //   tier: BADGE_TIERS.BRONZE,
+  //   title: 'Nybörjarkock',
+  //   description: 'Laga 5 recept',
+  //   icon: '👨‍🍳',
+  //   requirement: 5,
+  //   checkProgress: (data) => (data.recipesCooked || 0) >= 5,
+  //   getProgress: (data) => ({ current: data.recipesCooked || 0, target: 5 })
+  // },
+  // {
+  //   id: 'cook_silver',
+  //   category: CATEGORIES.COOK,
+  //   tier: BADGE_TIERS.SILVER,
+  //   title: 'Hemkock',
+  //   description: 'Laga 25 recept',
+  //   icon: '🍳',
+  //   requirement: 25,
+  //   checkProgress: (data) => (data.recipesCooked || 0) >= 25,
+  //   getProgress: (data) => ({ current: data.recipesCooked || 0, target: 25 })
+  // },
+  // {
+  //   id: 'cook_gold',
+  //   category: CATEGORIES.COOK,
+  //   tier: BADGE_TIERS.GOLD,
+  //   title: 'Mästerkock',
+  //   description: 'Laga 100 recept',
+  //   icon: '⭐',
+  //   requirement: 100,
+  //   checkProgress: (data) => (data.recipesCooked || 0) >= 100,
+  //   getProgress: (data) => ({ current: data.recipesCooked || 0, target: 100 })
+  // },
 
   // === ORGANISATÖR KATEGORIN ===
   {
