@@ -820,12 +820,19 @@ export default function App() {
   
   // Inaktivera notifikationer
   const disableNotifications = () => {
-    setNotificationsEnabled(false)
-    // Rensa alla schemalagda notifikationer
-    notificationService.clearScheduledNotifications()
-    
-    // Spara inställning
-    localStorage.setItem('svinnstop_notifications_enabled', 'false')
+    try {
+      setNotificationsEnabled(false)
+      // Rensa alla schemalagda notifikationer
+      notificationService.clearScheduledNotifications()
+      
+      // Spara inställning
+      localStorage.setItem('svinnstop_notifications_enabled', 'false')
+      
+      alert('❌ Notifikationer inaktiverade. Du kommer inte längre få påminnelser.')
+    } catch (error) {
+      console.error('Error disabling notifications:', error)
+      alert('❌ Ett fel uppstod: ' + error.message)
+    }
   }
   
   // Välja matvaruförslag
