@@ -82,14 +82,12 @@
 }
 
 .stat-label {
-  font-size: 0.65rem; /* Increased slightly since we allow multi-line */
+  font-size: 0.65rem;
   opacity: 0.9;
   margin-top: 0.25rem;
   font-weight: 600;
   line-height: 1.3;
-  word-break: keep-all; /* Keep words intact, don't break them */
-  overflow-wrap: normal; /* Don't break words in the middle */
-  hyphens: none; /* No hyphenation */
+  word-break: break-word; /* Allow breaking long words if needed */
   text-align: center;
   max-width: 100%;
   white-space: normal; /* Allow text to wrap to multiple lines */
