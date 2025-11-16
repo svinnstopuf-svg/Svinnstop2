@@ -67,11 +67,13 @@
 .stat-item {
   text-align: center;
   flex: 1;
-  padding: 0.5rem 0.25rem; /* Reduced horizontal padding to prevent overflow */
+  padding: 0.5rem 0.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  overflow: hidden; /* Prevent content from overflowing */
+  min-width: 0; /* Allow flex items to shrink below content size */
 }
 
 .stat-value {
@@ -83,18 +85,17 @@
 }
 
 .stat-label {
-  font-size: 0.5rem; /* Even smaller font size */
+  font-size: 0.48rem; /* Smaller font */
   opacity: 0.9;
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
   font-weight: 600;
-  line-height: 1.1;
-  word-break: normal; /* Don't break words in the middle */
-  overflow-wrap: break-word; /* Break to new line at word boundaries */
+  line-height: 1.05;
+  word-break: break-word; /* Break long words if absolutely necessary */
   text-align: center;
-  white-space: normal; /* Allow text to wrap to multiple lines */
-  max-width: 90%; /* Constrain to fit within stat value width */
-  margin-left: auto;
-  margin-right: auto;
+  white-space: normal;
+  width: 100%;
+  overflow: hidden; /* Prevent overflow */
+  box-sizing: border-box;
 }
 
 .stat-divider {
