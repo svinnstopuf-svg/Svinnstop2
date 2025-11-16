@@ -35,7 +35,7 @@ export default function AchievementsPage() {
 
   const unlockedCount = achievements.filter(a => a.unlocked).length
   const totalCount = achievements.length
-  const overallProgress = Math.round((unlockedCount / totalCount) * 100)
+  const overallProgress = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0
 
   return (
     <div className="achievements-page">

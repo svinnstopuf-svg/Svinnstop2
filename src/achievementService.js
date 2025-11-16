@@ -414,12 +414,17 @@ export function getAllAchievements() {
     const unlockInfo = data.unlocked.find(u => u.achievementId === achievement.id)
     const progress = achievement.getProgress(data.stats)
     
+    // Prevent NaN by ensuring we have valid numbers
+    const current = progress.current || 0
+    const target = progress.target || 1 // Prevent division by zero
+    const progressPercent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0
+    
     return {
       ...achievement,
       unlocked: !!unlockInfo,
       unlockedAt: unlockInfo?.unlockedAt,
-      progress: progress,
-      progressPercent: Math.min(100, Math.round((progress.current / progress.target) * 100))
+      progress: { current, target },
+      progressPercent
     }
   })
 }
@@ -437,11 +442,12 @@ export function getUnlockedByTier() {
   Object.values(BADGE_TIERS).forEach(tier => {
     const tierAchievements = achievements.filter(a => a.tier.name === tier.name)
     const unlockedCount = tierAchievements.filter(a => a.unlocked).length
+    const total = tierAchievements.length
     
     result[tier.name] = {
       unlocked: unlockedCount,
-      total: tierAchievements.length,
-      percentage: Math.round((unlockedCount / tierAchievements.length) * 100)
+      total: total,
+      percentage: total > 0 ? Math.round((unlockedCount / total) * 100) : 0
     }
   })
   
@@ -475,7 +481,7 @@ export function getAchievementScore() {
   return {
     score: earnedScore,
     maxScore: totalScore,
-    percentage: Math.round((earnedScore / totalScore) * 100)
+    percentage: totalScore > 0 ? Math.round((earnedScore / totalScore) * 100) : 0
   }
 }
 
