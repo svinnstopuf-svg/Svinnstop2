@@ -130,9 +130,6 @@ export default function ReferralProgram() {
         
         <div className="code-display">
           <div className="code-box">{referralData.myCode}</div>
-          <button className="copy-code-btn" onClick={copyCode}>
-            📋 Kopiera
-          </button>
         </div>
 
         <button className="share-btn" onClick={handleShare}>
