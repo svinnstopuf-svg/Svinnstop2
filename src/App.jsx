@@ -602,8 +602,8 @@ export default function App() {
           // Första gången - visa utförlig förklaring
           setConfirmDialog({
             isOpen: true,
-            title: `Använde du "${itemToRemove.name}"?`,
-            message: `Ja = Varan användes (räknas som sparat)\nNej = Varan slängdes (räknas ej)\n\nTips: Endast använda varor räknas som besparingar!`,
+            title: `Använde du \"${itemToRemove.name}\"?`,
+            message: `Ja = Varan användes (räknas som sparat)\\nNej = Varan slängdes (räknas ej)\\n\\nTips: Endast använda varor räknas som besparingar!`,
             onConfirm: () => {
               localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
               handleRemoveWithSavings(true)
@@ -612,6 +612,10 @@ export default function App() {
             onCancel: () => {
               localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
               handleRemoveWithSavings(false)
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+            },
+            onDismiss: () => {
+              // Klicka utanför = avbryt helt, ta inte bort varan
               setConfirmDialog({ ...confirmDialog, isOpen: false })
             }
           })
@@ -620,13 +624,17 @@ export default function App() {
           setConfirmDialog({
             isOpen: true,
             title: '',
-            message: `Använde du "${itemToRemove.name}"?`,
+            message: `Använde du \"${itemToRemove.name}\"?`,
             onConfirm: () => {
               handleRemoveWithSavings(true)
               setConfirmDialog({ ...confirmDialog, isOpen: false })
             },
             onCancel: () => {
               handleRemoveWithSavings(false)
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+            },
+            onDismiss: () => {
+              // Klicka utanför = avbryt helt, ta inte bort varan
               setConfirmDialog({ ...confirmDialog, isOpen: false })
             }
           })
@@ -864,7 +872,7 @@ export default function App() {
         setConfirmDialog({
           isOpen: true,
           title: `Använde du dessa ${notExpiredItems.length} varor?`,
-          message: `Ja = Varorna användes (räknas som sparat)\nNej = Varorna slängdes (räknas ej)\n\nTips: Endast använda varor räknas som besparingar!`,
+          message: `Ja = Varorna användes (räknas som sparat)\\nNej = Varorna slängdes (räknas ej)\\n\\nTips: Endast använda varor räknas som besparingar!`,
           onConfirm: () => {
             localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
             handleBulkRemoveWithSavings(true)
@@ -873,6 +881,10 @@ export default function App() {
           onCancel: () => {
             localStorage.setItem('svinnstop_seen_savings_prompt', 'true')
             handleBulkRemoveWithSavings(false)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
+          },
+          onDismiss: () => {
+            // Klicka utanför = avbryt helt, ta inte bort varorna
             setConfirmDialog({ ...confirmDialog, isOpen: false })
           }
         })
@@ -888,6 +900,10 @@ export default function App() {
           },
           onCancel: () => {
             handleBulkRemoveWithSavings(false)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
+          },
+          onDismiss: () => {
+            // Klicka utanför = avbryt helt, ta inte bort varorna
             setConfirmDialog({ ...confirmDialog, isOpen: false })
           }
         })
@@ -2064,6 +2080,7 @@ export default function App() {
       message={confirmDialog.message}
       onConfirm={confirmDialog.onConfirm}
       onCancel={confirmDialog.onCancel}
+      onDismiss={confirmDialog.onDismiss}
     />
     </>
   )

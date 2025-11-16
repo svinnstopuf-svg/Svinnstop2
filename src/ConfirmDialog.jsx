@@ -10,31 +10,36 @@ export default function ConfirmDialog({
   title, 
   message, 
   onConfirm, 
-  onCancel 
+  onCancel,
+  onDismiss  // Nytt: för att stänga utan att göra något
 }) {
   if (!isOpen) return null
 
   const handleBackdropClick = (e) => {
-    // Klicka utanför dialogen för att avbryta
+    // Klicka utanför dialogen för att avbryta helt (ingen förändring)
     if (e.target === e.currentTarget) {
-      onCancel()
+      if (onDismiss) {
+        onDismiss()
+      } else {
+        onCancel()
+      }
     }
   }
 
   return (
     <div className="confirm-dialog-backdrop" onClick={handleBackdropClick}>
       <div className="confirm-dialog-box">
-        {title && <h3 className="confirm-dialog-title">{title}</h3>}
+        {title && <h3 className="confirm-dialog-title notranslate">{title}</h3>}
         <p className="confirm-dialog-message">{message}</p>
         <div className="confirm-dialog-buttons">
           <button 
-            className="confirm-dialog-btn confirm-yes" 
+            className="confirm-dialog-btn confirm-yes notranslate" 
             onClick={onConfirm}
           >
             Ja
           </button>
           <button 
-            className="confirm-dialog-btn confirm-no" 
+            className="confirm-dialog-btn confirm-no notranslate" 
             onClick={onCancel}
           >
             Nej
