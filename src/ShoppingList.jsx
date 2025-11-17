@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react'
 import { searchShoppingItems } from './shoppingDatabase'
 import { getExpiryDateSuggestion } from './foodDatabase'
 import { SV_UNITS, getSuggestedUnitKey } from './App'
+import { increaseQuantity, decreaseQuantity } from './unitConverter'
+import { shoppingListService } from './shoppingListService'
+import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges } from './shoppingListSync'
+import { getFamilyData } from './familyService'
 
 export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
   const [shoppingItems, setShoppingItems] = useState([])
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [savedLists, setSavedLists] = useState([])
+  const [showSavedLists, setShowSavedLists] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [saveListName, setSaveListName] = useState('')
+  const [isSyncing, setIsSyncing] = useState(false)
   
   // Ladda inköpslista från localStorage
   useEffect(() => {
@@ -19,12 +28,53 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         console.error('Failed to load shopping list:', e)
       }
     }
+    // Ladda sparade listor
+    setSavedLists(shoppingListService.getSavedShoppingLists())
   }, [])
 
-  // Spara inköpslista till localStorage
+  // Spara inköpslista till localStorage och synka med Firebase
   useEffect(() => {
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
+    
+    // Synka till Firebase om familj är aktiv
+    const family = getFamilyData()
+    if (family.familyId && family.syncEnabled) {
+      syncShoppingListToFirebase(shoppingItems)
+    }
   }, [shoppingItems])
+
+  // Lyssna på Firebase-ändringar för inköpslistan
+  useEffect(() => {
+    const family = getFamilyData()
+    if (!family.familyId || !family.syncEnabled) return
+
+    const unsubscribe = listenToShoppingListChanges((remoteItems) => {
+      // Undvik loopar genom att jämföra innehåll
+      const localStr = JSON.stringify(shoppingItems)
+      const remoteStr = JSON.stringify(remoteItems)
+      if (localStr !== remoteStr) {
+        setShoppingItems(remoteItems)
+        setIsSyncing(true)
+        setTimeout(() => setIsSyncing(false), 1000)
+      }
+    })
+
+    return () => unsubscribe && unsubscribe()
+  }, [])
+
+  // Lyssna på Firebase-ändringar för sparade listor
+  useEffect(() => {
+    const family = getFamilyData()
+    if (!family.familyId || !family.syncEnabled) return
+
+    const unsubscribe = listenToSavedListsChanges((remoteLists) => {
+      setSavedLists(remoteLists)
+      // Uppdatera localStorage
+      localStorage.setItem('svinnstop_saved_shopping_lists', JSON.stringify(remoteLists))
+    })
+
+    return () => unsubscribe && unsubscribe()
+  }, [])
 
   // Hantera input-ändringar och visa förslag
   const handleInputChange = (e) => {
@@ -131,29 +181,129 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     setShoppingItems(prev => prev.filter(item => !item.completed))
   }
 
+  // Spara nuvarande lista som mall
+  const handleSaveList = () => {
+    if (!saveListName.trim()) {
+      alert('⚠️ Ange ett namn för listan')
+      return
+    }
+    
+    if (shoppingItems.length === 0) {
+      alert('⚠️ Listan är tom. Lägg till varor först.')
+      return
+    }
+    
+    const result = shoppingListService.saveShoppingList(saveListName, shoppingItems)
+    
+    if (result.success) {
+      setSavedLists(shoppingListService.getSavedShoppingLists())
+      setSaveListName('')
+      setShowSaveDialog(false)
+      
+      // Synka till Firebase
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        syncSavedListsToFirebase(shoppingListService.getSavedShoppingLists())
+      }
+      
+      alert(`✅ Lista "${result.list.name}" ${result.isUpdate ? 'uppdaterad' : 'sparad'}!`)
+    } else {
+      alert(`❌ ${result.error}`)
+    }
+  }
+
+  // Ladda en sparad lista
+  const handleLoadList = (listId) => {
+    const list = shoppingListService.getSavedListById(listId)
+    if (!list) {
+      alert('❌ Lista hittades inte')
+      return
+    }
+    
+    // Lägg till varor från mallen med nya ID:n
+    const newItems = list.items.map(item => ({
+      ...item,
+      id: Date.now() + Math.random(),
+      completed: false,
+      addedAt: Date.now()
+    }))
+    
+    setShoppingItems(prev => [...newItems, ...prev])
+    shoppingListService.incrementUsageCount(listId)
+    setSavedLists(shoppingListService.getSavedShoppingLists())
+    setShowSavedLists(false)
+    
+    // Synka till Firebase
+    const family = getFamilyData()
+    if (family.familyId && family.syncEnabled) {
+      syncSavedListsToFirebase(shoppingListService.getSavedShoppingLists())
+    }
+  }
+
+  // Ta bort sparad lista
+  const handleDeleteSavedList = (listId, listName) => {
+    if (!confirm(`🗑️ Ta bort sparad lista "${listName}"?`)) {
+      return
+    }
+    
+    const result = shoppingListService.deleteSavedList(listId)
+    
+    if (result.success) {
+      setSavedLists(shoppingListService.getSavedShoppingLists())
+      
+      // Synka till Firebase
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        syncSavedListsToFirebase(shoppingListService.getSavedShoppingLists())
+      }
+    } else {
+      alert(`❌ ${result.error}`)
+    }
+  }
+
   const completedCount = shoppingItems.filter(item => item.completed).length
   const totalCount = shoppingItems.length
   
   return (
     <section className="card shopping-list">
       <div className="section-header">
-        <h2>🛍️ Inköpslista</h2>
-        {totalCount > 0 && (
-          <div className="shopping-stats">
-            <span className="progress-text">
-              {completedCount}/{totalCount} klara
-            </span>
-            {completedCount > 0 && (
-              <button 
-                onClick={clearCompleted}
-                className="clear-completed-btn"
-                title="Rensa alla klara varor"
+        <h2>🛍️ Inköpslista {isSyncing && <span style={{fontSize: '12px', color: 'var(--accent)'}}>↻ Synkar...</span>}</h2>
+        <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+          {totalCount > 0 && (
+            <>
+              <span className="progress-text">
+                {completedCount}/{totalCount} klara
+              </span>
+              {completedCount > 0 && (
+                <button 
+                  onClick={clearCompleted}
+                  className="clear-completed-btn"
+                  title="Rensa alla klara varor"
+                >
+                  🗑️ Rensa klara
+                </button>
+              )}
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                className="btn-glass"
+                style={{padding: '6px 12px', fontSize: '13px'}}
+                title="Spara aktuell lista som mall"
               >
-                🗑️ Rensa klara
+                💾 Spara lista
               </button>
-            )}
-          </div>
-        )}
+            </>
+          )}
+          {savedLists.length > 0 && (
+            <button
+              onClick={() => setShowSavedLists(!showSavedLists)}
+              className="btn-glass"
+              style={{padding: '6px 12px', fontSize: '13px'}}
+              title="Ladda sparad lista"
+            >
+              📁 Mina listor ({savedLists.length})
+            </button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={addManualItem} className="add-shopping-item">
@@ -207,6 +357,69 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         </div>
       </form>
 
+      {/* Dialog för att spara lista */}
+      {showSaveDialog && (
+        <div style={{marginBottom: '16px', padding: '16px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
+          <h3 style={{margin: '0 0 12px 0', fontSize: '16px'}}>💾 Spara inköpslista</h3>
+          <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+            <input
+              type="text"
+              value={saveListName}
+              onChange={(e) => setSaveListName(e.target.value)}
+              placeholder="Namn på lista (t.ex. Veckohhandling)"
+              style={{flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)'}}
+              autoFocus
+            />
+            <button onClick={handleSaveList} className="btn-glass" style={{padding: '10px 16px'}}>
+              ✅ Spara
+            </button>
+            <button onClick={() => { setShowSaveDialog(false); setSaveListName('') }} className="btn-glass" style={{padding: '10px 16px'}}>
+              ❌ Avbryt
+            </button>
+          </div>
+          <p style={{margin: '8px 0 0 0', fontSize: '12px', color: 'var(--muted)'}}>Tips: Om namnet redan finns kommer listan att uppdateras.</p>
+        </div>
+      )}
+
+      {/* Sparade listor */}
+      {showSavedLists && savedLists.length > 0 && (
+        <div style={{marginBottom: '16px', padding: '16px', background: 'var(--card-bg)', border: '2px solid var(--border)', borderRadius: '12px'}}>
+          <h3 style={{margin: '0 0 12px 0', fontSize: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            📁 Mina sparade listor
+            <button onClick={() => setShowSavedLists(false)} style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--muted)'}}>✕</button>
+          </h3>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+            {savedLists.map(list => (
+              <div key={list.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--input-bg)', borderRadius: '8px'}}>
+                <div style={{flex: 1}}>
+                  <div style={{fontWeight: 600, fontSize: '14px'}}>{list.name}</div>
+                  <div style={{fontSize: '12px', color: 'var(--muted)', marginTop: '4px'}}>
+                    {list.items.length} varor
+                    {list.usageCount > 0 && ` • Använd ${list.usageCount} gång${list.usageCount > 1 ? 'er' : ''}`}
+                  </div>
+                </div>
+                <div style={{display: 'flex', gap: '8px'}}>
+                  <button 
+                    onClick={() => handleLoadList(list.id)}
+                    className="btn-glass"
+                    style={{padding: '8px 12px', fontSize: '13px'}}
+                  >
+                    📄 Ladda
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteSavedList(list.id, list.name)}
+                    className="trash-btn"
+                    style={{padding: '8px 12px', fontSize: '16px'}}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="shopping-items">
         {shoppingItems.length === 0 ? (
           <div className="empty-shopping-list">
@@ -240,20 +453,17 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        // Use step of 1 for pieces (stycken), 0.5 for other units
-                        const step = item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5
-                        const minValue = item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5
-                        const currentQty = Number(item.quantity) || 1
-                        const newQuantity = Math.max(minValue, currentQty - step)
+                        // Använd smart konvertering
+                        const { quantity: newQuantity, unit: newUnit } = decreaseQuantity(item.quantity, item.unit)
                         
                         setShoppingItems(prev => {
                           const updated = prev.map(i => 
-                            i.id === item.id ? {...i, quantity: newQuantity} : i
+                            i.id === item.id ? {...i, quantity: newQuantity, unit: newUnit} : i
                           )
                           return updated
                         })
                       }}
-                      disabled={item.completed || item.quantity <= (item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5)}
+                      disabled={item.completed}
                       title="Minska"
                       aria-label="Minska antal"
                     >
@@ -264,14 +474,12 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        // Use step of 1 for pieces (stycken), 0.5 for other units
-                        const step = item.unit === 'stycken' || item.unit === 'st' ? 1 : 0.5
-                        const currentQty = Number(item.quantity) || 1
-                        const newQuantity = currentQty + step
+                        // Använd smart konvertering
+                        const { quantity: newQuantity, unit: newUnit } = increaseQuantity(item.quantity, item.unit)
                         
                         setShoppingItems(prev => {
                           const updated = prev.map(i => 
-                            i.id === item.id ? {...i, quantity: newQuantity} : i
+                            i.id === item.id ? {...i, quantity: newQuantity, unit: newUnit} : i
                           )
                           return updated
                         })
@@ -308,6 +516,9 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
           <li><strong>🍽️ Matvaror:</strong> När du bockar av → Markeras som klara. <em>Först när du klickar på "🗑️ Rensa klara"</em> läggs de i "Mina varor" med smart utgångsdatum.</li>
           <li><strong>🧯 Andra varor:</strong> När du bockar av → Stannar i listan tills du klickar på "🗑️ Rensa klara"</li>
           <li><strong>🔍 Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
+          <li><strong>💾 Spara listor:</strong> Skapar du samma inköpslista varje vecka? Spara den som mall och ladda nästa gång!</li>
+          <li><strong>⚖️ Smart mått:</strong> Siffror konverteras automatiskt (t.ex. 1000g → 1kg) för bättre användbarhet</li>
+          <li><strong>🔄 Synkronisering:</strong> Är du med i en familjegrupp? Inköpslistor synkas automatiskt mellan alla medlemmar!</li>
         </ul>
       </div>
     </section>
