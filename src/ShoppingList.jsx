@@ -280,6 +280,35 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       return
     }
     
+    // Max-gräns baserat på enhet (rimliga värden)
+    const unitLower = item.unit.toLowerCase()
+    let maxValue = 999 // Default max
+    
+    if (unitLower === 'kg') {
+      maxValue = 100 // Max 100 kg
+    } else if (unitLower === 'g' || unitLower === 'gram') {
+      maxValue = 10000 // Max 10 kg i gram
+    } else if (unitLower === 'hg') {
+      maxValue = 100 // Max 10 kg i hg
+    } else if (unitLower === 'l' || unitLower === 'liter') {
+      maxValue = 50 // Max 50 liter
+    } else if (unitLower === 'ml' || unitLower === 'milliliter') {
+      maxValue = 10000 // Max 10 liter i ml
+    } else if (unitLower === 'dl' || unitLower === 'deciliter') {
+      maxValue = 100 // Max 10 liter i dl
+    } else if (unitLower === 'cl' || unitLower === 'centiliter') {
+      maxValue = 500 // Max 5 liter i cl
+    } else if (unitLower === 'stycken' || unitLower === 'st' || unitLower === 'styck') {
+      maxValue = 100 // Max 100 stycken
+    }
+    
+    if (parsed > maxValue) {
+      alert(`⚠️ Max ${maxValue} ${item.unit} tillåtet. Försök med ett lägre värde.`)
+      setEditingQuantity(null)
+      setTempQuantity('')
+      return
+    }
+    
     // Använd smart konvertering för det nya värdet
     const { quantity: newQuantity, unit: newUnit } = smartConvertUnit(parsed, item.unit)
     
