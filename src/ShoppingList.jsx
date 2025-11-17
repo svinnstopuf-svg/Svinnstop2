@@ -4,8 +4,9 @@ import { getExpiryDateSuggestion } from './foodDatabase'
 import { SV_UNITS, getSuggestedUnitKey } from './App'
 import { increaseQuantity, decreaseQuantity, smartConvertUnit } from './unitConverter'
 import { shoppingListService } from './shoppingListService'
-import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges } from './shoppingListSync'
+import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges, syncUserItemsToFirebase, listenToUserItemsChanges } from './shoppingListSync'
 import { getFamilyData } from './familyService'
+import { userItemsService, searchUserItems } from './userItemsService'
 
 export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
   const [shoppingItems, setShoppingItems] = useState([])
@@ -19,6 +20,9 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [isSyncing, setIsSyncing] = useState(false)
   const [editingQuantity, setEditingQuantity] = useState(null) // ID för vara som redigeras
   const [tempQuantity, setTempQuantity] = useState('') // Temporärt värde under redigering
+  const [showFoodTypeDialog, setShowFoodTypeDialog] = useState(false)
+  const [pendingManualItem, setPendingManualItem] = useState(null)
+  const [selectedUnit, setSelectedUnit] = useState('st')
   
   // Ladda inköpslista från localStorage
   useEffect(() => {
@@ -78,15 +82,33 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     return () => unsubscribe && unsubscribe()
   }, [])
 
+  // Lyssna på Firebase-ändringar för användarvaror
+  useEffect(() => {
+    const family = getFamilyData()
+    if (!family.familyId || !family.syncEnabled) return
+
+    const unsubscribe = listenToUserItemsChanges((remoteItems) => {
+      userItemsService.importUserItems(remoteItems)
+    })
+
+    return () => unsubscribe && unsubscribe()
+  }, [])
+
   // Hantera input-ändringar och visa förslag
   const handleInputChange = (e) => {
     const value = e.target.value
     setNewItem(value)
     
     if (value.trim().length > 0) {
+      // Sök både i standarddatabasen OCH användarvaror
       const shoppingSuggestions = searchShoppingItems(value.trim())
-      setSuggestions(shoppingSuggestions)
-      setShowSuggestions(shoppingSuggestions.length > 0)
+      const userSuggestions = searchUserItems(value.trim())
+      
+      // Merga resultat, användarvaror först (de är mer relevanta)
+      const allSuggestions = [...userSuggestions, ...shoppingSuggestions].slice(0, 10)
+      
+      setSuggestions(allSuggestions)
+      setShowSuggestions(allSuggestions.length > 0)
     } else {
       setSuggestions([])
       setShowSuggestions(false)
@@ -124,22 +146,58 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     const unitKey = getSuggestedUnitKey(newItem.trim())
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
 
+    // Spara pending item och visa dialog
+    setPendingManualItem({
+      name: newItem.trim(),
+      unit: unit
+    })
+    setSelectedUnit(unit) // Sätt förvald enhet
+    setShowFoodTypeDialog(true)
+  }
+
+  // Bekräfta och lägg till manuell vara
+  const confirmManualItem = (isFood) => {
+    if (!pendingManualItem) return
+
+    const finalUnit = selectedUnit || pendingManualItem.unit
+
     const newShoppingItem = {
       id: Date.now() + Math.random(),
-      name: newItem.trim(),
-      category: 'övrigt',
-      emoji: '📦',
-      unit: unit,
+      name: pendingManualItem.name,
+      category: isFood ? 'mat' : 'övrigt',
+      emoji: isFood ? '🍽️' : '📦',
+      unit: finalUnit,
       quantity: 1,
       completed: false,
-      isFood: false,
+      isFood: isFood,
       addedAt: Date.now()
+    }
+
+    // Spara i användarvaror för självlärning
+    const userItemData = {
+      name: pendingManualItem.name,
+      category: isFood ? 'mat' : 'övrigt',
+      emoji: isFood ? '🍽️' : '📦',
+      unit: finalUnit,
+      isFood: isFood
+    }
+    
+    const result = userItemsService.addUserItem(userItemData)
+    
+    // Synka till Firebase
+    if (result.success) {
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        syncUserItemsToFirebase(result.items)
+      }
     }
 
     setShoppingItems(prev => [newShoppingItem, ...prev])
     setNewItem('')
     setShowSuggestions(false)
     setSuggestions([])
+    setShowFoodTypeDialog(false)
+    setPendingManualItem(null)
   }
   
   // Ta bort vara
@@ -421,6 +479,62 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
           </button>
         </div>
       </form>
+
+      {/* Dialog för matvara-typ och enhet */}
+      {showFoodTypeDialog && pendingManualItem && (
+        <div style={{marginBottom: '16px', padding: '20px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
+          <h3 style={{margin: '0 0 8px 0', fontSize: '18px', textAlign: 'center'}}>🎯 Lägg till: "{pendingManualItem.name}"</h3>
+          <p style={{margin: '0 0 20px 0', fontSize: '13px', color: 'var(--muted)', textAlign: 'center'}}>Hjälp appen att lära sig nya varor!</p>
+          
+          {/* Enhetsval */}
+          <div style={{marginBottom: '16px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Enhet:</label>
+            <select 
+              value={selectedUnit}
+              onChange={(e) => setSelectedUnit(e.target.value)}
+              style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
+            >
+              <option value="st">Stycken (st)</option>
+              <option value="kg">Kilogram (kg)</option>
+              <option value="hg">Hektogram (hg)</option>
+              <option value="g">Gram (g)</option>
+              <option value="L">Liter (L)</option>
+              <option value="dl">Deciliter (dl)</option>
+              <option value="cl">Centiliter (cl)</option>
+              <option value="ml">Milliliter (ml)</option>
+            </select>
+          </div>
+
+          {/* Matvara-val */}
+          <div style={{marginBottom: '16px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Är detta en matvara?</label>
+            <p style={{fontSize: '12px', color: 'var(--muted)', marginBottom: '12px'}}>Om det är mat läggs den i kylskåpet när du bockat av den.</p>
+            <div style={{display: 'flex', gap: '12px'}}>
+              <button 
+                onClick={() => confirmManualItem(true)}
+                className="btn-glass"
+                style={{flex: 1, padding: '12px', fontSize: '15px', background: 'var(--success)', border: '2px solid var(--success)'}}
+              >
+                🍽️ Ja, matvara
+              </button>
+              <button 
+                onClick={() => confirmManualItem(false)}
+                className="btn-glass"
+                style={{flex: 1, padding: '12px', fontSize: '15px'}}
+              >
+                📦 Nej, annat
+              </button>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => { setShowFoodTypeDialog(false); setPendingManualItem(null) }}
+            style={{width: '100%', marginTop: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--muted)', textDecoration: 'underline'}}
+          >
+            Avbryt
+          </button>
+        </div>
+      )}
 
       {/* Dialog för att spara lista */}
       {showSaveDialog && (

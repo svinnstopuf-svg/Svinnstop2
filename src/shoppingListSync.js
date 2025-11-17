@@ -80,6 +80,45 @@ export function listenToSavedListsChanges(callback) {
   })
 }
 
+// Synka användarvaror till Firebase
+export async function syncUserItemsToFirebase(userItems) {
+  const family = getFamilyData()
+  if (!family.familyId || !family.syncEnabled) {
+    return
+  }
+
+  try {
+    const userItemsRef = ref(database, `families/${family.familyId}/userItems`)
+    await set(userItemsRef, userItems)
+    console.log('✅ Firebase: User items synced', userItems.length, 'items')
+  } catch (error) {
+    console.error('❌ Firebase: Failed to sync user items', error)
+  }
+}
+
+// Lyssna på användarvaror-ändringar från Firebase
+export function listenToUserItemsChanges(callback) {
+  const family = getFamilyData()
+  if (!family.familyId || !family.syncEnabled) {
+    console.log('⚠️ Firebase: Not listening to user items - no family or sync disabled')
+    return null
+  }
+
+  console.log('👂 Firebase: Starting to listen for user items changes', family.familyId)
+  const userItemsRef = ref(database, `families/${family.familyId}/userItems`)
+  return onValue(userItemsRef, (snap) => {
+    const data = snap.val()
+    if (data) {
+      console.log('✅ Firebase: User items updated from Firebase', data.length, 'items')
+      callback(data)
+    } else {
+      console.log('⚠️ Firebase: No user items in Firebase')
+    }
+  }, (error) => {
+    console.error('❌ Firebase: Error listening to user items', error)
+  })
+}
+
 // Ta bort inköpslista från Firebase när familj lämnas
 export async function clearShoppingListFromFirebase() {
   const family = getFamilyData()
@@ -90,8 +129,10 @@ export async function clearShoppingListFromFirebase() {
   try {
     const shoppingRef = ref(database, `families/${family.familyId}/shoppingList`)
     const savedListsRef = ref(database, `families/${family.familyId}/savedShoppingLists`)
+    const userItemsRef = ref(database, `families/${family.familyId}/userItems`)
     await remove(shoppingRef)
     await remove(savedListsRef)
+    await remove(userItemsRef)
     console.log('✅ Firebase: Shopping list data cleared')
   } catch (error) {
     console.error('❌ Firebase: Failed to clear shopping list data', error)
