@@ -283,13 +283,25 @@ export default function App() {
       if (hasReferralCode) {
         setActiveTab('referral')
         console.log('🎁 Referral code detected in URL, will navigate to referral tab after onboarding')
+        // Markera att referral-kod har hanterats
+        localStorage.setItem('svinnstop_referral_visited', 'true')
       } else {
         setActiveTab('inventory') // Default till kylskåp
       }
     } else if (hasReferralCode) {
       // Inte första gången, men har referral-kod i URL
-      console.log('🎁 Referral code detected in URL, navigating to referral tab')
-      setActiveTab('referral')
+      const hasVisitedReferral = localStorage.getItem('svinnstop_referral_visited')
+      
+      if (!hasVisitedReferral) {
+        // Första gången med referral-kod (men efter onboarding)
+        console.log('🎁 First time referral code detected, navigating to referral tab')
+        setActiveTab('referral')
+        localStorage.setItem('svinnstop_referral_visited', 'true')
+      } else {
+        // Har redan besökt referral-fliken, gå till kylskåp
+        console.log('✅ Referral already visited, going to default tab')
+        setActiveTab('inventory')
+      }
     } else {
       // Ladda senaste aktiva tab
       const savedTab = localStorage.getItem('svinnstop_active_tab')
