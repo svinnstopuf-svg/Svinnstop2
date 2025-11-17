@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { searchShoppingItems } from './shoppingDatabase'
 import { getExpiryDateSuggestion } from './foodDatabase'
 import { SV_UNITS, getSuggestedUnitKey } from './App'
-import { increaseQuantity, decreaseQuantity } from './unitConverter'
+import { increaseQuantity, decreaseQuantity, smartConvertUnit } from './unitConverter'
 import { shoppingListService } from './shoppingListService'
 import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges } from './shoppingListSync'
 import { getFamilyData } from './familyService'
@@ -17,6 +17,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveListName, setSaveListName] = useState('')
   const [isSyncing, setIsSyncing] = useState(false)
+  const [editingQuantity, setEditingQuantity] = useState(null) // ID för vara som redigeras
+  const [tempQuantity, setTempQuantity] = useState('') // Temporärt värde under redigering
   
   // Ladda inköpslista från localStorage
   useEffect(() => {
@@ -261,6 +263,40 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     }
   }
 
+  // Börja redigera kvantitet
+  const startEditingQuantity = (itemId, currentQuantity) => {
+    setEditingQuantity(itemId)
+    setTempQuantity(String(currentQuantity))
+  }
+
+  // Spara redigerad kvantitet
+  const saveQuantityEdit = (itemId, item) => {
+    const parsed = parseFloat(tempQuantity)
+    
+    if (isNaN(parsed) || parsed <= 0) {
+      // Ogiltig input - återställ
+      setEditingQuantity(null)
+      setTempQuantity('')
+      return
+    }
+    
+    // Använd smart konvertering för det nya värdet
+    const { quantity: newQuantity, unit: newUnit } = smartConvertUnit(parsed, item.unit)
+    
+    setShoppingItems(prev => prev.map(i => 
+      i.id === itemId ? {...i, quantity: newQuantity, unit: newUnit} : i
+    ))
+    
+    setEditingQuantity(null)
+    setTempQuantity('')
+  }
+
+  // Avbryt redigering
+  const cancelQuantityEdit = () => {
+    setEditingQuantity(null)
+    setTempQuantity('')
+  }
+
   const completedCount = shoppingItems.filter(item => item.completed).length
   const totalCount = shoppingItems.length
   
@@ -443,54 +479,70 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                     </div>
                   </div>
                 </label>
-                <span className="item-quantity-display notranslate" translate="no" style={{fontSize: '13px', fontWeight: 500, alignSelf: 'center'}}>
-                  {item.quantity} {item.quantity === 1 && item.unit === 'stycken' ? 'stycke' : item.unit}
-                </span>
-                <div className="item-actions">
-                  <div className="qty-control">
-                    <button 
-                      className="qty-btn qty-minus"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // Använd smart konvertering
-                        const { quantity: newQuantity, unit: newUnit } = decreaseQuantity(item.quantity, item.unit)
-                        
-                        setShoppingItems(prev => {
-                          const updated = prev.map(i => 
-                            i.id === item.id ? {...i, quantity: newQuantity, unit: newUnit} : i
-                          )
-                          return updated
-                        })
+                {editingQuantity === item.id ? (
+                  <div style={{display: 'flex', gap: '4px', alignItems: 'center', alignSelf: 'center'}}>
+                    <input
+                      type="number"
+                      value={tempQuantity}
+                      onChange={(e) => setTempQuantity(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveQuantityEdit(item.id, item)
+                        } else if (e.key === 'Escape') {
+                          cancelQuantityEdit()
+                        }
                       }}
-                      disabled={item.completed}
-                      title="Minska"
-                      aria-label="Minska antal"
-                    >
-                      −
-                    </button>
-                    <button 
-                      className="qty-btn qty-plus"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // Använd smart konvertering
-                        const { quantity: newQuantity, unit: newUnit } = increaseQuantity(item.quantity, item.unit)
-                        
-                        setShoppingItems(prev => {
-                          const updated = prev.map(i => 
-                            i.id === item.id ? {...i, quantity: newQuantity, unit: newUnit} : i
-                          )
-                          return updated
-                        })
+                      onBlur={() => saveQuantityEdit(item.id, item)}
+                      autoFocus
+                      min="0.1"
+                      step="0.1"
+                      style={{
+                        width: '60px',
+                        padding: '4px 8px',
+                        fontSize: '13px',
+                        border: '2px solid var(--accent)',
+                        borderRadius: '6px',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text)',
+                        textAlign: 'center'
                       }}
-                      disabled={item.completed}
-                      title="Öka"
-                      aria-label="Öka antal"
-                    >
-                      +
-                    </button>
+                    />
+                    <span style={{fontSize: '12px', color: 'var(--muted)'}}>
+                      {item.unit}
+                    </span>
                   </div>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (!item.completed) {
+                        startEditingQuantity(item.id, item.quantity)
+                      }
+                    }}
+                    disabled={item.completed}
+                    className="item-quantity-display notranslate"
+                    translate="no"
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      alignSelf: 'center',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      background: item.completed ? 'transparent' : 'var(--input-bg)',
+                      cursor: item.completed ? 'default' : 'pointer',
+                      transition: 'all 0.2s',
+                      ':hover': {
+                        background: 'var(--accent)'
+                      }
+                    }}
+                    title={item.completed ? '' : 'Klicka för att ändra mängd'}
+                  >
+                    {item.quantity} {item.quantity === 1 && item.unit === 'stycken' ? 'stycke' : item.unit}
+                  </button>
+                )}
+                <div className="item-actions">
                   <button 
                     className="trash-btn"
                     onClick={(e) => {
@@ -516,6 +568,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
           <li><strong>🍽️ Matvaror:</strong> När du bockar av → Markeras som klara. <em>Först när du klickar på "🗑️ Rensa klara"</em> läggs de i "Mina varor" med smart utgångsdatum.</li>
           <li><strong>🧯 Andra varor:</strong> När du bockar av → Stannar i listan tills du klickar på "🗑️ Rensa klara"</li>
           <li><strong>🔍 Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
+          <li><strong>👆 Ändra mängd:</strong> Klicka på kvantiteten (t.ex. "5 kg") för att redigera den direkt!</li>
           <li><strong>💾 Spara listor:</strong> Skapar du samma inköpslista varje vecka? Spara den som mall och ladda nästa gång!</li>
           <li><strong>⚖️ Smart mått:</strong> Siffror konverteras automatiskt (t.ex. 1000g → 1kg) för bättre användbarhet</li>
           <li><strong>🔄 Synkronisering:</strong> Är du med i en familjegrupp? Inköpslistor synkas automatiskt mellan alla medlemmar!</li>
