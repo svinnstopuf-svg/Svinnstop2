@@ -469,7 +469,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                     className="btn-glass"
                     style={{padding: '8px 12px', fontSize: '13px'}}
                   >
-                    📄 Ladda
+                    ✅ Använd
                   </button>
                   <button 
                     onClick={() => handleDeleteSavedList(list.id, list.name)}
