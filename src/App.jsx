@@ -197,6 +197,10 @@ export default function App() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
+  const [showInventoryDialog, setShowInventoryDialog] = useState(false) // Dialog för manuell kylskåpsvara
+  const [pendingInventoryItem, setPendingInventoryItem] = useState(null)
+  const [selectedInventoryUnit, setSelectedInventoryUnit] = useState('st')
+  const [selectedInventoryCategory, setSelectedInventoryCategory] = useState('frukt')
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -562,21 +566,35 @@ export default function App() {
     const itemQuantity = form.quantity
     const itemExpiresAt = form.expiresAt
     
-    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
     const unitKey = getSuggestedUnitKey(itemName)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     
     // Hämta kategori och emoji från foodDatabase eller AI
     const suggestion = getExpiryDateSuggestion(itemName)
     
+    // Om varan inte finns i databasen, visa dialog
+    if (!suggestion.category || suggestion.category === 'övrigt') {
+      setPendingInventoryItem({
+        name: itemName,
+        quantity: itemQuantity,
+        expiresAt: itemExpiresAt,
+        unit: unit
+      })
+      setSelectedInventoryUnit(unit)
+      setSelectedInventoryCategory('frukt')
+      setShowInventoryDialog(true)
+      return
+    }
+    
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
     const newItem = { 
       id, 
       name: itemName, 
       quantity: itemQuantity, 
       expiresAt: itemExpiresAt, 
       unit,
-      category: suggestion.category || 'övrigt',
-      emoji: suggestion.emoji || '🍽️'
+      category: suggestion.category,
+      emoji: suggestion.emoji
     }
     
     // Lär appen om nya varor (självlärande system)
@@ -629,6 +647,93 @@ export default function App() {
     setShowFoodSuggestions(false)
     
     // Fokusera tillbaka till namn-fältet för snabbare inmatning
+    setTimeout(() => {
+      const nameInput = document.querySelector('input[name="name"]')
+      if (nameInput) nameInput.focus()
+    }, 100)
+  }
+
+  // Bekräfta och lägg till manuell kylskåpsvara
+  const confirmInventoryItem = () => {
+    if (!pendingInventoryItem) return
+    
+    const finalUnit = selectedInventoryUnit || pendingInventoryItem.unit
+    const finalCategory = selectedInventoryCategory || 'frukt'
+    
+    // Emoji baserat på kategori
+    const getCategoryEmoji = (cat) => {
+      const emojiMap = {
+        'frukt': '🍎',
+        'grönsak': '🥬',
+        'kött': '🥩',
+        'fisk': '🐟',
+        'mejeri': '🧀',
+        'dryck': '🥤',
+        'övrigt': '📦'
+      }
+      return emojiMap[cat] || '🍽️'
+    }
+    
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
+    const newItem = {
+      id,
+      name: pendingInventoryItem.name,
+      quantity: pendingInventoryItem.quantity,
+      expiresAt: pendingInventoryItem.expiresAt,
+      unit: finalUnit,
+      category: finalCategory,
+      emoji: getCategoryEmoji(finalCategory)
+    }
+    
+    // Lär appen om nya varor (självlärande system)
+    const userItemData = {
+      name: pendingInventoryItem.name,
+      category: finalCategory,
+      emoji: getCategoryEmoji(finalCategory),
+      unit: finalUnit,
+      isFood: true
+    }
+    
+    const result = userItemsService.addUserItem(userItemData)
+    
+    // Synka till Firebase
+    if (result.success) {
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        const { syncUserItemsToFirebase } = require('./shoppingListSync')
+        syncUserItemsToFirebase(result.items)
+      }
+    }
+    
+    // Lägg till vara i inventariet
+    setItems(prev => {
+      const updated = [...prev, newItem]
+      
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      } catch (error) {
+        console.error('Kunde inte spara till localStorage:', error)
+      }
+      
+      if (notificationsEnabled) {
+        notificationService.scheduleExpiryNotifications(updated)
+      }
+      
+      return updated
+    })
+    
+    // Rensa formuläret och stäng dialogen
+    setForm({ 
+      name: '', 
+      quantity: 0, 
+      expiresAt: '' 
+    })
+    setFoodSuggestions([])
+    setShowFoodSuggestions(false)
+    setShowInventoryDialog(false)
+    setPendingInventoryItem(null)
+    
+    // Fokusera tillbaka till namn-fältet
     setTimeout(() => {
       const nameInput = document.querySelector('input[name="name"]')
       if (nameInput) nameInput.focus()
@@ -1492,6 +1597,68 @@ export default function App() {
                   )}
                 </div>
               </form>
+              
+              {/* Dialog för kategori och enhet */}
+              {showInventoryDialog && pendingInventoryItem && (
+                <div style={{marginTop: '16px', padding: '20px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
+                  <h3 style={{margin: '0 0 8px 0', fontSize: '18px', textAlign: 'center'}}>🎯 Lägg till: "{pendingInventoryItem.name}"</h3>
+                  <p style={{margin: '0 0 20px 0', fontSize: '13px', color: 'var(--muted)', textAlign: 'center'}}>Hjälp appen att lära sig nya varor!</p>
+                  
+                  {/* Kategoriväljare */}
+                  <div style={{marginBottom: '16px'}}>
+                    <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Kategori:</label>
+                    <select 
+                      value={selectedInventoryCategory}
+                      onChange={(e) => setSelectedInventoryCategory(e.target.value)}
+                      style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
+                    >
+                      <option value="frukt">Frukt</option>
+                      <option value="grönsak">Grönsak</option>
+                      <option value="kött">Kött</option>
+                      <option value="fisk">Fisk</option>
+                      <option value="mejeri">Mejeri</option>
+                      <option value="dryck">Dryck</option>
+                      <option value="övrigt">Övrigt</option>
+                    </select>
+                  </div>
+
+                  {/* Enhetsval */}
+                  <div style={{marginBottom: '16px'}}>
+                    <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Enhet:</label>
+                    <select 
+                      value={selectedInventoryUnit}
+                      onChange={(e) => setSelectedInventoryUnit(e.target.value)}
+                      style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
+                    >
+                      <option value="st">Stycken (st)</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="hg">Hektogram (hg)</option>
+                      <option value="g">Gram (g)</option>
+                      <option value="L">Liter (L)</option>
+                      <option value="dl">Deciliter (dl)</option>
+                      <option value="cl">Centiliter (cl)</option>
+                      <option value="ml">Milliliter (ml)</option>
+                    </select>
+                  </div>
+
+                  <div style={{display: 'flex', gap: '12px'}}>
+                    <button 
+                      onClick={confirmInventoryItem}
+                      className="btn-glass"
+                      style={{flex: 1, padding: '12px', fontSize: '15px', background: 'var(--success)', border: '2px solid var(--success)'}}
+                    >
+                      ✅ Bekräfta
+                    </button>
+                    <button 
+                      onClick={() => { setShowInventoryDialog(false); setPendingInventoryItem(null) }}
+                      className="btn-glass"
+                      style={{flex: 1, padding: '12px', fontSize: '15px'}}
+                    >
+                      ❌ Avbryt
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
             
             {/* Mina varor section */}

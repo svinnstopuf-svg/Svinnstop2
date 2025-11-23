@@ -24,7 +24,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [showFoodTypeDialog, setShowFoodTypeDialog] = useState(false)
   const [pendingManualItem, setPendingManualItem] = useState(null)
   const [selectedUnit, setSelectedUnit] = useState('st')
-  const [selectedCategory, setSelectedCategory] = useState('mat')
+  const [selectedCategory, setSelectedCategory] = useState('frukt')
   const [selectedIsFood, setSelectedIsFood] = useState(true)
   
   // Ladda inköpslista från localStorage
@@ -155,7 +155,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       unit: unit
     })
     setSelectedUnit(unit) // Sätt förvald enhet
-    setSelectedCategory('mat') // Sätt standard kategori
+    setSelectedCategory('frukt') // Sätt standard kategori
     setSelectedIsFood(true) // Sätt standard matvara
     setShowFoodTypeDialog(true)
   }
@@ -165,7 +165,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     if (!pendingManualItem) return
 
     const finalUnit = selectedUnit || pendingManualItem.unit
-    const finalCategory = selectedCategory || 'mat'
+    const finalCategory = selectedCategory || 'frukt'
     const isFood = selectedIsFood
     
     // Emoji baserat på kategori
@@ -176,24 +176,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         'kött': '🥩',
         'fisk': '🐟',
         'mejeri': '🧀',
-        'ägg': '🥚',
-        'bröd': '🍞',
-        'spannmål': '🌾',
-        'pasta': '🍝',
-        'ris': '🍚',
-        'konserv': '🥫',
-        'fryst': '🧊',
-        'krydda': '🧂',
-        'sås': '🍯',
-        'olja': '🫒',
         'dryck': '🥤',
-        'snacks': '🍿',
-        'godis': '🍬',
-        'mat': '🍽️',
-        'hem': '🏠',
-        'personvård': '🧴',
-        'husdjur': '🐾',
-        'baby': '👶',
         'övrigt': '📦'
       }
       return emojiMap[cat] || '🍽️'
@@ -569,34 +552,13 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
               onChange={(e) => setSelectedCategory(e.target.value)}
               style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
             >
-              <optgroup label="Matvaror">
-                <option value="frukt">Frukt</option>
-                <option value="grönsak">Grönsak</option>
-                <option value="kött">Kött</option>
-                <option value="fisk">Fisk</option>
-                <option value="mejeri">Mejeri</option>
-                <option value="ägg">Ägg</option>
-                <option value="bröd">Bröd</option>
-                <option value="spannmål">Spannmål</option>
-                <option value="pasta">Pasta</option>
-                <option value="ris">Ris</option>
-                <option value="konserv">Konserv</option>
-                <option value="fryst">Fryst</option>
-                <option value="krydda">Krydda</option>
-                <option value="sås">Sås</option>
-                <option value="olja">Olja</option>
-                <option value="dryck">Dryck</option>
-                <option value="snacks">Snacks</option>
-                <option value="godis">Godis</option>
-                <option value="mat">Mat (allmänt)</option>
-              </optgroup>
-              <optgroup label="Övrigt">
-                <option value="hem">Hem & hushåll</option>
-                <option value="personvård">Personvård</option>
-                <option value="husdjur">Husdjur</option>
-                <option value="baby">Baby</option>
-                <option value="övrigt">Övrigt</option>
-              </optgroup>
+              <option value="frukt">Frukt</option>
+              <option value="grönsak">Grönsak</option>
+              <option value="kött">Kött</option>
+              <option value="fisk">Fisk</option>
+              <option value="mejeri">Mejeri</option>
+              <option value="dryck">Dryck</option>
+              <option value="övrigt">Övrigt</option>
             </select>
           </div>
 
