@@ -22,6 +22,8 @@ import { getFamilyData } from './familyService'
 import { initAuth } from './firebaseConfig'
 import { referralService } from './referralService'
 import { leaderboardService } from './leaderboardService'
+import { sortInventoryItems } from './sortingUtils'
+import { userItemsService } from './userItemsService'
 import './mobile.css'
 import './newFeatures.css'
 
@@ -374,6 +376,48 @@ export default function App() {
     }
   }, [familySyncTrigger])
 
+  // Auto-refresh när användaren kommer tillbaka till appen
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 App became visible, refreshing data...')
+        
+        // Ladda om data från localStorage
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved)
+            if (Array.isArray(parsed)) {
+              const validItems = parsed.filter(item => 
+                item && 
+                typeof item === 'object' && 
+                item.id && 
+                item.name && 
+                item.quantity !== undefined && 
+                item.expiresAt
+              )
+              setItems(validItems)
+            }
+          } catch (error) {
+            console.error('Kunde inte ladda items:', error)
+          }
+        }
+        
+        // Om i familj, triggera Firebase-sync
+        const family = getFamilyData()
+        if (family.familyId && family.syncEnabled) {
+          setFamilySyncTrigger(prev => prev + 1)
+        }
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
   // FIX: Debounce localStorage writes för att undvika race conditions
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -522,12 +566,37 @@ export default function App() {
     const unitKey = getSuggestedUnitKey(itemName)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     
+    // Hämta kategori och emoji från foodDatabase eller AI
+    const suggestion = getExpiryDateSuggestion(itemName)
+    
     const newItem = { 
       id, 
       name: itemName, 
       quantity: itemQuantity, 
       expiresAt: itemExpiresAt, 
-      unit 
+      unit,
+      category: suggestion.category || 'övrigt',
+      emoji: suggestion.emoji || '🍽️'
+    }
+    
+    // Lär appen om nya varor (självlärande system)
+    const userItemData = {
+      name: itemName,
+      category: newItem.category,
+      emoji: newItem.emoji,
+      unit: unit,
+      isFood: true // Allt i kylskåpet är mat
+    }
+    
+    const result = userItemsService.addUserItem(userItemData)
+    
+    // Synka till Firebase
+    if (result.success) {
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        const { syncUserItemsToFirebase } = require('./shoppingListSync')
+        syncUserItemsToFirebase(result.items)
+      }
     }
     
     // Lägg till vara i inventariet
@@ -1078,7 +1147,7 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const now = new Date()
-    let result = sorted
+    let result = items
     
     // Tillämpa statusfilter
     if (filter === 'expiring') {
@@ -1097,8 +1166,9 @@ export default function App() {
       )
     }
     
-    return result
-  }, [sorted, filter, searchQuery])
+    // Sortera efter kategori och alfabetisk ordning
+    return sortInventoryItems(result)
+  }, [items, filter, searchQuery])
 
   // Mina recept - använd endast recept från rekommenderade (internet-recept)
   const suggestions = useMemo(() => {

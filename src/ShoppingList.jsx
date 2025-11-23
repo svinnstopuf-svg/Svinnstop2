@@ -7,6 +7,7 @@ import { shoppingListService } from './shoppingListService'
 import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges, syncUserItemsToFirebase, listenToUserItemsChanges } from './shoppingListSync'
 import { getFamilyData } from './familyService'
 import { userItemsService, searchUserItems } from './userItemsService'
+import { sortShoppingItems } from './sortingUtils'
 
 export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
   const [shoppingItems, setShoppingItems] = useState([])
@@ -605,7 +606,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
             <p>Din inköpslista är tom</p>
           </div>
         ) : (
-          shoppingItems.map(item => (
+          sortShoppingItems(shoppingItems).map(item => (
             <div key={item.id} className={`shopping-item ${item.completed ? 'completed' : ''} ${item.isFood ? 'food-item' : 'non-food-item'}`}>
               <div className="item-main" style={{alignItems: 'center'}}>
                 <input
