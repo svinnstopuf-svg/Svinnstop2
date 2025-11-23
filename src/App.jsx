@@ -557,6 +557,31 @@ export default function App() {
     }
   }
 
+  // Stäng förslag och visa dialog om något är ifyllt
+  const closeFoodSuggestionsAndShowDialog = () => {
+    setFoodSuggestions([])
+    setShowFoodSuggestions(false)
+    
+    // Om namn och quantity och datum är ifyllda, visa dialogen direkt
+    if (form.name.trim() && form.quantity > 0 && form.expiresAt) {
+      const itemName = form.name.trim()
+      const unitKey = getSuggestedUnitKey(itemName)
+      const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+      const suggestion = getExpiryDateSuggestion(itemName)
+      
+      setPendingInventoryItem({
+        name: itemName,
+        quantity: form.quantity,
+        expiresAt: form.expiresAt,
+        unit: unit,
+        suggestedCategory: suggestion.category || 'frukt'
+      })
+      setSelectedInventoryUnit(unit)
+      setSelectedInventoryCategory(suggestion.category || 'frukt')
+      setShowInventoryDialog(true)
+    }
+  }
+
   const onAdd = e => {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
@@ -607,16 +632,10 @@ export default function App() {
       return emojiMap[cat] || '🍽️'
     }
     
-    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-    const newItem = {
-      id,
-      name: pendingInventoryItem.name,
-      quantity: pendingInventoryItem.quantity,
-      expiresAt: pendingInventoryItem.expiresAt,
-      unit: finalUnit,
-      category: finalCategory,
-      emoji: getCategoryEmoji(finalCategory)
-    }
+    // Kolla om varan redan finns (samma namn)
+    const existingItem = items.find(item => 
+      item.name.toLowerCase() === pendingInventoryItem.name.toLowerCase()
+    )
     
     // Lär appen om nya varor (självlärande system)
     const userItemData = {
@@ -638,22 +657,64 @@ export default function App() {
       }
     }
     
-    // Lägg till vara i inventariet
-    setItems(prev => {
-      const updated = [...prev, newItem]
-      
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      } catch (error) {
-        console.error('Kunde inte spara till localStorage:', error)
+    if (existingItem) {
+      // Uppdatera befintlig vara med nya värden
+      setItems(prev => {
+        const updated = prev.map(item => 
+          item.id === existingItem.id
+            ? {
+                ...item,
+                quantity: pendingInventoryItem.quantity,
+                expiresAt: pendingInventoryItem.expiresAt,
+                unit: finalUnit,
+                category: finalCategory,
+                emoji: getCategoryEmoji(finalCategory)
+              }
+            : item
+        )
+        
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        } catch (error) {
+          console.error('Kunde inte spara till localStorage:', error)
+        }
+        
+        if (notificationsEnabled) {
+          notificationService.scheduleExpiryNotifications(updated)
+        }
+        
+        return updated
+      })
+    } else {
+      // Skapa ny vara
+      const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
+      const newItem = {
+        id,
+        name: pendingInventoryItem.name,
+        quantity: pendingInventoryItem.quantity,
+        expiresAt: pendingInventoryItem.expiresAt,
+        unit: finalUnit,
+        category: finalCategory,
+        emoji: getCategoryEmoji(finalCategory)
       }
       
-      if (notificationsEnabled) {
-        notificationService.scheduleExpiryNotifications(updated)
-      }
-      
-      return updated
-    })
+      // Lägg till vara i inventariet
+      setItems(prev => {
+        const updated = [...prev, newItem]
+        
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        } catch (error) {
+          console.error('Kunde inte spara till localStorage:', error)
+        }
+        
+        if (notificationsEnabled) {
+          notificationService.scheduleExpiryNotifications(updated)
+        }
+        
+        return updated
+      })
+    }
     
     // Rensa formuläret och stäng dialogen
     setForm({ 
@@ -1436,10 +1497,7 @@ export default function App() {
                             <span>Förslag:</span>
                             <button 
                               type="button" 
-                              onClick={() => {
-                                setShowFoodSuggestions(false)
-                                setFoodSuggestions([])
-                              }}
+                              onClick={closeFoodSuggestionsAndShowDialog}
                               style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--muted)', padding: '0 4px'}}
                               title="Stäng förslag"
                             >
