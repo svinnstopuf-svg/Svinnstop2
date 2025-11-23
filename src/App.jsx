@@ -1601,7 +1601,7 @@ export default function App() {
               {/* Dialog för kategori och enhet */}
               {showInventoryDialog && pendingInventoryItem && (
                 <div style={{marginTop: '16px', padding: '20px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
-                  <h3 style={{margin: '0 0 8px 0', fontSize: '18px', textAlign: 'center'}}>🎯 Lägg till: "{pendingInventoryItem.name}"</h3>
+                  <h3 style={{margin: '0 0 8px 0', fontSize: '18px', textAlign: 'center'}}>Lägg till: "{pendingInventoryItem.name}"</h3>
                   <p style={{margin: '0 0 20px 0', fontSize: '13px', color: 'var(--muted)', textAlign: 'center'}}>Hjälp appen att lära sig nya varor!</p>
                   
                   {/* Kategoriväljare */}
@@ -1647,14 +1647,14 @@ export default function App() {
                       className="btn-glass"
                       style={{flex: 1, padding: '12px', fontSize: '15px', background: 'var(--success)', border: '2px solid var(--success)'}}
                     >
-                      ✅ Bekräfta
+                      Bekräfta
                     </button>
                     <button 
                       onClick={() => { setShowInventoryDialog(false); setPendingInventoryItem(null) }}
                       className="btn-glass"
                       style={{flex: 1, padding: '12px', fontSize: '15px'}}
                     >
-                      ❌ Avbryt
+                      Avbryt
                     </button>
                   </div>
                 </div>
