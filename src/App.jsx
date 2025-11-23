@@ -549,6 +549,17 @@ export default function App() {
         const suggestions = searchFoods(value.trim())
         setFoodSuggestions(suggestions)
         setShowFoodSuggestions(suggestions.length > 0)
+        
+        // Uppdatera föreslagen enhet och kategori baserat på namnet
+        const unitKey = getSuggestedUnitKey(value.trim())
+        const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+        const suggestion = getExpiryDateSuggestion(value.trim())
+        
+        setSelectedInventoryUnit(unit)
+        setCurrentDisplayUnit(unit)
+        if (suggestion.category) {
+          setSelectedInventoryCategory(suggestion.category)
+        }
       } else {
         setFoodSuggestions([])
         setShowFoodSuggestions(false)
@@ -1601,7 +1612,7 @@ export default function App() {
                   </button>
                   {form.name && form.expiresAt && form.quantity > 0 && (
                     <div className="form-preview">
-                      <small>Lägger till: <strong>{form.quantity} {form.quantity === 1 && suggestedUnit === 'stycken' ? 'stycke' : suggestedUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
+                      <small>Lägger till: <strong>{form.quantity} {selectedInventoryUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
                     </div>
                   )}
                 </div>
