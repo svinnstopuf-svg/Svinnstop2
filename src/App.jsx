@@ -201,6 +201,7 @@ export default function App() {
   const [pendingInventoryItem, setPendingInventoryItem] = useState(null)
   const [selectedInventoryUnit, setSelectedInventoryUnit] = useState('st')
   const [selectedInventoryCategory, setSelectedInventoryCategory] = useState('frukt')
+  const [currentDisplayUnit, setCurrentDisplayUnit] = useState('st') // Aktuell enhet som visas
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -587,6 +588,7 @@ export default function App() {
       })
       setSelectedInventoryUnit(unit)
       setSelectedInventoryCategory(suggestion.category || 'frukt')
+      setCurrentDisplayUnit(unit)
       setShowInventoryDialog(true)
     }
   }
@@ -617,6 +619,7 @@ export default function App() {
     })
     setSelectedInventoryUnit(unit)
     setSelectedInventoryCategory(suggestion.category || 'frukt')
+    setCurrentDisplayUnit(unit)
     setShowInventoryDialog(true)
   }
 
@@ -1346,9 +1349,13 @@ export default function App() {
     return key
   }, [form.name])
   const suggestedUnit = useMemo(() => {
+    // Använd currentDisplayUnit om dialogen är öppen, annars föreslagen enhet
+    if (showInventoryDialog) {
+      return currentDisplayUnit
+    }
     const unit = SV_UNITS[suggestedUnitKey] || SV_UNITS.defaultUnit
     return unit
-  }, [suggestedUnitKey])
+  }, [suggestedUnitKey, showInventoryDialog, currentDisplayUnit])
 
   // Handle onboarding complete
   const handleOnboardingComplete = () => {
@@ -1639,7 +1646,10 @@ export default function App() {
                     <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Enhet:</label>
                     <select 
                       value={selectedInventoryUnit}
-                      onChange={(e) => setSelectedInventoryUnit(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedInventoryUnit(e.target.value)
+                        setCurrentDisplayUnit(e.target.value)
+                      }}
                       style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
                     >
                       <option value="st">Stycken (st)</option>
