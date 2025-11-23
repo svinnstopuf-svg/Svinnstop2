@@ -572,85 +572,18 @@ export default function App() {
     // Hämta kategori och emoji från foodDatabase eller AI
     const suggestion = getExpiryDateSuggestion(itemName)
     
-    // Om varan inte finns i databasen, visa dialog
-    if (!suggestion.category || suggestion.category === 'övrigt') {
-      setPendingInventoryItem({
-        name: itemName,
-        quantity: itemQuantity,
-        expiresAt: itemExpiresAt,
-        unit: unit
-      })
-      setSelectedInventoryUnit(unit)
-      setSelectedInventoryCategory('frukt')
-      setShowInventoryDialog(true)
-      return
-    }
-    
-    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-    const newItem = { 
-      id, 
-      name: itemName, 
-      quantity: itemQuantity, 
-      expiresAt: itemExpiresAt, 
-      unit,
-      category: suggestion.category,
-      emoji: suggestion.emoji
-    }
-    
-    // Lär appen om nya varor (självlärande system)
-    const userItemData = {
+    // Visa alltid dialog för manuellt tillagda varor (inte från förslag)
+    // Detta gör att användaren alltid kan välja rätt enhet och kategori
+    setPendingInventoryItem({
       name: itemName,
-      category: newItem.category,
-      emoji: newItem.emoji,
+      quantity: itemQuantity,
+      expiresAt: itemExpiresAt,
       unit: unit,
-      isFood: true // Allt i kylskåpet är mat
-    }
-    
-    const result = userItemsService.addUserItem(userItemData)
-    
-    // Synka till Firebase
-    if (result.success) {
-      const family = getFamilyData()
-      if (family.familyId && family.syncEnabled) {
-        const { syncUserItemsToFirebase } = require('./shoppingListSync')
-        syncUserItemsToFirebase(result.items)
-      }
-    }
-    
-    // Lägg till vara i inventariet
-    setItems(prev => {
-      const updated = [...prev, newItem]
-      
-      // FIX: Spara till localStorage direkt för att undvika race condition
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      } catch (error) {
-        console.error('Kunde inte spara till localStorage:', error)
-      }
-      
-      // Uppdatera notifikationer för utgångsdatum
-      if (notificationsEnabled) {
-        notificationService.scheduleExpiryNotifications(updated)
-      }
-      
-      return updated
+      suggestedCategory: suggestion.category || 'frukt'
     })
-    
-    // FIX: Rensa formuläret EFTER att vi skapat newItem
-    setForm({ 
-      name: '', 
-      quantity: 0, 
-      expiresAt: '' 
-    })
-    
-    setFoodSuggestions([])
-    setShowFoodSuggestions(false)
-    
-    // Fokusera tillbaka till namn-fältet för snabbare inmatning
-    setTimeout(() => {
-      const nameInput = document.querySelector('input[name="name"]')
-      if (nameInput) nameInput.focus()
-    }, 100)
+    setSelectedInventoryUnit(unit)
+    setSelectedInventoryCategory(suggestion.category || 'frukt')
+    setShowInventoryDialog(true)
   }
 
   // Bekräfta och lägg till manuell kylskåpsvara
