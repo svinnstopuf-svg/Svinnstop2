@@ -202,6 +202,7 @@ export default function App() {
   const [selectedInventoryUnit, setSelectedInventoryUnit] = useState('st')
   const [selectedInventoryCategory, setSelectedInventoryCategory] = useState('frukt')
   const [currentDisplayUnit, setCurrentDisplayUnit] = useState('st') // Aktuell enhet som visas
+  const [userSelectedUnit, setUserSelectedUnit] = useState(false) // Flagga om användaren manuellt valt enhet
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -551,12 +552,15 @@ export default function App() {
         setShowFoodSuggestions(suggestions.length > 0)
         
         // Uppdatera föreslagen enhet och kategori baserat på namnet
-        const unitKey = getSuggestedUnitKey(value.trim())
-        const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
-        const suggestion = getExpiryDateSuggestion(value.trim())
+        // MEN endast om användaren inte har manuellt valt en enhet
+        if (!userSelectedUnit) {
+          const unitKey = getSuggestedUnitKey(value.trim())
+          const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+          setSelectedInventoryUnit(unit)
+          setCurrentDisplayUnit(unit)
+        }
         
-        setSelectedInventoryUnit(unit)
-        setCurrentDisplayUnit(unit)
+        const suggestion = getExpiryDateSuggestion(value.trim())
         if (suggestion.category) {
           setSelectedInventoryCategory(suggestion.category)
         }
@@ -712,6 +716,7 @@ export default function App() {
     })
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
+    setUserSelectedUnit(false) // Återställ flaggan
     
     // Fokusera tillbaka till namn-fältet
     setTimeout(() => {
@@ -1555,6 +1560,7 @@ export default function App() {
                         onChange={(e) => {
                           setSelectedInventoryUnit(e.target.value)
                           setCurrentDisplayUnit(e.target.value)
+                          setUserSelectedUnit(true) // Markera att användaren har valt en enhet
                         }}
                         className="form-input"
                         style={{width: 'auto', minWidth: '80px', marginLeft: '8px'}}
