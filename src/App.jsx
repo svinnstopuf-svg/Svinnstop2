@@ -557,22 +557,31 @@ export default function App() {
     }
   }
 
-  // Stäng förslag och visa dialog om något är ifyllt
+  // Stäng förslag och visa dialog direkt
   const closeFoodSuggestionsAndShowDialog = () => {
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
     
-    // Om namn och quantity och datum är ifyllda, visa dialogen direkt
-    if (form.name.trim() && form.quantity > 0 && form.expiresAt) {
+    // Om namn finns, visa dialogen direkt
+    if (form.name.trim()) {
       const itemName = form.name.trim()
       const unitKey = getSuggestedUnitKey(itemName)
       const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
       const suggestion = getExpiryDateSuggestion(itemName)
       
+      // Sätt defaults om inte ifyllda
+      if (!form.quantity || form.quantity <= 0) {
+        setForm(prev => ({ ...prev, quantity: 1 }))
+      }
+      
+      if (!form.expiresAt && suggestion.date) {
+        setForm(prev => ({ ...prev, expiresAt: suggestion.date }))
+      }
+      
       setPendingInventoryItem({
         name: itemName,
-        quantity: form.quantity,
-        expiresAt: form.expiresAt,
+        quantity: form.quantity || 1,
+        expiresAt: form.expiresAt || suggestion.date || '',
         unit: unit,
         suggestedCategory: suggestion.category || 'frukt'
       })
@@ -614,6 +623,18 @@ export default function App() {
   // Bekräfta och lägg till manuell kylskåpsvara
   const confirmInventoryItem = () => {
     if (!pendingInventoryItem) return
+    
+    // Använd aktuella värden från formuläret
+    const currentQuantity = form.quantity || 1
+    const currentExpiresAt = form.expiresAt || ''
+    
+    // Om datum saknas, använd AI-förslag
+    let finalExpiresAt = currentExpiresAt
+    if (!finalExpiresAt) {
+      const smartResult = calculateSmartExpiryDate(pendingInventoryItem.name, null)
+      finalExpiresAt = smartResult.date
+      setForm(prev => ({ ...prev, expiresAt: finalExpiresAt }))
+    }
     
     const finalUnit = selectedInventoryUnit || pendingInventoryItem.unit
     const finalCategory = selectedInventoryCategory || 'frukt'
@@ -664,8 +685,8 @@ export default function App() {
           item.id === existingItem.id
             ? {
                 ...item,
-                quantity: pendingInventoryItem.quantity,
-                expiresAt: pendingInventoryItem.expiresAt,
+                quantity: currentQuantity,
+                expiresAt: finalExpiresAt,
                 unit: finalUnit,
                 category: finalCategory,
                 emoji: getCategoryEmoji(finalCategory)
@@ -691,8 +712,8 @@ export default function App() {
       const newItem = {
         id,
         name: pendingInventoryItem.name,
-        quantity: pendingInventoryItem.quantity,
-        expiresAt: pendingInventoryItem.expiresAt,
+        quantity: currentQuantity,
+        expiresAt: finalExpiresAt,
         unit: finalUnit,
         category: finalCategory,
         emoji: getCategoryEmoji(finalCategory)
