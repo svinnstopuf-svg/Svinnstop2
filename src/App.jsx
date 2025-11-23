@@ -551,14 +551,8 @@ export default function App() {
         setFoodSuggestions(suggestions)
         setShowFoodSuggestions(suggestions.length > 0)
         
-        // Uppdatera föreslagen enhet och kategori baserat på namnet
-        // MEN endast om användaren inte har manuellt valt en enhet
-        if (!userSelectedUnit) {
-          const unitKey = getSuggestedUnitKey(value.trim())
-          const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
-          setSelectedInventoryUnit(unit)
-          setCurrentDisplayUnit(unit)
-        }
+        // Uppdatera endast kategori baserat på namnet
+        // Enheten förblir 'st' om användaren inte manuellt ändrat den
         
         const suggestion = getExpiryDateSuggestion(value.trim())
         if (suggestion.category) {
@@ -581,8 +575,6 @@ export default function App() {
     // Om namn finns, sätt defaults
     if (form.name.trim()) {
       const itemName = form.name.trim()
-      const unitKey = getSuggestedUnitKey(itemName)
-      const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
       const suggestion = getExpiryDateSuggestion(itemName)
       
       // Sätt defaults om inte ifyllda
@@ -594,9 +586,8 @@ export default function App() {
         setForm(prev => ({ ...prev, expiresAt: suggestion.date }))
       }
       
-      setSelectedInventoryUnit(unit)
+      // Enheten förblir 'st' om användaren inte manuellt ändrat
       setSelectedInventoryCategory(suggestion.category || 'frukt')
-      setCurrentDisplayUnit(unit)
     }
   }
 
