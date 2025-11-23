@@ -558,12 +558,12 @@ export default function App() {
     }
   }
 
-  // Stäng förslag och visa dialog direkt
+  // Stäng förslag och sätt defaults
   const closeFoodSuggestionsAndShowDialog = () => {
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
     
-    // Om namn finns, visa dialogen direkt
+    // Om namn finns, sätt defaults
     if (form.name.trim()) {
       const itemName = form.name.trim()
       const unitKey = getSuggestedUnitKey(itemName)
@@ -579,17 +579,9 @@ export default function App() {
         setForm(prev => ({ ...prev, expiresAt: suggestion.date }))
       }
       
-      setPendingInventoryItem({
-        name: itemName,
-        quantity: form.quantity || 1,
-        expiresAt: form.expiresAt || suggestion.date || '',
-        unit: unit,
-        suggestedCategory: suggestion.category || 'frukt'
-      })
       setSelectedInventoryUnit(unit)
       setSelectedInventoryCategory(suggestion.category || 'frukt')
       setCurrentDisplayUnit(unit)
-      setShowInventoryDialog(true)
     }
   }
 
@@ -597,50 +589,12 @@ export default function App() {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
     
-    // FIX: Skapa en kopia av form-data INNAN vi rensar state
+    // Använd värden från formuläret
     const itemName = form.name.trim()
     const itemQuantity = form.quantity
     const itemExpiresAt = form.expiresAt
-    
-    const unitKey = getSuggestedUnitKey(itemName)
-    const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
-    
-    // Hämta kategori och emoji från foodDatabase eller AI
-    const suggestion = getExpiryDateSuggestion(itemName)
-    
-    // Visa alltid dialog för manuellt tillagda varor (inte från förslag)
-    // Detta gör att användaren alltid kan välja rätt enhet och kategori
-    setPendingInventoryItem({
-      name: itemName,
-      quantity: itemQuantity,
-      expiresAt: itemExpiresAt,
-      unit: unit,
-      suggestedCategory: suggestion.category || 'frukt'
-    })
-    setSelectedInventoryUnit(unit)
-    setSelectedInventoryCategory(suggestion.category || 'frukt')
-    setCurrentDisplayUnit(unit)
-    setShowInventoryDialog(true)
-  }
-
-  // Bekräfta och lägg till manuell kylskåpsvara
-  const confirmInventoryItem = () => {
-    if (!pendingInventoryItem) return
-    
-    // Använd aktuella värden från formuläret
-    const currentQuantity = form.quantity || 1
-    const currentExpiresAt = form.expiresAt || ''
-    
-    // Om datum saknas, använd AI-förslag
-    let finalExpiresAt = currentExpiresAt
-    if (!finalExpiresAt) {
-      const smartResult = calculateSmartExpiryDate(pendingInventoryItem.name, null)
-      finalExpiresAt = smartResult.date
-      setForm(prev => ({ ...prev, expiresAt: finalExpiresAt }))
-    }
-    
-    const finalUnit = selectedInventoryUnit || pendingInventoryItem.unit
-    const finalCategory = selectedInventoryCategory || 'frukt'
+    const finalUnit = selectedInventoryUnit
+    const finalCategory = selectedInventoryCategory
     
     // Emoji baserat på kategori
     const getCategoryEmoji = (cat) => {
@@ -656,14 +610,14 @@ export default function App() {
       return emojiMap[cat] || '🍽️'
     }
     
-    // Kolla om varan redan finns (samma namn)
+    // Kolla om varan redan finns
     const existingItem = items.find(item => 
-      item.name.toLowerCase() === pendingInventoryItem.name.toLowerCase()
+      item.name.toLowerCase() === itemName.toLowerCase()
     )
     
-    // Lär appen om nya varor (självlärande system)
+    // Lär appen om varan
     const userItemData = {
-      name: pendingInventoryItem.name,
+      name: itemName,
       category: finalCategory,
       emoji: getCategoryEmoji(finalCategory),
       unit: finalUnit,
@@ -682,14 +636,14 @@ export default function App() {
     }
     
     if (existingItem) {
-      // Uppdatera befintlig vara med nya värden
+      // Uppdatera befintlig vara
       setItems(prev => {
         const updated = prev.map(item => 
           item.id === existingItem.id
             ? {
                 ...item,
-                quantity: currentQuantity,
-                expiresAt: finalExpiresAt,
+                quantity: itemQuantity,
+                expiresAt: itemExpiresAt,
                 unit: finalUnit,
                 category: finalCategory,
                 emoji: getCategoryEmoji(finalCategory)
@@ -714,15 +668,14 @@ export default function App() {
       const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
       const newItem = {
         id,
-        name: pendingInventoryItem.name,
-        quantity: currentQuantity,
-        expiresAt: finalExpiresAt,
+        name: itemName,
+        quantity: itemQuantity,
+        expiresAt: itemExpiresAt,
         unit: finalUnit,
         category: finalCategory,
         emoji: getCategoryEmoji(finalCategory)
       }
       
-      // Lägg till vara i inventariet
       setItems(prev => {
         const updated = [...prev, newItem]
         
@@ -740,7 +693,7 @@ export default function App() {
       })
     }
     
-    // Rensa formuläret och stäng dialogen
+    // Rensa formuläret
     setForm({ 
       name: '', 
       quantity: 0, 
@@ -748,8 +701,6 @@ export default function App() {
     })
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
-    setShowInventoryDialog(false)
-    setPendingInventoryItem(null)
     
     // Fokusera tillbaka till namn-fältet
     setTimeout(() => {
@@ -1549,6 +1500,28 @@ export default function App() {
                   </label>
                 </div>
                 
+                {/* Kategoriväljare - visas när namn är ifyllt */}
+                {form.name && !showFoodSuggestions && (
+                  <div className="form-section" style={{marginTop: '16px'}}>
+                    <label className="form-label">
+                      <span className="label-text">Kategori</span>
+                      <select 
+                        value={selectedInventoryCategory}
+                        onChange={(e) => setSelectedInventoryCategory(e.target.value)}
+                        className="form-input"
+                      >
+                        <option value="frukt">Frukt</option>
+                        <option value="grönsak">Grönsak</option>
+                        <option value="kött">Kött</option>
+                        <option value="fisk">Fisk & skaldjur</option>
+                        <option value="mejeri">Mejeri</option>
+                        <option value="dryck">Dryck</option>
+                        <option value="övrigt">Övrigt</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+                
                 <div className="form-row">
                   <label className="form-label">
                     <span className="label-text">Antal</span>
@@ -1566,7 +1539,24 @@ export default function App() {
                         className="form-input quantity-input"
                         required
                       />
-                      <span className="unit-display">{form.quantity === 1 && suggestedUnit === 'stycken' ? 'stycke' : suggestedUnit}</span>
+                      <select 
+                        value={selectedInventoryUnit}
+                        onChange={(e) => {
+                          setSelectedInventoryUnit(e.target.value)
+                          setCurrentDisplayUnit(e.target.value)
+                        }}
+                        className="form-input"
+                        style={{width: 'auto', minWidth: '80px', marginLeft: '8px'}}
+                      >
+                        <option value="st">st</option>
+                        <option value="kg">kg</option>
+                        <option value="hg">hg</option>
+                        <option value="g">g</option>
+                        <option value="L">L</option>
+                        <option value="dl">dl</option>
+                        <option value="cl">cl</option>
+                        <option value="ml">ml</option>
+                      </select>
                     </div>
                   </label>
                   
@@ -1616,71 +1606,6 @@ export default function App() {
                   )}
                 </div>
               </form>
-              
-              {/* Dialog för kategori och enhet */}
-              {showInventoryDialog && pendingInventoryItem && (
-                <div style={{marginTop: '16px', padding: '20px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
-                  <h3 style={{margin: '0 0 8px 0', fontSize: '18px', textAlign: 'center'}}>Lägg till: "{pendingInventoryItem.name}"</h3>
-                  <p style={{margin: '0 0 20px 0', fontSize: '13px', color: 'var(--muted)', textAlign: 'center'}}>Hjälp appen att lära sig nya varor!</p>
-                  
-                  {/* Kategoriväljare */}
-                  <div style={{marginBottom: '16px'}}>
-                    <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Kategori:</label>
-                    <select 
-                      value={selectedInventoryCategory}
-                      onChange={(e) => setSelectedInventoryCategory(e.target.value)}
-                      style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
-                    >
-                      <option value="frukt">Frukt</option>
-                      <option value="grönsak">Grönsak</option>
-                      <option value="kött">Kött</option>
-                      <option value="fisk">Fisk & skaldjur</option>
-                      <option value="mejeri">Mejeri</option>
-                      <option value="dryck">Dryck</option>
-                      <option value="övrigt">Övrigt</option>
-                    </select>
-                  </div>
-
-                  {/* Enhetsval */}
-                  <div style={{marginBottom: '16px'}}>
-                    <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Enhet:</label>
-                    <select 
-                      value={selectedInventoryUnit}
-                      onChange={(e) => {
-                        setSelectedInventoryUnit(e.target.value)
-                        setCurrentDisplayUnit(e.target.value)
-                      }}
-                      style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
-                    >
-                      <option value="st">Stycken (st)</option>
-                      <option value="kg">Kilogram (kg)</option>
-                      <option value="hg">Hektogram (hg)</option>
-                      <option value="g">Gram (g)</option>
-                      <option value="L">Liter (L)</option>
-                      <option value="dl">Deciliter (dl)</option>
-                      <option value="cl">Centiliter (cl)</option>
-                      <option value="ml">Milliliter (ml)</option>
-                    </select>
-                  </div>
-
-                  <div style={{display: 'flex', gap: '12px'}}>
-                    <button 
-                      onClick={confirmInventoryItem}
-                      className="btn-glass"
-                      style={{flex: 1, padding: '12px', fontSize: '15px', background: 'var(--success)', border: '2px solid var(--success)'}}
-                    >
-                      Bekräfta
-                    </button>
-                    <button 
-                      onClick={() => { setShowInventoryDialog(false); setPendingInventoryItem(null) }}
-                      className="btn-glass"
-                      style={{flex: 1, padding: '12px', fontSize: '15px'}}
-                    >
-                      Avbryt
-                    </button>
-                  </div>
-                </div>
-              )}
             </section>
             
             {/* Mina varor section */}
