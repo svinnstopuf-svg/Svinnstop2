@@ -24,6 +24,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [selectedUnit, setSelectedUnit] = useState('st')
   const [selectedCategory, setSelectedCategory] = useState('frukt')
   const [selectedIsFood, setSelectedIsFood] = useState(true)
+  const [quantity, setQuantity] = useState(1)
   
   // Ladda inköpslista från localStorage
   useEffect(() => {
@@ -168,7 +169,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       category: finalCategory,
       emoji: getCategoryEmoji(finalCategory),
       unit: finalUnit,
-      quantity: 1,
+      quantity: quantity,
       completed: false,
       isFood: isFood,
       addedAt: Date.now()
@@ -202,6 +203,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     setSelectedUnit('st')
     setSelectedCategory('frukt')
     setSelectedIsFood(true)
+    setQuantity(1)
   }
   
   // Ta bort vara
@@ -494,11 +496,48 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
           </div>
         </div>
         
-        {/* Kategori och enhetsval - visas när namn är ifyllt och förslag är stängda */}
+        {/* Antal och enhet - alltid synligt */}
+        <div style={{marginTop: '12px'}}>
+          <div className="form-row" style={{marginBottom: '12px'}}>
+            <label className="form-label">
+              <span className="label-text">Antal</span>
+              <div className="quantity-input-container" style={{display: 'flex', gap: '8px'}}>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="0.1"
+                  value={quantity} 
+                  onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  placeholder="1"
+                  className="form-input quantity-input"
+                  style={{flex: 1}}
+                />
+                <select 
+                  value={selectedUnit}
+                  onChange={(e) => setSelectedUnit(e.target.value)}
+                  className="form-input"
+                  style={{width: 'auto', minWidth: '80px'}}
+                >
+                  <option value="st">st</option>
+                  <option value="kg">kg</option>
+                  <option value="hg">hg</option>
+                  <option value="g">g</option>
+                  <option value="L">L</option>
+                  <option value="dl">dl</option>
+                  <option value="cl">cl</option>
+                  <option value="ml">ml</option>
+                </select>
+              </div>
+            </label>
+          </div>
+        </div>
+        
+        {/* Kategori - visas när namn är ifyllt och förslag är stängda */}
         {newItem.trim() && !showSuggestions && (
           <div style={{marginTop: '12px'}}>
-            <div className="form-row" style={{display: 'flex', gap: '12px', marginBottom: '12px'}}>
-              <label className="form-label" style={{flex: 1}}>
+            <div className="form-row" style={{marginBottom: '12px'}}>
+              <label className="form-label">
                 <span className="label-text">Kategori</span>
                 <select 
                   value={selectedCategory}
@@ -512,24 +551,6 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                   <option value="mejeri">Mejeri</option>
                   <option value="dryck">Dryck</option>
                   <option value="övrigt">Övrigt</option>
-                </select>
-              </label>
-              
-              <label className="form-label" style={{flex: 1}}>
-                <span className="label-text">Enhet</span>
-                <select 
-                  value={selectedUnit}
-                  onChange={(e) => setSelectedUnit(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="st">st</option>
-                  <option value="kg">kg</option>
-                  <option value="hg">hg</option>
-                  <option value="g">g</option>
-                  <option value="L">L</option>
-                  <option value="dl">dl</option>
-                  <option value="cl">cl</option>
-                  <option value="ml">ml</option>
                 </select>
               </label>
             </div>
