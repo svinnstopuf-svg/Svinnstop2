@@ -555,7 +555,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
               <option value="frukt">Frukt</option>
               <option value="grönsak">Grönsak</option>
               <option value="kött">Kött</option>
-              <option value="fisk">Fisk</option>
+              <option value="fisk">Fisk & skaldjur</option>
               <option value="mejeri">Mejeri</option>
               <option value="dryck">Dryck</option>
               <option value="övrigt">Övrigt</option>
