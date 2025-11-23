@@ -24,6 +24,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [showFoodTypeDialog, setShowFoodTypeDialog] = useState(false)
   const [pendingManualItem, setPendingManualItem] = useState(null)
   const [selectedUnit, setSelectedUnit] = useState('st')
+  const [selectedCategory, setSelectedCategory] = useState('mat')
+  const [selectedIsFood, setSelectedIsFood] = useState(true)
   
   // Ladda inköpslista från localStorage
   useEffect(() => {
@@ -153,20 +155,55 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       unit: unit
     })
     setSelectedUnit(unit) // Sätt förvald enhet
+    setSelectedCategory('mat') // Sätt standard kategori
+    setSelectedIsFood(true) // Sätt standard matvara
     setShowFoodTypeDialog(true)
   }
 
   // Bekräfta och lägg till manuell vara
-  const confirmManualItem = (isFood) => {
+  const confirmManualItem = () => {
     if (!pendingManualItem) return
 
     const finalUnit = selectedUnit || pendingManualItem.unit
+    const finalCategory = selectedCategory || 'mat'
+    const isFood = selectedIsFood
+    
+    // Emoji baserat på kategori
+    const getCategoryEmoji = (cat) => {
+      const emojiMap = {
+        'frukt': '🍎',
+        'grönsak': '🥬',
+        'kött': '🥩',
+        'fisk': '🐟',
+        'mejeri': '🧀',
+        'ägg': '🥚',
+        'bröd': '🍞',
+        'spannmål': '🌾',
+        'pasta': '🍝',
+        'ris': '🍚',
+        'konserv': '🥫',
+        'fryst': '🧊',
+        'krydda': '🧂',
+        'sås': '🍯',
+        'olja': '🫒',
+        'dryck': '🥤',
+        'snacks': '🍿',
+        'godis': '🍬',
+        'mat': '🍽️',
+        'hem': '🏠',
+        'personvård': '🧴',
+        'husdjur': '🐾',
+        'baby': '👶',
+        'övrigt': '📦'
+      }
+      return emojiMap[cat] || '🍽️'
+    }
 
     const newShoppingItem = {
       id: Date.now() + Math.random(),
       name: pendingManualItem.name,
-      category: isFood ? 'mat' : 'övrigt',
-      emoji: isFood ? '🍽️' : '📦',
+      category: finalCategory,
+      emoji: getCategoryEmoji(finalCategory),
       unit: finalUnit,
       quantity: 1,
       completed: false,
@@ -177,8 +214,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     // Spara i användarvaror för självlärning
     const userItemData = {
       name: pendingManualItem.name,
-      category: isFood ? 'mat' : 'övrigt',
-      emoji: isFood ? '🍽️' : '📦',
+      category: finalCategory,
+      emoji: getCategoryEmoji(finalCategory),
       unit: finalUnit,
       isFood: isFood
     }
@@ -496,12 +533,73 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         </div>
       </form>
 
-      {/* Dialog för matvara-typ och enhet */}
+      {/* Dialog för matvara-typ, kategori och enhet */}
       {showFoodTypeDialog && pendingManualItem && (
         <div style={{marginBottom: '16px', padding: '20px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
           <h3 style={{margin: '0 0 8px 0', fontSize: '18px', textAlign: 'center'}}>🎯 Lägg till: "{pendingManualItem.name}"</h3>
           <p style={{margin: '0 0 20px 0', fontSize: '13px', color: 'var(--muted)', textAlign: 'center'}}>Hjälp appen att lära sig nya varor!</p>
           
+          {/* Matvara-val */}
+          <div style={{marginBottom: '16px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Är detta en matvara?</label>
+            <p style={{fontSize: '12px', color: 'var(--muted)', marginBottom: '12px'}}>Om det är mat läggs den i kylskåpet när du bockat av den.</p>
+            <div style={{display: 'flex', gap: '12px'}}>
+              <button 
+                onClick={() => setSelectedIsFood(true)}
+                className="btn-glass"
+                style={{flex: 1, padding: '12px', fontSize: '15px', background: selectedIsFood ? 'var(--success)' : 'transparent', border: selectedIsFood ? '2px solid var(--success)' : '1px solid var(--border)'}}
+              >
+                🍽️ Ja, matvara
+              </button>
+              <button 
+                onClick={() => setSelectedIsFood(false)}
+                className="btn-glass"
+                style={{flex: 1, padding: '12px', fontSize: '15px', background: !selectedIsFood ? 'var(--success)' : 'transparent', border: !selectedIsFood ? '2px solid var(--success)' : '1px solid var(--border)'}}
+              >
+                📦 Nej, annat
+              </button>
+            </div>
+          </div>
+
+          {/* Kategoriväljare */}
+          <div style={{marginBottom: '16px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Kategori:</label>
+            <select 
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '14px'}}
+            >
+              <optgroup label="Matvaror">
+                <option value="frukt">Frukt</option>
+                <option value="grönsak">Grönsak</option>
+                <option value="kött">Kött</option>
+                <option value="fisk">Fisk</option>
+                <option value="mejeri">Mejeri</option>
+                <option value="ägg">Ägg</option>
+                <option value="bröd">Bröd</option>
+                <option value="spannmål">Spannmål</option>
+                <option value="pasta">Pasta</option>
+                <option value="ris">Ris</option>
+                <option value="konserv">Konserv</option>
+                <option value="fryst">Fryst</option>
+                <option value="krydda">Krydda</option>
+                <option value="sås">Sås</option>
+                <option value="olja">Olja</option>
+                <option value="dryck">Dryck</option>
+                <option value="snacks">Snacks</option>
+                <option value="godis">Godis</option>
+                <option value="mat">Mat (allmänt)</option>
+              </optgroup>
+              <optgroup label="Övrigt">
+                <option value="hem">Hem & hushåll</option>
+                <option value="personvård">Personvård</option>
+                <option value="husdjur">Husdjur</option>
+                <option value="baby">Baby</option>
+                <option value="övrigt">Övrigt</option>
+              </optgroup>
+            </select>
+          </div>
+
           {/* Enhetsval */}
           <div style={{marginBottom: '16px'}}>
             <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Enhet:</label>
@@ -521,34 +619,22 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
             </select>
           </div>
 
-          {/* Matvara-val */}
-          <div style={{marginBottom: '16px'}}>
-            <label style={{display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px'}}>Är detta en matvara?</label>
-            <p style={{fontSize: '12px', color: 'var(--muted)', marginBottom: '12px'}}>Om det är mat läggs den i kylskåpet när du bockat av den.</p>
-            <div style={{display: 'flex', gap: '12px'}}>
-              <button 
-                onClick={() => confirmManualItem(true)}
-                className="btn-glass"
-                style={{flex: 1, padding: '12px', fontSize: '15px', background: 'var(--success)', border: '2px solid var(--success)'}}
-              >
-                🍽️ Ja, matvara
-              </button>
-              <button 
-                onClick={() => confirmManualItem(false)}
-                className="btn-glass"
-                style={{flex: 1, padding: '12px', fontSize: '15px'}}
-              >
-                📦 Nej, annat
-              </button>
-            </div>
+          <div style={{display: 'flex', gap: '12px'}}>
+            <button 
+              onClick={confirmManualItem}
+              className="btn-glass"
+              style={{flex: 1, padding: '12px', fontSize: '15px', background: 'var(--success)', border: '2px solid var(--success)'}}
+            >
+              ✅ Bekräfta
+            </button>
+            <button 
+              onClick={() => { setShowFoodTypeDialog(false); setPendingManualItem(null) }}
+              className="btn-glass"
+              style={{flex: 1, padding: '12px', fontSize: '15px'}}
+            >
+              ❌ Avbryt
+            </button>
           </div>
-
-          <button 
-            onClick={() => { setShowFoodTypeDialog(false); setPendingManualItem(null) }}
-            style={{width: '100%', marginTop: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--muted)', textDecoration: 'underline'}}
-          >
-            Avbryt
-          </button>
         </div>
       )}
 
