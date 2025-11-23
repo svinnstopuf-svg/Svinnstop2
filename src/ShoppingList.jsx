@@ -402,9 +402,24 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
                 <button 
                   onClick={clearCompleted}
                   className="clear-completed-btn"
-                  title="Rensa alla klara varor"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    border: '2px solid #059669',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                    transition: 'all 0.2s',
+                    animation: completedCount >= totalCount / 2 ? 'pulse 2s infinite' : 'none'
+                  }}
+                  title="Klicka för att flytta matvaror till kylskåpet och rensa listan"
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                 >
-                  🗑️ Rensa klara
+                  ✅ Rensa klara ({completedCount})
                 </button>
               )}
               <button
