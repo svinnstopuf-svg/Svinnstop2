@@ -117,20 +117,65 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     }
   }
   
+  // Normalisera kategori till en av de 7 huvudkategorierna
+  const normalizeCategory = (category) => {
+    const categoryMap = {
+      'frukt': 'frukt',
+      'grönsak': 'grönsak',
+      'kött': 'kött',
+      'fisk': 'fisk',
+      'mejeri': 'mejeri',
+      'dryck': 'dryck',
+      // Mappa andra kategorier till huvudkategorier
+      'ägg': 'mejeri',
+      'ost': 'mejeri',
+      'bröd': 'övrigt',
+      'spannmål': 'övrigt',
+      'krydda': 'övrigt',
+      'sås': 'övrigt',
+      'olja': 'övrigt',
+      'buljong': 'övrigt',
+      'baljväxt': 'övrigt',
+      'nötter': 'övrigt',
+      'bakning': 'övrigt',
+      'sötsak': 'övrigt',
+      'konserv': 'övrigt',
+      'övrigt': 'övrigt'
+    }
+    
+    const normalized = categoryMap[category?.toLowerCase()] || 'övrigt'
+    return normalized
+  }
+  
   // Lägg till vara från förslag
   const addFromSuggestion = (item) => {
     const unitKey = getSuggestedUnitKey(item.name)
     const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
+    const normalizedCategory = normalizeCategory(item.category)
+    
+    // Emoji baserat på kategori
+    const getCategoryEmoji = (cat) => {
+      const emojiMap = {
+        'frukt': '🍎',
+        'grönsak': '🥬',
+        'kött': '🥩',
+        'fisk': '🐟',
+        'mejeri': '🧀',
+        'dryck': '🥤',
+        'övrigt': '📦'
+      }
+      return emojiMap[cat] || '🍽️'
+    }
     
     const newShoppingItem = {
       id: Date.now() + Math.random(), // Mer unik ID
       name: item.name,
-      category: item.category,
-      emoji: item.emoji,
+      category: normalizedCategory,
+      emoji: getCategoryEmoji(normalizedCategory),
       unit: unit,
       quantity: 1,
       completed: false,
-      isFood: item.isFood || false,
+      isFood: item.isFood !== false,
       addedAt: Date.now()
     }
     
