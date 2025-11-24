@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rensa användarvaror - Svinnstop</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 16px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #dc2626;
+    }
+    .success {
+      color: #10b981;
+      margin-top: 20px;
+      padding: 15px;
+      background: #065f46;
+      border-radius: 8px;
+    }
+    .info {
+      background: #1e40af;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧹 Rensa användarvaror</h1>
+  
+  <div class="info">
+    <p><strong>Detta script rensar alla användardefinierade varor från localStorage.</strong></p>
+    <p>Detta är användbart när kategorierna har ändrats och du vill att användare ska kunna lägga till varor på nytt med de nya kategorierna.</p>
+  </div>
+
+  <button onclick="clearUserItems()">Rensa alla användarvaror</button>
+  
+  <div id="result"></div>
+
+  <script>
+    function clearUserItems() {
+      try {
+        // Rensa användarvaror
+        localStorage.removeItem('svinnstop_user_items')
+        
+        // Visa resultat
+        document.getElementById('result').innerHTML = `
+          <div class="success">
+            ✅ Användarvaror har rensats!<br>
+            <small>Användare kan nu lägga till varor på nytt med de uppdaterade kategorierna.</small>
+          </div>
+        `
+        
+        console.log('✅ Användarvaror rensade från localStorage')
+      } catch (error) {
+        document.getElementById('result').innerHTML = `
+          <div style="color: #ef4444; margin-top: 20px;">
+            ❌ Fel: ${error.message}
+          </div>
+        `
+        console.error('Fel vid rensning:', error)
+      }
+    }
+  </script>
+</body>
+</html>
