@@ -236,27 +236,6 @@ export default function App() {
 
   // Initiera tema och aktiv tab från localStorage eller systempreferens
   useEffect(() => {
-    // ENGÅNGSRENSNING: Rensa gamla användarvaror med fel kategorier (2025-01-24)
-    const migrationKey = 'svinnstop_user_items_migration_v2'
-    if (!localStorage.getItem(migrationKey)) {
-      console.log('🧹 Rensar gamla användarvaror med gamla kategorier...')
-      localStorage.removeItem('svinnstop_user_items')
-      localStorage.setItem(migrationKey, 'done')
-      console.log('✅ Användarvaror rensade lokalt')
-      
-      // Rensa också i Firebase för familjer
-      const family = getFamilyData()
-      if (family.familyId && family.syncEnabled) {
-        import('./shoppingListSync').then(module => {
-          const { syncUserItemsToFirebase } = module
-          syncUserItemsToFirebase([]) // Synka tom lista
-          console.log('✅ Användarvaror rensade i Firebase')
-        })
-      }
-      
-      console.log('✅ Alla användare kan nu lägga till varor med nya kategorier')
-    }
-    
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try { 
