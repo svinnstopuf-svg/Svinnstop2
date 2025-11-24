@@ -242,7 +242,19 @@ export default function App() {
       console.log('🧹 Rensar gamla användarvaror med gamla kategorier...')
       localStorage.removeItem('svinnstop_user_items')
       localStorage.setItem(migrationKey, 'done')
-      console.log('✅ Användarvaror rensade - användare kan nu lägga till varor med nya kategorier')
+      console.log('✅ Användarvaror rensade lokalt')
+      
+      // Rensa också i Firebase för familjer
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        import('./shoppingListSync').then(module => {
+          const { syncUserItemsToFirebase } = module
+          syncUserItemsToFirebase([]) // Synka tom lista
+          console.log('✅ Användarvaror rensade i Firebase')
+        })
+      }
+      
+      console.log('✅ Alla användare kan nu lägga till varor med nya kategorier')
     }
     
     const saved = localStorage.getItem(STORAGE_KEY)
