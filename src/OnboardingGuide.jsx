@@ -29,6 +29,14 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
       tip: 'AI:n blir bättre ju mer du använder appen!'
     },
     {
+      title: 'Ändra utgångsdatum för befintliga varor',
+      description: 'Behöver du justera ett datum?',
+      longDescription: 'Om AI:n gissade fel eller om du vill ändra utgångsdatum senare:\n\n1. Tryck på "Redigera varor" i kylskåpet\n2. Bocka i de varor du vill ändra\n3. Välj nytt datum och tryck "Uppdatera"',
+      icon: '✏️',
+      highlight: 'bulk-edit',
+      tip: 'Du kan ändra flera varor samtidigt!'
+    },
+    {
       title: 'Använd inköpslistan',
       description: 'Planera dina inköp smart.',
       longDescription: 'Gå till Inköpslista-fliken, lägg till varor du behöver köpa. Bocka av dem när du handlat!',
