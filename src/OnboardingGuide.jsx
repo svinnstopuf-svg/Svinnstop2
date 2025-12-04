@@ -1,75 +1,84 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
 import './OnboardingGuide.css'
 
-export default function OnboardingGuide({ onComplete, onSkip }) {
+const OnboardingGuide = forwardRef(({ onComplete, onSkip, onStepChange }, ref) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [highlightedElement, setHighlightedElement] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ top: '50%', left: '50%' })
+  const [waitingForAction, setWaitingForAction] = useState(false)
 
   const steps = [
     {
       title: 'Välkommen till Svinnstop!',
       icon: '👋',
-      description: 'Vi guidar dig genom appens viktigaste funktioner så att du snabbt kan komma igång och minska ditt matsvinn.',
-      tip: 'Följ med steg för steg!',
+      instruction: 'Låt oss testa appen tillsammans! Vi guidar dig genom de viktigaste funktionerna.',
+      action: 'Klicka "Kom igång" för att börja',
       target: null,
-      position: 'center'
+      position: 'center',
+      waitFor: null
     },
     {
-      title: 'Lägg till varor',
+      title: 'Lägg till en vara',
       icon: '📝',
-      description: 'Här lägger du in varor i ditt kylskåp. Skriv namnet på varan så får du smarta förslag.',
-      tip: 'Formuläret föreslår automatiskt lämplig enhet baserat på varan',
-      target: '.add-item-card',
-      position: 'bottom'
+      instruction: 'Prova att skriva "Mjölk" i namnfältet nedan.',
+      action: 'Skriv "Mjölk" och tryck sedan på 🤖 AI-förslag',
+      target: 'input[name="name"]',
+      position: 'bottom',
+      waitFor: 'itemNameFilled'
     },
     {
       title: 'AI föreslår utgångsdatum',
       icon: '🤖',
-      description: 'Tryck på "🤖 AI-förslag" så föreslår systemet ett rimligt utgångsdatum baserat på varan.',
-      tip: 'AI:n lär sig och blir bättre med tiden!',
+      instruction: 'Bra! Nu trycker du på knappen "🤖 AI-förslag" så får du ett smart datum.',
+      action: 'Tryck på 🤖 AI-förslag',
       target: '.ai-suggestion-btn',
-      position: 'top'
+      position: 'top',
+      waitFor: 'aiSuggestionClicked'
     },
     {
-      title: 'Ändra utgångsdatum',
-      icon: '✏️',
-      description: 'Behöver du justera datum efter att en vara lagts till? Använd redigeringsläget här.',
-      tip: 'Du kan ändra flera varor samtidigt genom att bocka i dem',
-      target: '.bulk-edit-toggle',
-      position: 'left'
+      title: 'Lägg till varan',
+      icon: '➕',
+      instruction: 'Perfekt! Nu ser du att AI:n har föreslagit ett utgångsdatum. Tryck på "Lägg till" för att spara varan.',
+      action: 'Tryck på "Lägg till" knappen',
+      target: 'button[type="submit"]',
+      position: 'top',
+      waitFor: 'itemAdded'
     },
     {
       title: 'Inköpslista',
       icon: '🛒',
-      description: 'Planera dina inköp i inköpslistan. Lägg till varor du behöver köpa och bocka av dem när du handlar.',
-      tip: 'Perfekt för att planera vad du behöver köpa',
+      instruction: 'Bra jobbat! Nu har du en vara i kylskåpet. Låt oss testa inköpslistan.',
+      action: 'Klicka på "Inköpslista" fliken ovan',
       target: '.tab-button:first-child',
-      position: 'bottom'
+      position: 'bottom',
+      waitFor: 'shoppingTabOpened'
     },
     {
-      title: 'Rensa klara varor',
-      icon: '✅',
-      description: 'När du bockat av varor i inköpslistan, klicka "Rensa klara" så flyttas matvaror automatiskt till kylskåpet med AI-förslag på utgångsdatum!',
-      tip: 'Detta sparar tid - du slipper lägga in varor manuellt',
-      target: '.tab-button:first-child',
-      position: 'bottom'
+      title: 'Lägg till i inköpslistan',
+      icon: '🛍️',
+      instruction: 'Här planerar du dina inköp. Prova att lägga till "Äpplen" i listan.',
+      action: 'Skriv "Äpplen" och lägg till',
+      target: '.shopping-list',
+      position: 'top',
+      waitFor: 'shoppingItemAdded'
     },
     {
       title: 'Färgkodning',
       icon: '🎨',
-      description: 'Varorna färgkodas efter utgångsdatum:\\n\\n🔴 Röd = Utgånget\\n🟡 Gul = Går ut inom 3 dagar\\n🟢 Grön = Fräscht!',
-      tip: 'Ät det gula först för att undvika svinn!',
-      target: '.inventory-card',
-      position: 'top'
+      instruction: 'Gå tillbaka till Kylskåp-fliken och se hur varan färgkodas!\n\n🔴 Röd = Utgånget\n🟡 Gul = Går ut inom 3 dagar\n🟢 Grön = Fräscht',
+      action: 'Klicka på "Kylskåp" fliken',
+      target: '.tab-button:nth-child(2)',
+      position: 'bottom',
+      waitFor: 'inventoryTabOpened'
     },
     {
       title: 'Du är redo!',
       icon: '🎊',
-      description: 'Nu kan du börja minska ditt matsvinn! Använd appen varje gång du handlar och när du lagar mat.',
-      tip: 'Ju mer du använder appen, desto bättre blir du på att planera!',
+      instruction: 'Grattis! Nu kan du använda Svinnstop för att minska ditt matsvinn!',
+      action: 'Tips: När du handlar, bocka av varor i inköpslistan och klicka "Rensa klara" så flyttas de automatiskt till kylskåpet!',
       target: null,
-      position: 'center'
+      position: 'center',
+      waitFor: null
     }
   ]
 
@@ -141,9 +150,31 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
     if (isLastStep) {
       onComplete()
     } else {
-      setCurrentStep(prev => prev + 1)
+      const nextStep = currentStep + 1
+      setCurrentStep(nextStep)
+      setWaitingForAction(steps[nextStep].waitFor !== null)
+      if (onStepChange) {
+        onStepChange(nextStep, steps[nextStep])
+      }
     }
   }
+
+  // Exponera advanceStep-metoden till föräldrakomponenten
+  useImperativeHandle(ref, () => ({
+    advanceStep: () => {
+      if (!isLastStep) {
+        handleNext()
+      }
+    },
+    getCurrentStep: () => currentStep
+  }))
+
+  // Anropas från App.jsx när användaren utfört rätt action
+  useEffect(() => {
+    if (onStepChange) {
+      onStepChange(currentStep, currentStepData)
+    }
+  }, [currentStep])
 
   const handlePrevious = () => {
     if (currentStep > 0) {
@@ -200,19 +231,17 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
           <h2 className="guide-tooltip-title">{currentStepData.title}</h2>
         </div>
 
-        {/* Description */}
+        {/* Instruction */}
         <div className="guide-tooltip-description">
-          {currentStepData.description.split('\\n').map((line, i) => (
+          {currentStepData.instruction.split('\n').map((line, i) => (
             <p key={i} style={{ margin: line ? '0 0 8px 0' : 0 }}>{line}</p>
           ))}
         </div>
 
-        {/* Tip */}
-        {currentStepData.tip && (
-          <div className="guide-tooltip-tip">
-            💡 <strong>Tips:</strong> {currentStepData.tip}
-          </div>
-        )}
+        {/* Action required */}
+        <div className="guide-tooltip-tip">
+          {waitingForAction ? '⏳' : '👉'} <strong>{waitingForAction ? 'Gör detta:' : 'Nästa:'}</strong> {currentStepData.action}
+        </div>
 
         {/* Step indicator */}
         <div className="guide-step-indicator">
@@ -244,16 +273,25 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
               </button>
             )}
 
-            <button
-              className="guide-btn guide-btn-primary"
-              onClick={handleNext}
-              style={{ flex: 1 }}
-            >
-              {isLastStep ? 'Kom igång! 🚀' : 'Nästa →'}
-            </button>
+            {!waitingForAction && (
+              <button
+                className="guide-btn guide-btn-primary"
+                onClick={handleNext}
+                style={{ flex: 1 }}
+              >
+                {isLastStep ? 'Kom igång! 🚀' : (currentStep === 0 ? 'Kom igång →' : 'Nästa →')}
+              </button>
+            )}
+            {waitingForAction && (
+              <div className="guide-btn guide-btn-waiting" style={{ flex: 1, textAlign: 'center', opacity: 0.6 }}>
+                Väntar på din handling...
+              </div>
+            )}
           </div>
         </div>
       </div>
     </>
   )
-}
+})
+
+export default OnboardingGuide

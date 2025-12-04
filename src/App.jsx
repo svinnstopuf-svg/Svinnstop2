@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
@@ -194,6 +194,8 @@ export default function App() {
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Interaktiv guide
+  const [guideStep, setGuideStep] = useState(0) // Vilken guide-steg användaren är på
+  const guideAdvance = useRef(null) // Funktion för att avancera guiden
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
@@ -531,6 +533,36 @@ export default function App() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showSettingsMenu])
+
+  // Guide: Lyssna på användaraktioner och avancera guiden
+  useEffect(() => {
+    if (!showOnboardingGuide || !guideAdvance.current) return
+
+    // Steg 1: Användaren har skrivit "Mjölk" i namnfältet
+    if (guideStep === 1 && form.name.toLowerCase().includes('mjölk')) {
+      guideAdvance.current.advanceStep()
+    }
+
+    // Steg 2: AI-förslag har klickats (detekteras genom att expiresAt har ett värde)
+    if (guideStep === 2 && form.expiresAt) {
+      guideAdvance.current.advanceStep()
+    }
+
+    // Steg 3: Vara har lagts till (items.length ökade)
+    if (guideStep === 3 && items.some(item => item.name.toLowerCase().includes('mjölk'))) {
+      setTimeout(() => guideAdvance.current?.advanceStep(), 500)
+    }
+
+    // Steg 4: Inköpslista-fliken har öppnats
+    if (guideStep === 4 && activeTab === 'shopping') {
+      setTimeout(() => guideAdvance.current?.advanceStep(), 500)
+    }
+
+    // Steg 6: Kylskåp-fliken har öppnats (färgkodning)
+    if (guideStep === 6 && activeTab === 'inventory') {
+      setTimeout(() => guideAdvance.current?.advanceStep(), 500)
+    }
+  }, [showOnboardingGuide, guideStep, form, items, activeTab])
 
   const onChange = e => {
     const { name, value } = e.target
@@ -1378,12 +1410,19 @@ export default function App() {
         <OnboardingGuide
           onComplete={() => {
             setShowOnboardingGuide(false)
+            setGuideStep(0)
             localStorage.setItem('svinnstop_guide_seen', 'true')
           }}
           onSkip={() => {
             setShowOnboardingGuide(false)
+            setGuideStep(0)
             localStorage.setItem('svinnstop_guide_seen', 'true')
           }}
+          onStepChange={(step, stepData) => {
+            setGuideStep(step)
+            console.log('Guide step changed:', step, stepData)
+          }}
+          ref={guideAdvance}
         />
       )}
       
