@@ -3,7 +3,6 @@ import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
-import Onboarding from './Onboarding'
 import OnboardingGuide from './OnboardingGuide'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
@@ -194,8 +193,7 @@ export default function App() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
-  const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow (gammal)
-  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Ny interaktiv guide
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Interaktiv guide
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
@@ -1345,22 +1343,6 @@ export default function App() {
     return unit
   }, [suggestedUnitKey, showInventoryDialog, currentDisplayUnit])
 
-  // Handle onboarding complete
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false)
-    localStorage.setItem('svinnstop_onboarding_seen', 'true')
-    
-    // Behåll aktiv flik som redan är satt (inventory eller referral)
-    // Så att användaren hamnar på rätt ställe efter onboarding
-    
-    // TEMPORARILY DISABLED: Visa notifikationsprompt efter en kort delay
-    // setTimeout(() => {
-    //   const notificationPrompted = localStorage.getItem('svinnstop_notifications_prompted')
-    //   if (!notificationPrompted) {
-    //     setShowNotificationPrompt(true)
-    //   }
-    // }, 1500)
-  }
   
   // Handle notification permission granted
   const handleNotificationPermission = async (granted) => {
@@ -1409,10 +1391,7 @@ export default function App() {
 
   return (
     <>
-      {/* Onboarding Flow (gammal) */}
-      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
-      
-      {/* Ny interaktiv guide */}
+      {/* Interaktiv guide */}
       {showOnboardingGuide && (
         <OnboardingGuide 
           onComplete={() => {
