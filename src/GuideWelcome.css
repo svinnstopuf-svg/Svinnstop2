@@ -91,14 +91,15 @@
 }
 
 .guide-btn-secondary {
-  background: var(--hover-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .guide-btn-secondary:hover {
-  background: var(--card-bg);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 @media (max-width: 768px) {

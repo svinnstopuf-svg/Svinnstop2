@@ -1481,6 +1481,7 @@ export default function App() {
       {/* Guide Badge */}
       {guideActive && (
         <GuideBadge
+          key={guideStep}
           step={guideStep + 1}
           totalSteps={7}
           instruction={getGuideInstruction(guideStep)}
