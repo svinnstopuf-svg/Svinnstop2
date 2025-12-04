@@ -21,12 +21,12 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
       tip: 'Skriv några bokstäver så får du förslag!'
     },
     {
-      title: 'AI föreslår utgångsdatum',
-      description: 'Vi hjälper dig med datum automatiskt.',
-      longDescription: 'Tryck på "🤖 AI-förslag" så föreslår vår AI ett rimligt utgångsdatum. Du kan alltid ändra det själv!',
-      icon: '🤖',
+      title: 'Utgångsdatum - Enkelt och smart',
+      description: 'AI-förslag eller välj själv!',
+      longDescription: 'Tryck på "🤖 AI-förslag" så föreslår vår AI ett rimligt datum baserat på varan.\n\nVill du ändra? Klicka bara på datumfältet och välj ett annat datum. Superenkelt!',
+      icon: '📅',
       highlight: 'expiry-date',
-      tip: 'AI:n lär sig med tiden!'
+      tip: 'AI:n blir bättre ju mer du använder appen!'
     },
     {
       title: 'Använd inköpslistan',
