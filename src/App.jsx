@@ -4,6 +4,7 @@ import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
 import Onboarding from './Onboarding'
+import OnboardingGuide from './OnboardingGuide'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
@@ -193,7 +194,8 @@ export default function App() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
-  const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow
+  const [showOnboarding, setShowOnboarding] = useState(false) // Onboarding flow (gammal)
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Ny interaktiv guide
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
@@ -294,10 +296,11 @@ export default function App() {
     
     // Kolla om användaren har sett onboarding
     const hasSeenOnboarding = localStorage.getItem('svinnstop_onboarding_seen')
+    const hasSeenGuide = localStorage.getItem('svinnstop_guide_seen')
     
-    if (!hasSeenOnboarding) {
-      // Första gången användaren kommer in
-      setShowOnboarding(true)
+    if (!hasSeenOnboarding || !hasSeenGuide) {
+      // Första gången användaren kommer in - visa nya guiden
+      setShowOnboardingGuide(true)
       
       // Sätt default-flik baserat på om de har en referral-kod
       if (hasReferralCode) {
@@ -1406,8 +1409,24 @@ export default function App() {
 
   return (
     <>
-      {/* Onboarding Flow */}
+      {/* Onboarding Flow (gammal) */}
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+      
+      {/* Ny interaktiv guide */}
+      {showOnboardingGuide && (
+        <OnboardingGuide 
+          onComplete={() => {
+            setShowOnboardingGuide(false)
+            localStorage.setItem('svinnstop_guide_seen', 'true')
+            localStorage.setItem('svinnstop_onboarding_seen', 'true')
+          }}
+          onSkip={() => {
+            setShowOnboardingGuide(false)
+            localStorage.setItem('svinnstop_guide_seen', 'true')
+            localStorage.setItem('svinnstop_onboarding_seen', 'true')
+          }}
+        />
+      )}
       
       {/* Notification Permission Prompt */}
       {showNotificationPrompt && (
@@ -2067,6 +2086,18 @@ export default function App() {
               
               {/* Snabblänkar till huvudfunktioner */}
               <div className="profile-menu">
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setShowOnboardingGuide(true)}
+                >
+                  <span className="menu-icon">🎓</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Visa guide igen</span>
+                    <span className="menu-description">Lär dig använda appen</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
                 <button 
                   className="profile-menu-item"
                   onClick={() => {
