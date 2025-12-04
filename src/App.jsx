@@ -3,6 +3,7 @@ import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
+import OnboardingGuide from './OnboardingGuide'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
@@ -192,6 +193,7 @@ export default function App() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Interaktiv guide
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
@@ -290,7 +292,15 @@ export default function App() {
     const urlParams = new URLSearchParams(window.location.search)
     const hasReferralCode = urlParams.has('ref')
     
-    if (hasReferralCode) {
+    // Kolla om användaren har sett guiden
+    const hasSeenGuide = localStorage.getItem('svinnstop_guide_seen')
+    
+    if (!hasSeenGuide) {
+      // Första gången - visa guiden
+      setShowOnboardingGuide(true)
+      // Sätt till inventory-fliken så guiden kan highlighta rätt element
+      setActiveTab('inventory')
+    } else if (hasReferralCode) {
       // Inte första gången, men har referral-kod i URL
       const hasVisitedReferral = localStorage.getItem('svinnstop_referral_visited')
       
@@ -1363,6 +1373,20 @@ export default function App() {
 
   return (
     <>
+      {/* Onboarding Guide */}
+      {showOnboardingGuide && (
+        <OnboardingGuide
+          onComplete={() => {
+            setShowOnboardingGuide(false)
+            localStorage.setItem('svinnstop_guide_seen', 'true')
+          }}
+          onSkip={() => {
+            setShowOnboardingGuide(false)
+            localStorage.setItem('svinnstop_guide_seen', 'true')
+          }}
+        />
+      )}
+      
       {/* Notification Permission Prompt */}
       {showNotificationPrompt && (
         <NotificationPrompt 
@@ -2021,6 +2045,18 @@ export default function App() {
               
               {/* Snabblänkar till huvudfunktioner */}
               <div className="profile-menu">
+                <button
+                  className="profile-menu-item"
+                  onClick={() => setShowOnboardingGuide(true)}
+                >
+                  <span className="menu-icon">🎓</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Visa guide igen</span>
+                    <span className="menu-description">Lär dig använda appen</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
                 <button
                   className="profile-menu-item"
                   onClick={() => {
