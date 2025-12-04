@@ -80,26 +80,27 @@
 }
 
 .guide-btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
+  border: none;
 }
 
 .guide-btn-primary:hover {
-  background: var(--accent-hover);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
 }
 
 .guide-btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
 }
 
 .guide-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
 }
 
 @media (max-width: 768px) {
