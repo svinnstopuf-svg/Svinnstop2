@@ -6,14 +6,23 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 10000;
-  padding: 20px;
   animation: fadeIn 0.3s ease-out;
+  pointer-events: auto;
+}
+
+.spotlight-cutout {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75), 0 0 20px var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75), 0 0 30px var(--accent), 0 0 40px var(--accent);
+  }
 }
 
 @keyframes fadeIn {
@@ -28,11 +37,24 @@
 .onboarding-container {
   background: var(--card-bg);
   border-radius: 20px;
-  max-width: 600px;
-  width: 100%;
+  max-width: 500px;
+  width: 90%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   animation: slideUp 0.4s ease-out;
+  z-index: 10002;
+  pointer-events: auto;
+}
+
+.onboarding-container.centered {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.onboarding-container.positioned {
+  max-width: 400px;
 }
 
 @keyframes slideUp {

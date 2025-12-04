@@ -1,64 +1,72 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import './OnboardingGuide.css'
 
 export default function OnboardingGuide({ onComplete, onSkip }) {
   const [currentStep, setCurrentStep] = useState(0)
+  const [highlightedElement, setHighlightedElement] = useState(null)
 
   const steps = [
     {
       title: 'Välkommen till Svinnstop! 🎉',
-      description: 'Din smarta assistent för att minska matsvinn och spara pengar.',
-      longDescription: 'Vi hjälper dig hålla koll på dina matvaror och planera dina inköp smart!',
+      description: 'Låt oss visa dig hur appen fungerar!',
+      longDescription: 'Vi guidar dig genom de viktigaste funktionerna. Klicka "Nästa" för att börja!',
       icon: '👋',
-      action: null
+      target: null,
+      position: 'center'
     },
     {
-      title: 'Lägg till varor i kylskåpet',
-      description: 'Börja genom att lägga till dina matvaror.',
-      longDescription: 'Tryck på "Lägg till i kylskåp", skriv varans namn och välj antal och enhet. Superenkelt!',
+      title: 'Här lägger du till varor',
+      description: 'Formuläret för att lägga in nya varor i kylskåpet.',
+      longDescription: 'Skriv varans namn här så får du automatiska förslag. Välj sedan antal, enhet och utgångsdatum.',
       icon: '📝',
-      highlight: 'add-form',
-      tip: 'Skriv några bokstäver så får du förslag!'
+      target: '.add-item-card',
+      position: 'bottom',
+      tip: 'Prova skriva några bokstäver - du får smarta förslag!'
     },
     {
-      title: 'Utgångsdatum - Enkelt och smart',
-      description: 'AI-förslag eller välj själv!',
-      longDescription: 'Tryck på "🤖 AI-förslag" så föreslår vår AI ett rimligt datum baserat på varan.\n\nVill du ändra? Klicka bara på datumfältet och välj ett annat datum. Superenkelt!',
-      icon: '📅',
-      highlight: 'expiry-date',
-      tip: 'AI:n blir bättre ju mer du använder appen!'
+      title: 'AI föreslår utgångsdatum',
+      description: 'Tryck på 🤖 AI-förslag för smart datering!',
+      longDescription: 'AI:n föreslår ett rimligt utgångsdatum baserat på varan. Du kan alltid ändra det själv genom att klicka på datumfältet.',
+      icon: '🤖',
+      target: '.ai-suggestion-btn',
+      position: 'top',
+      tip: 'AI:n lär sig och blir bättre med tiden!'
     },
     {
-      title: 'Ändra utgångsdatum för befintliga varor',
-      description: 'Behöver du justera ett datum?',
-      longDescription: 'Om AI:n gissade fel eller om du vill ändra utgångsdatum senare:\n\n1. Tryck på "Redigera varor" i kylskåpet\n2. Bocka i de varor du vill ändra\n3. Välj nytt datum och tryck "Uppdatera"',
+      title: 'Ändra varor efteråt',
+      description: 'Behöver du justera ett utgångsdatum?',
+      longDescription: 'Tryck här för att aktivera redigeringsläge. Bocka i varor, välj nytt datum och uppdatera. Enkelt!',
       icon: '✏️',
-      highlight: 'bulk-edit',
+      target: '.bulk-edit-toggle',
+      position: 'left',
       tip: 'Du kan ändra flera varor samtidigt!'
     },
     {
-      title: 'Använd inköpslistan',
-      description: 'Planera dina inköp smart.',
-      longDescription: 'Gå till Inköpslista-fliken, lägg till varor du behöver köpa. Bocka av dem när du handlat!',
+      title: 'Inköpslista-fliken',
+      description: 'Planera dina inköp här!',
+      longDescription: 'Tryck här för att gå till inköpslistan. Lägg till varor du behöver köpa och bocka av dem när du handlat.',
       icon: '🛒',
-      highlight: 'shopping-tab',
-      tip: 'Du kan spara listor som mallar för återkommande inköp'
+      target: '[class*="tab-button"]:first-child',
+      position: 'bottom',
+      tip: 'När du bockar av varor och klickar "Rensa klara" flyttas matvaror automatiskt till kylskåpet!'
     },
     {
-      title: 'Rensa klara varor',
-      description: 'Varor flyttas automatiskt till kylskåpet.',
-      longDescription: 'När du bockat av matvaror i inköpslistan, tryck "Rensa klara" - då flyttas de automatiskt till kylskåpet!',
-      icon: '✅',
-      highlight: 'clear-completed',
-      tip: 'Perfekt efter handlingen!'
+      title: 'Så här ser dina varor ut',
+      description: 'Varorna sorteras efter utgångsdatum.',
+      longDescription: 'Lägg märke till färgerna:\n🔴 Röd = Utgånget\n🟡 Gul = Går ut inom 3 dagar\n🟢 Grön = Fräscht!',
+      icon: '📦',
+      target: '.inventory-card',
+      position: 'top',
+      tip: 'Ät det gula först för att undvika svinn!'
     },
     {
-      title: 'Färgkodning hjälper dig',
-      description: 'Se snabbt vad som går ut.',
-      longDescription: '🔴 Röd = Utgånget\n🟡 Gul = Går ut inom 3 dagar\n🟢 Grön = Fräscht!\n\nHåll koll på färgerna för att undvika svinn.',
-      icon: '🎨',
-      highlight: 'inventory-list',
-      tip: 'Ät det gula först!'
+      title: 'Profil & Inställningar',
+      description: 'Fler funktioner finns här!',
+      longDescription: 'I profilen hittar du inställningar, familjegrupp, utmärkelser och denna guide om du vill se den igen.',
+      icon: '👤',
+      target: '[class*="tab-button"]:last-child',
+      position: 'top',
+      tip: 'Du kan alltid visa guiden igen från profilen!'
     },
     {
       title: 'Du är redo! 🎊',
@@ -72,6 +80,22 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
   const currentStepData = steps[currentStep]
   const isLastStep = currentStep === steps.length - 1
   const isFirstStep = currentStep === 0
+
+  // Hitta och highlighta target element
+  useEffect(() => {
+    if (currentStepData.target) {
+      const element = document.querySelector(currentStepData.target)
+      if (element) {
+        setHighlightedElement(element)
+        // Scrolla till elementet
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      } else {
+        setHighlightedElement(null)
+      }
+    } else {
+      setHighlightedElement(null)
+    }
+  }, [currentStep, currentStepData])
 
   const handleNext = () => {
     if (isLastStep) {
@@ -95,9 +119,79 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
     }
   }
 
+  // Beräkna tooltip position baserat på highlighted element
+  const getTooltipStyle = () => {
+    if (!highlightedElement || currentStepData.position === 'center') {
+      return {}
+    }
+
+    const rect = highlightedElement.getBoundingClientRect()
+    const position = currentStepData.position || 'bottom'
+
+    switch (position) {
+      case 'top':
+        return {
+          position: 'fixed',
+          top: `${rect.top - 20}px`,
+          left: `${rect.left + rect.width / 2}px`,
+          transform: 'translate(-50%, -100%)'
+        }
+      case 'bottom':
+        return {
+          position: 'fixed',
+          top: `${rect.bottom + 20}px`,
+          left: `${rect.left + rect.width / 2}px`,
+          transform: 'translateX(-50%)'
+        }
+      case 'left':
+        return {
+          position: 'fixed',
+          top: `${rect.top + rect.height / 2}px`,
+          left: `${rect.left - 20}px`,
+          transform: 'translate(-100%, -50%)'
+        }
+      case 'right':
+        return {
+          position: 'fixed',
+          top: `${rect.top + rect.height / 2}px`,
+          left: `${rect.right + 20}px`,
+          transform: 'translateY(-50%)'
+        }
+      default:
+        return {}
+    }
+  }
+
   return (
-    <div className="onboarding-overlay">
-      <div className="onboarding-container">
+    <>
+      {/* Overlay med spotlight */}
+      <div className="onboarding-overlay" onClick={(e) => e.target.className === 'onboarding-overlay' && handleSkip()}>
+        {/* Spotlight effect */}
+        {highlightedElement && (
+          <div 
+            className="spotlight-cutout"
+            style={{
+              position: 'fixed',
+              top: `${highlightedElement.getBoundingClientRect().top - 8}px`,
+              left: `${highlightedElement.getBoundingClientRect().left - 8}px`,
+              width: `${highlightedElement.getBoundingClientRect().width + 16}px`,
+              height: `${highlightedElement.getBoundingClientRect().height + 16}px`,
+              border: '3px solid var(--accent)',
+              borderRadius: '12px',
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.75), 0 0 20px var(--accent)',
+              pointerEvents: 'none',
+              zIndex: 10001,
+              transition: 'all 0.3s ease'
+            }}
+          />
+        )}
+      </div>
+      
+      {/* Tooltip */}
+      <div 
+        className={`onboarding-container ${highlightedElement ? 'positioned' : 'centered'}`}
+        style={highlightedElement ? getTooltipStyle() : {}}
+      >
         {/* Progress bar */}
         <div className="onboarding-progress">
           <div 
@@ -166,6 +260,6 @@ export default function OnboardingGuide({ onComplete, onSkip }) {
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
