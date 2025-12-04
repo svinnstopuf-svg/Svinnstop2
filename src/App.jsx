@@ -3,7 +3,6 @@ import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
-import OnboardingGuide from './OnboardingGuide'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
@@ -193,7 +192,6 @@ export default function App() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
-  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Interaktiv guide
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
@@ -292,24 +290,7 @@ export default function App() {
     const urlParams = new URLSearchParams(window.location.search)
     const hasReferralCode = urlParams.has('ref')
     
-    // Kolla om användaren har sett onboarding
-    const hasSeenOnboarding = localStorage.getItem('svinnstop_onboarding_seen')
-    const hasSeenGuide = localStorage.getItem('svinnstop_guide_seen')
-    
-    if (!hasSeenOnboarding || !hasSeenGuide) {
-      // Första gången användaren kommer in - visa nya guiden
-      setShowOnboardingGuide(true)
-      
-      // Sätt default-flik baserat på om de har en referral-kod
-      if (hasReferralCode) {
-        setActiveTab('referral')
-        console.log('🎁 Referral code detected in URL, will navigate to referral tab after onboarding')
-        // Markera att referral-kod har hanterats
-        localStorage.setItem('svinnstop_referral_visited', 'true')
-      } else {
-        setActiveTab('inventory') // Default till kylskåp
-      }
-    } else if (hasReferralCode) {
+    if (hasReferralCode) {
       // Inte första gången, men har referral-kod i URL
       const hasVisitedReferral = localStorage.getItem('svinnstop_referral_visited')
       
@@ -333,15 +314,6 @@ export default function App() {
       }
     }
     
-    // Kolla om vi ska visa notifikationsprompt
-    // Visa efter onboarding eller när användaren lagt till första varan
-    const notificationPrompted = localStorage.getItem('svinnstop_notifications_prompted')
-    if (!notificationPrompted && hasSeenOnboarding) {
-      // Visa prompten efter en kort delay så användaren hinner se appen först
-      setTimeout(() => {
-        setShowNotificationPrompt(true)
-      }, 2000)
-    }
     
   // Track daily login for achievements
     achievementService.trackDailyLogin()
@@ -1391,22 +1363,6 @@ export default function App() {
 
   return (
     <>
-      {/* Interaktiv guide */}
-      {showOnboardingGuide && (
-        <OnboardingGuide 
-          onComplete={() => {
-            setShowOnboardingGuide(false)
-            localStorage.setItem('svinnstop_guide_seen', 'true')
-            localStorage.setItem('svinnstop_onboarding_seen', 'true')
-          }}
-          onSkip={() => {
-            setShowOnboardingGuide(false)
-            localStorage.setItem('svinnstop_guide_seen', 'true')
-            localStorage.setItem('svinnstop_onboarding_seen', 'true')
-          }}
-        />
-      )}
-      
       {/* Notification Permission Prompt */}
       {showNotificationPrompt && (
         <NotificationPrompt 
@@ -2065,19 +2021,7 @@ export default function App() {
               
               {/* Snabblänkar till huvudfunktioner */}
               <div className="profile-menu">
-                <button 
-                  className="profile-menu-item"
-                  onClick={() => setShowOnboardingGuide(true)}
-                >
-                  <span className="menu-icon">🎓</span>
-                  <div className="menu-content">
-                    <span className="menu-title">Visa guide igen</span>
-                    <span className="menu-description">Lär dig använda appen</span>
-                  </div>
-                  <span className="menu-arrow">›</span>
-                </button>
-                
-                <button 
+                <button
                   className="profile-menu-item"
                   onClick={() => {
                     toggleTheme();
