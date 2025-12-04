@@ -534,37 +534,60 @@ export default function App() {
     }
   }, [showSettingsMenu])
 
+  // State för att spåra om något lagts till i inköpslistan under guide
+  const shoppingListItemsRef = useRef(0)
+
   // Guide: Lyssna på användaraktioner och avancera guiden
   useEffect(() => {
     if (!guideActive) return
 
+    console.log('📖 Guide active - Current step:', guideStep)
+
     // Steg 0: Användaren har skrivit "Mjölk" i namnfältet
     if (guideStep === 0 && form.name.toLowerCase().includes('mjölk')) {
+      console.log('✅ Steg 0: Mjölk skrivet')
       setTimeout(() => setGuideStep(1), 500)
     }
 
     // Steg 1: AI-förslag har klickats (detekteras genom att expiresAt har ett värde)
     if (guideStep === 1 && form.expiresAt) {
+      console.log('✅ Steg 1: AI-förslag klickat')
       setTimeout(() => setGuideStep(2), 500)
     }
 
     // Steg 2: Vara har lagts till (items.length ökade)
     if (guideStep === 2 && items.some(item => item.name.toLowerCase().includes('mjölk'))) {
+      console.log('✅ Steg 2: Vara tillagd')
       setTimeout(() => setGuideStep(3), 800)
     }
 
     // Steg 3: Inköpslista-fliken har öppnats
     if (guideStep === 3 && activeTab === 'shopping') {
+      console.log('✅ Steg 3: Inköpslista öppnad')
+      // Sätt referens för att spåra ökning i inköpslista
+      shoppingListItemsRef.current = 0 // Reset
       setTimeout(() => setGuideStep(4), 500)
+    }
+
+    // Steg 4: Något har lagts till i inköpslistan (vi går direkt vidare efter 2 sekunder)
+    if (guideStep === 4) {
+      console.log('📝 Steg 4: Väntar på inköpslista...')
+      const timer = setTimeout(() => {
+        console.log('✅ Steg 4: Timeout - går vidare')
+        setGuideStep(5)
+      }, 5000) // Ge användaren 5 sekunder att lägga till något
+      return () => clearTimeout(timer)
     }
 
     // Steg 5: Kylskåp-fliken har öppnats (färgkodning)
     if (guideStep === 5 && activeTab === 'inventory') {
+      console.log('✅ Steg 5: Kylskåp öppnad')
       setTimeout(() => setGuideStep(6), 500)
     }
 
     // Steg 6: Guiden är klar
     if (guideStep === 6) {
+      console.log('🎉 Steg 6: Guiden klar!')
       setTimeout(() => {
         setGuideActive(false)
         localStorage.setItem('svinnstop_guide_seen', 'true')
