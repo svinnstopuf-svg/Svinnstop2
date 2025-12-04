@@ -1,0 +1,117 @@
+.guide-welcome-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.guide-welcome-dialog {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.guide-welcome-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.guide-welcome-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 16px 0;
+}
+
+.guide-welcome-text {
+  font-size: 18px;
+  color: var(--text);
+  margin: 0 0 12px 0;
+  line-height: 1.6;
+}
+
+.guide-welcome-subtext {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 32px 0;
+}
+
+.guide-welcome-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.guide-btn {
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.guide-btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.guide-btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.4);
+}
+
+.guide-btn-secondary {
+  background: var(--hover-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.guide-btn-secondary:hover {
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .guide-welcome-dialog {
+    max-width: 90%;
+    padding: 30px 24px;
+  }
+
+  .guide-welcome-buttons {
+    flex-direction: column;
+  }
+
+  .guide-btn {
+    width: 100%;
+  }
+}

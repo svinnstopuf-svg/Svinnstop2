@@ -3,7 +3,8 @@ import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
 import ShoppingList from './ShoppingList'
-import OnboardingGuide from './OnboardingGuide'
+import GuideWelcome from './GuideWelcome'
+import GuideBadge from './GuideBadge'
 import NotificationPrompt from './NotificationPrompt'
 import SavingsBanner from './SavingsBanner'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
@@ -193,9 +194,9 @@ export default function App() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [recipeCategory, setRecipeCategory] = useState('alla') // Filter för receptkategorier
   const [recipesLoaded, setRecipesLoaded] = useState(false) // FIX: Spåra om recept har laddats
-  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false) // Interaktiv guide
+  const [showGuideWelcome, setShowGuideWelcome] = useState(false) // Välkomstdialog
+  const [guideActive, setGuideActive] = useState(false) // Om guiden är aktiv
   const [guideStep, setGuideStep] = useState(0) // Vilken guide-steg användaren är på
-  const guideAdvance = useRef(null) // Funktion för att avancera guiden
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false) // Notification permission prompt
   const [familySyncTrigger, setFamilySyncTrigger] = useState(0) // Trigger för att starta Firebase sync
   const [isAuthReady, setIsAuthReady] = useState(false) // Väntar på Firebase auth
@@ -298,10 +299,9 @@ export default function App() {
     const hasSeenGuide = localStorage.getItem('svinnstop_guide_seen')
     
     if (!hasSeenGuide) {
-      // Första gången - visa guiden
-      setShowOnboardingGuide(true)
-      // Sätt till inventory-fliken så guiden kan highlighta rätt element
-      setActiveTab('inventory')
+      // Första gången - visa välkomstdialog
+      setShowGuideWelcome(true)
+      setActiveTab('inventory') // Sätt till inventory-fliken
     } else if (hasReferralCode) {
       // Inte första gången, men har referral-kod i URL
       const hasVisitedReferral = localStorage.getItem('svinnstop_referral_visited')
@@ -536,33 +536,68 @@ export default function App() {
 
   // Guide: Lyssna på användaraktioner och avancera guiden
   useEffect(() => {
-    if (!showOnboardingGuide || !guideAdvance.current) return
+    if (!guideActive) return
 
-    // Steg 1: Användaren har skrivit "Mjölk" i namnfältet
-    if (guideStep === 1 && form.name.toLowerCase().includes('mjölk')) {
-      guideAdvance.current.advanceStep()
+    // Steg 0: Användaren har skrivit "Mjölk" i namnfältet
+    if (guideStep === 0 && form.name.toLowerCase().includes('mjölk')) {
+      setTimeout(() => setGuideStep(1), 500)
     }
 
-    // Steg 2: AI-förslag har klickats (detekteras genom att expiresAt har ett värde)
-    if (guideStep === 2 && form.expiresAt) {
-      guideAdvance.current.advanceStep()
+    // Steg 1: AI-förslag har klickats (detekteras genom att expiresAt har ett värde)
+    if (guideStep === 1 && form.expiresAt) {
+      setTimeout(() => setGuideStep(2), 500)
     }
 
-    // Steg 3: Vara har lagts till (items.length ökade)
-    if (guideStep === 3 && items.some(item => item.name.toLowerCase().includes('mjölk'))) {
-      setTimeout(() => guideAdvance.current?.advanceStep(), 500)
+    // Steg 2: Vara har lagts till (items.length ökade)
+    if (guideStep === 2 && items.some(item => item.name.toLowerCase().includes('mjölk'))) {
+      setTimeout(() => setGuideStep(3), 800)
     }
 
-    // Steg 4: Inköpslista-fliken har öppnats
-    if (guideStep === 4 && activeTab === 'shopping') {
-      setTimeout(() => guideAdvance.current?.advanceStep(), 500)
+    // Steg 3: Inköpslista-fliken har öppnats
+    if (guideStep === 3 && activeTab === 'shopping') {
+      setTimeout(() => setGuideStep(4), 500)
     }
 
-    // Steg 6: Kylskåp-fliken har öppnats (färgkodning)
-    if (guideStep === 6 && activeTab === 'inventory') {
-      setTimeout(() => guideAdvance.current?.advanceStep(), 500)
+    // Steg 5: Kylskåp-fliken har öppnats (färgkodning)
+    if (guideStep === 5 && activeTab === 'inventory') {
+      setTimeout(() => setGuideStep(6), 500)
     }
-  }, [showOnboardingGuide, guideStep, form, items, activeTab])
+
+    // Steg 6: Guiden är klar
+    if (guideStep === 6) {
+      setTimeout(() => {
+        setGuideActive(false)
+        localStorage.setItem('svinnstop_guide_seen', 'true')
+      }, 3000)
+    }
+  }, [guideActive, guideStep, form, items, activeTab])
+
+  // Guide-instruktioner
+  const getGuideInstruction = (step) => {
+    const instructions = [
+      'Skriv "Mjölk" i namnfältet',
+      'Tryck på "🤖 AI-förslag" knappen',
+      'Tryck på "Lägg till" för att spara varan',
+      'Gå till Inköpslista-fliken',
+      'Lägg till något i inköpslistan',
+      'Gå tillbaka till Kylskåp-fliken',
+      'Klart! Du kan nu använda appen! 🎉'
+    ]
+    return instructions[step] || ''
+  }
+
+  const getGuideDetails = (step) => {
+    const details = [
+      'Här lägger du in varor i ditt kylskåp. Testa att skriva "Mjölk" så ser du hur det fungerar. Du får automatiska förslag när du skriver.',
+      'AI:n föreslår ett rimligt utgångsdatum baserat på varan. Tryck på knappen så ser du hur den fyller i datumet automatiskt!',
+      'Nu har du lagt in all information. Tryck på "Lägg till" så sparas varan i ditt kylskåp. Du kommer att se den nedan med färgkodning baserat på utgångsdatumet.',
+      'Inköpslistan är perfekt för att planera vad du behöver köpa. Gå dit nu så visar vi hur den fungerar!',
+      'Här lägger du till varor du behöver köpa. När du handlat kan du bocka av dem och trycka "Rensa klara" - då flyttas matvaror automatiskt till kylskåpet!',
+      'Se hur varan du lade till färgkodas! 🟢 Grön = Fräscht, 🟡 Gul = Går ut snart, 🔴 Röd = Utgånget. Detta hjälper dig att äta rätt varor först!',
+      'Nu vet du grunderna! Fortsätt använda appen för att spåra din mat och minska matsvinnet. Du hittar fler funktioner i profilen. Lycka till! 🌱'
+    ]
+    return details[step] || ''
+  }
 
   const onChange = e => {
     const { name, value } = e.target
@@ -1405,24 +1440,32 @@ export default function App() {
 
   return (
     <>
-      {/* Onboarding Guide */}
-      {showOnboardingGuide && (
-        <OnboardingGuide
-          onComplete={() => {
-            setShowOnboardingGuide(false)
+      {/* Välkomstdialog */}
+      {showGuideWelcome && (
+        <GuideWelcome
+          onStart={() => {
+            setShowGuideWelcome(false)
+            setGuideActive(true)
             setGuideStep(0)
-            localStorage.setItem('svinnstop_guide_seen', 'true')
           }}
           onSkip={() => {
-            setShowOnboardingGuide(false)
-            setGuideStep(0)
+            setShowGuideWelcome(false)
             localStorage.setItem('svinnstop_guide_seen', 'true')
           }}
-          onStepChange={(step, stepData) => {
-            setGuideStep(step)
-            console.log('Guide step changed:', step, stepData)
+        />
+      )}
+
+      {/* Guide Badge */}
+      {guideActive && (
+        <GuideBadge
+          step={guideStep + 1}
+          totalSteps={7}
+          instruction={getGuideInstruction(guideStep)}
+          details={getGuideDetails(guideStep)}
+          onClose={() => {
+            setGuideActive(false)
+            localStorage.setItem('svinnstop_guide_seen', 'true')
           }}
-          ref={guideAdvance}
         />
       )}
       
@@ -2086,7 +2129,11 @@ export default function App() {
               <div className="profile-menu">
                 <button
                   className="profile-menu-item"
-                  onClick={() => setShowOnboardingGuide(true)}
+                  onClick={() => {
+                    setGuideActive(true)
+                    setGuideStep(0)
+                    setActiveTab('inventory')
+                  }}
                 >
                   <span className="menu-icon">🎓</span>
                   <div className="menu-content">
