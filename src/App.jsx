@@ -203,6 +203,7 @@ export default function App() {
   const [selectedInventoryCategory, setSelectedInventoryCategory] = useState('frukt')
   const [currentDisplayUnit, setCurrentDisplayUnit] = useState('st') // Aktuell enhet som visas
   const [userSelectedUnit, setUserSelectedUnit] = useState(false) // Flagga om användaren manuellt valt enhet
+  const [isInitialInventoryLoad, setIsInitialInventoryLoad] = useState(true) // Flagga för initial laddning
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -236,35 +237,46 @@ export default function App() {
 
   // Initiera tema och aktiv tab från localStorage eller systempreferens
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try { 
-        const parsed = JSON.parse(saved)
-        // FIX: Validera att parsed är en array och innehåller giltiga objekt
-        if (Array.isArray(parsed)) {
-          const validItems = parsed.filter(item => 
-            item && 
-            typeof item === 'object' && 
-            item.id && 
-            item.name && 
-            item.quantity !== undefined && 
-            item.expiresAt
-          )
-          setItems(validItems)
-          
-          // Om vi filtrerade bort ogiltiga items, uppdatera localStorage
-          if (validItems.length !== parsed.length) {
-            console.warn(`Rensade ${parsed.length - validItems.length} ogiltiga items`)
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(validItems))
+    // Kolla om vi är i en familj med synk
+    const family = getFamilyData()
+    
+    // Om i familj, vänta på Firebase-data istället för att ladda localStorage
+    if (family.familyId && family.syncEnabled) {
+      console.log('⏳ Väntar på Firebase-data för kylskåp...')
+    } else {
+      // Endast ladda localStorage om INTE i familj
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try { 
+          const parsed = JSON.parse(saved)
+          // FIX: Validera att parsed är en array och innehåller giltiga objekt
+          if (Array.isArray(parsed)) {
+            const validItems = parsed.filter(item => 
+              item && 
+              typeof item === 'object' && 
+              item.id && 
+              item.name && 
+              item.quantity !== undefined && 
+              item.expiresAt
+            )
+            setItems(validItems)
+            console.log('💾 Laddade kylskåp från localStorage:', validItems.length, 'varor')
+            
+            // Om vi filtrerade bort ogiltiga items, uppdatera localStorage
+            if (validItems.length !== parsed.length) {
+              console.warn(`Rensade ${parsed.length - validItems.length} ogiltiga items`)
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(validItems))
+            }
+          } else {
+            console.error('localStorage innehöll inte en giltig array')
+            setItems([])
           }
-        } else {
-          console.error('localStorage innehöll inte en giltig array')
+        } catch (error) {
+          console.error('Kunde inte ladda items från localStorage:', error)
           setItems([])
         }
-      } catch (error) {
-        console.error('Kunde inte ladda items från localStorage:', error)
-        setItems([])
       }
+      setIsInitialInventoryLoad(false)
     }
     
     const savedTheme = localStorage.getItem(THEME_KEY)
@@ -371,6 +383,11 @@ export default function App() {
       const unsubscribe = listenToInventoryChanges((firebaseInventory) => {
         console.log('📥 Received inventory from Firebase:', firebaseInventory.length, 'items')
         setItems(firebaseInventory)
+        
+        // Markera att initial load är klar
+        if (isInitialInventoryLoad) {
+          setIsInitialInventoryLoad(false)
+        }
       })
       
       return () => {
@@ -379,8 +396,10 @@ export default function App() {
           unsubscribe()
         }
       }
+    } else {
+      setIsInitialInventoryLoad(false)
     }
-  }, [familySyncTrigger])
+  }, [familySyncTrigger, isInitialInventoryLoad])
 
   // Auto-refresh när användaren kommer tillbaka till appen
   useEffect(() => {
@@ -388,30 +407,33 @@ export default function App() {
       if (!document.hidden) {
         console.log('🔄 App became visible, refreshing data...')
         
-        // Ladda om data från localStorage
-        const saved = localStorage.getItem(STORAGE_KEY)
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved)
-            if (Array.isArray(parsed)) {
-              const validItems = parsed.filter(item => 
-                item && 
-                typeof item === 'object' && 
-                item.id && 
-                item.name && 
-                item.quantity !== undefined && 
-                item.expiresAt
-              )
-              setItems(validItems)
-            }
-          } catch (error) {
-            console.error('Kunde inte ladda items:', error)
-          }
-        }
-        
-        // Om i familj, triggera Firebase-sync
         const family = getFamilyData()
-        if (family.familyId && family.syncEnabled) {
+        
+        // Endast ladda localStorage om INTE i familj
+        if (!family.familyId || !family.syncEnabled) {
+          const saved = localStorage.getItem(STORAGE_KEY)
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved)
+              if (Array.isArray(parsed)) {
+                const validItems = parsed.filter(item => 
+                  item && 
+                  typeof item === 'object' && 
+                  item.id && 
+                  item.name && 
+                  item.quantity !== undefined && 
+                  item.expiresAt
+                )
+                setItems(validItems)
+                console.log('💾 Laddade om från localStorage')
+              }
+            } catch (error) {
+              console.error('Kunde inte ladda items:', error)
+            }
+          }
+        } else {
+          // Om i familj, triggera Firebase-sync istället
+          console.log('🔄 Triggerar Firebase-sync...')
           setFamilySyncTrigger(prev => prev + 1)
         }
       }
@@ -426,6 +448,11 @@ export default function App() {
 
   // FIX: Debounce localStorage writes för att undvika race conditions
   useEffect(() => {
+    // Skippa initial load för att undvika att skriva över Firebase med gammalt localStorage
+    if (isInitialInventoryLoad) {
+      return
+    }
+    
     const timeoutId = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
@@ -458,7 +485,7 @@ export default function App() {
     }, 100) // 100ms debounce
     
     return () => clearTimeout(timeoutId)
-  }, [items])
+  }, [items, isInitialInventoryLoad])
 
   // Tillämpa tema på dokument och spara till localStorage
   useEffect(() => {

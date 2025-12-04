@@ -25,23 +25,41 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [selectedCategory, setSelectedCategory] = useState('frukt')
   const [selectedIsFood, setSelectedIsFood] = useState(true)
   const [quantity, setQuantity] = useState(1)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   
-  // Ladda inköpslista från localStorage
+  // Ladda inköpslista från localStorage (endast om INTE i familj)
   useEffect(() => {
+    const family = getFamilyData()
+    
+    // Om i familj, vänta på Firebase-data istället
+    if (family.familyId && family.syncEnabled) {
+      console.log('⏳ Väntar på Firebase-data för inköpslista...')
+      return
+    }
+    
+    // Annars, ladda från localStorage
     const saved = localStorage.getItem('svinnstop_shopping_list')
     if (saved) {
       try {
         setShoppingItems(JSON.parse(saved))
+        console.log('💾 Laddade inköpslista från localStorage')
       } catch (e) {
         console.error('Failed to load shopping list:', e)
       }
     }
+    
     // Ladda sparade listor
     setSavedLists(shoppingListService.getSavedShoppingLists())
+    setIsInitialLoad(false)
   }, [])
 
   // Spara inköpslista till localStorage och synka med Firebase
   useEffect(() => {
+    // Skippa initial load för att undvika att skriva över Firebase med gammalt localStorage
+    if (isInitialLoad) {
+      return
+    }
+    
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
     
     // Synka till Firebase om familj är aktiv
@@ -49,14 +67,19 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
     if (family.familyId && family.syncEnabled) {
       syncShoppingListToFirebase(shoppingItems)
     }
-  }, [shoppingItems])
+  }, [shoppingItems, isInitialLoad])
 
   // Lyssna på Firebase-ändringar för inköpslistan
   useEffect(() => {
     const family = getFamilyData()
-    if (!family.familyId || !family.syncEnabled) return
+    if (!family.familyId || !family.syncEnabled) {
+      setIsInitialLoad(false)
+      return
+    }
 
     const unsubscribe = listenToShoppingListChanges((remoteItems) => {
+      console.log('📥 Mottog inköpslista från Firebase:', remoteItems.length, 'varor')
+      
       // Undvik loopar genom att jämföra innehåll
       const localStr = JSON.stringify(shoppingItems)
       const remoteStr = JSON.stringify(remoteItems)
@@ -64,6 +87,11 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
         setShoppingItems(remoteItems)
         setIsSyncing(true)
         setTimeout(() => setIsSyncing(false), 1000)
+      }
+      
+      // Markera att initial load är klar
+      if (isInitialLoad) {
+        setIsInitialLoad(false)
       }
     })
 
