@@ -26,6 +26,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
   const [selectedIsFood, setSelectedIsFood] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [shoppingFromFirebase, setShoppingFromFirebase] = useState(false)
   
   // Ladda inköpslista från localStorage (endast om INTE i familj)
   useEffect(() => {
@@ -60,14 +61,26 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       return
     }
     
-    localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
+    const family = getFamilyData()
+    
+    // Om data kommer från Firebase: SKIPPA synk tillbaka (förhindrar loop)
+    if (family.familyId && family.syncEnabled && shoppingFromFirebase) {
+      console.log('🚫 Skippar inköpslista Firebase-sync - data kommer från Firebase')
+      setShoppingFromFirebase(false)
+      return
+    }
+    
+    // Spara till localStorage ENDAST om INTE i familj
+    if (!family.familyId || !family.syncEnabled) {
+      localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
+    }
     
     // Synka till Firebase om familj är aktiv
-    const family = getFamilyData()
     if (family.familyId && family.syncEnabled) {
+      console.log('🔄 Synkar inköpslista till Firebase')
       syncShoppingListToFirebase(shoppingItems)
     }
-  }, [shoppingItems, isInitialLoad])
+  }, [shoppingItems, isInitialLoad, shoppingFromFirebase])
 
   // Lyssna på Firebase-ändringar för inköpslistan
   useEffect(() => {
@@ -77,8 +90,15 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
       return
     }
 
+    // Rensa inköpslista localStorage när i familj
+    localStorage.removeItem('svinnstop_shopping_list')
+    console.log('🧹 Rensade inköpslista localStorage - Firebase tar över')
+
     const unsubscribe = listenToShoppingListChanges((remoteItems) => {
       console.log('📥 Mottog inköpslista från Firebase:', remoteItems.length, 'varor')
+      
+      // Sätt flagga att data kommer från Firebase
+      setShoppingFromFirebase(true)
       
       // Undvik loopar genom att jämföra innehåll
       const localStr = JSON.stringify(shoppingItems)

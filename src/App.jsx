@@ -365,8 +365,18 @@ export default function App() {
     
     if (family.familyId && family.syncEnabled) {
       console.log('🔄 Starting Firebase inventory sync for family:', family.familyId)
+      
+      // Rensa ENDAST kylskåp localStorage (behåll achievements, referrals etc)
+      localStorage.removeItem(STORAGE_KEY)
+      console.log('🧹 Rensade kylskåp localStorage - Firebase tar över')
+      console.log('✅ Behåller personlig data (achievements, referrals, savings)')
+      
       const unsubscribe = listenToInventoryChanges((firebaseInventory) => {
         console.log('📥 Received inventory from Firebase:', firebaseInventory.length, 'items')
+        
+        // Sätt flagga att data kommer från Firebase
+        itemsFromFirebase.current = true
+        
         setItems(firebaseInventory)
         
         // Markera att initial load är klar
@@ -431,6 +441,9 @@ export default function App() {
     }
   }, [])
 
+  // Ref för att spåra om data kommer från Firebase (förhindrar loop)
+  const itemsFromFirebase = useRef(false)
+
   // FIX: Debounce localStorage writes för att undvika race conditions
   useEffect(() => {
     // Skippa initial load för att undvika att skriva över Firebase med gammalt localStorage
@@ -440,9 +453,21 @@ export default function App() {
     
     const timeoutId = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+        const family = getFamilyData()
         
-        // Track max active items for achievements
+        // Om data kommer från Firebase: SKIPPA synk tillbaka (förhindrar loop)
+        if (family.familyId && family.syncEnabled && itemsFromFirebase.current) {
+          console.log('🚫 Skippar Firebase-sync - data kommer redan från Firebase')
+          itemsFromFirebase.current = false // Reset
+          return
+        }
+        
+        // Spara till localStorage ENDAST om INTE i familj
+        if (!family.familyId || !family.syncEnabled) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+        }
+        
+        // Track max active items for achievements (ALLTID - personlig data)
         const achievementData = achievementService.getAchievementData()
         if (items.length > (achievementData.stats.maxActiveItems || 0)) {
           achievementService.updateStats({
@@ -451,13 +476,12 @@ export default function App() {
         }
         
         // Synkronisera till Firebase om i familj
-        const family = getFamilyData()
         if (family.familyId && family.syncEnabled) {
+          console.log('🔄 Synkar lokal ändring till Firebase')
           syncInventoryToFirebase(items)
         }
       } catch (error) {
         console.error('Kunde inte spara items till localStorage:', error)
-        // Försök rensa gamla data om storage är full
         if (error.name === 'QuotaExceededError') {
           try {
             localStorage.removeItem('svinnstop_cached_recipes')
