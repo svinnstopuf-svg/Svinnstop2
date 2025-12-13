@@ -777,7 +777,8 @@ export default function App() {
     )
     
     if (!isPremium && items.length >= 10 && !existingItemCheck) {
-      // Show upgrade modal
+      // Show upgrade modal and inform user
+      alert('🔒 Du har nått gränsen på 10 varor!\n\nUppgradera till Premium för:\n• Obegränsat antal varor\n• Receptförslag\n• Ingen reklam\n• och mer!')
       setShowUpgradeModal(true)
       console.log('🚫 Free user reached 10-item limit')
       return
@@ -1823,9 +1824,17 @@ export default function App() {
                   >
                     Lägg till i kylskåp
                   </button>
-                  {form.name && form.expiresAt && form.quantity > 0 && (
+                  {form.name && form.expiresAt && form.quantity > 0 ? (
                     <div className="form-preview">
                       <small>Lägger till: <strong>{form.quantity} {selectedInventoryUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
+                    </div>
+                  ) : (
+                    <div className="form-preview" style={{color: 'var(--muted)'}}>
+                      <small>
+                        {!form.name && '⚠️ Namn saknas'}
+                        {form.name && !form.expiresAt && '⚠️ Utgångsdatum saknas'}
+                        {form.name && form.expiresAt && form.quantity <= 0 && '⚠️ Antal måste vara större än 0'}
+                      </small>
                     </div>
                   )}
                 </div>
