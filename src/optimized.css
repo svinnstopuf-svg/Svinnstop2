@@ -896,6 +896,20 @@ button:disabled {
   flex-shrink: 0;
 }
 
+.profile-menu-item.premium-highlight {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border-left: 3px solid #10b981;
+}
+
+[data-theme="dark"] .profile-menu-item.premium-highlight {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+}
+
+.profile-menu-item.premium-highlight .menu-title {
+  color: #10b981;
+  font-weight: 700;
+}
+
 /* === RESPONSIVE === */
 @media (prefers-reduced-motion: reduce) {
   *,

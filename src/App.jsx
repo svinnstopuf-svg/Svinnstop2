@@ -2307,21 +2307,19 @@ export default function App() {
               
               {/* Snabblänkar till huvudfunktioner */}
               <div className="profile-menu">
-                <button
-                  className="profile-menu-item"
-                  onClick={() => {
-                    setGuideActive(true)
-                    setGuideStep(0)
-                    setActiveTab('inventory')
-                  }}
-                >
-                  <span className="menu-icon">🎓</span>
-                  <div className="menu-content">
-                    <span className="menu-title">Visa guide igen</span>
-                    <span className="menu-description">Lär dig använda appen</span>
-                  </div>
-                  <span className="menu-arrow">›</span>
-                </button>
+                {!premiumService.isPremiumActive() && (
+                  <button
+                    className="profile-menu-item premium-highlight"
+                    onClick={() => setShowUpgradeModal(true)}
+                  >
+                    <span className="menu-icon">✨</span>
+                    <div className="menu-content">
+                      <span className="menu-title">Uppgradera till Premium</span>
+                      <span className="menu-description">Få tillgång till alla funktioner</span>
+                    </div>
+                    <span className="menu-arrow">›</span>
+                  </button>
+                )}
                 
                 <button
                   className="profile-menu-item"
