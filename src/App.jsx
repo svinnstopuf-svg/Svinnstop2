@@ -32,6 +32,7 @@ import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
 import './mobile.css'
 import './newFeatures.css'
+import './premiumRequired.css'
 
 // Pro-svenska med Google Translate samarbete
 // Låt Google göra jobbet åt oss!
@@ -2006,16 +2007,28 @@ export default function App() {
         {/* Recept flik */}
         {activeTab === 'recipes' && (
           <div className="tab-panel">
-            <PremiumFeature 
-              feature="recipes"
-              onUpgradeClick={() => setShowUpgradeModal(true)}
-            >
-              <section className="card">
-                <div className="section-header">
-                  <h2>Recept</h2>
-                  <p className="section-subtitle">Hitta inspiration för din matlagning</p>
+            <section className="card">
+              <div className="section-header">
+                <h2>Recept {!premiumService.isPremiumActive() && '🔒'}</h2>
+                <p className="section-subtitle">Hitta inspiration för din matlagning</p>
+              </div>
+              
+              {!premiumService.isPremiumActive() ? (
+                <div className="premium-required-message">
+                  <div className="premium-required-content">
+                    <div className="premium-icon">✨</div>
+                    <h3>Receptförslag kräver Premium</h3>
+                    <p>Få smarta receptförslag baserat på vad du har i kylskåpet</p>
+                    <button 
+                      className="upgrade-btn-inline"
+                      onClick={() => setShowUpgradeModal(true)}
+                    >
+                      Uppgradera till Premium
+                    </button>
+                  </div>
                 </div>
-                
+              ) : (
+                <>
                 {/* Sub-tabs för recept */}
                 <div className="recipe-tabs">
                 <button 
@@ -2236,8 +2249,9 @@ export default function App() {
                   )}
                 </div>
               )}
-              </section>
-            </PremiumFeature>
+                </>
+              )}
+            </section>
           </div>
         )}
         
