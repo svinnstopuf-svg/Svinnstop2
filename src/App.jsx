@@ -242,6 +242,7 @@ export default function App() {
   const [userSelectedUnit, setUserSelectedUnit] = useState(false) // Flagga om användaren manuellt valt enhet
   const [isInitialInventoryLoad, setIsInitialInventoryLoad] = useState(true) // Flagga för initial laddning
   const [showUpgradeModal, setShowUpgradeModal] = useState(false) // Premium upgrade modal
+  const [shouldClearForm, setShouldClearForm] = useState(false) // Flagga för att rensa formulär
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -272,6 +273,28 @@ export default function App() {
       clearInterval(cookieInterval)
     }
   }, [])
+  
+  // Rensa formulär efter items-uppdatering (förhindrar DOM-fel)
+  useEffect(() => {
+    if (shouldClearForm) {
+      setForm({ 
+        name: '', 
+        quantity: 1, 
+        expiresAt: '' 
+      })
+      setFoodSuggestions([])
+      setShowFoodSuggestions(false)
+      setUserSelectedUnit(false)
+      setSelectedInventoryCategory('övrigt')
+      setShouldClearForm(false)
+      
+      // Fokusera tillbaka till namn-fältet
+      setTimeout(() => {
+        const nameInput = document.querySelector('input[name="name"]')
+        if (nameInput) nameInput.focus()
+      }, 50)
+    }
+  }, [shouldClearForm])
 
   // Initiera tema och aktiv tab från localStorage eller systempreferens
   useEffect(() => {
@@ -957,23 +980,8 @@ export default function App() {
       referralService.trackItemAdded()
     }
     
-    // FÖRDRÖJ formulärrensning för att undvika React DOM-fel
-    // Låt React rendera klart först innan vi rensar formuläret
-    setTimeout(() => {
-      setForm({ 
-        name: '', 
-        quantity: 1, 
-        expiresAt: '' 
-      })
-      setFoodSuggestions([])
-      setShowFoodSuggestions(false)
-      setUserSelectedUnit(false)
-      setSelectedInventoryCategory('övrigt')
-      
-      // Fokusera tillbaka till namn-fältet
-      const nameInput = document.querySelector('input[name="name"]')
-      if (nameInput) nameInput.focus()
-    }, 50)
+    // TRIGGA formulärrensning via useEffect efter React har renderat items
+    setShouldClearForm(true)
   }
 
   const onRemove = async (id, event) => {
