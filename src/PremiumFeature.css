@@ -105,14 +105,61 @@
 }
 
 .premium-feature-pricing {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-.premium-feature-pricing .price {
-  font-size: 36px;
+.pricing-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pricing-option {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.pricing-option.highlight {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border-color: #10b981;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.pricing-option .plan-label {
+  font-size: 14px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.pricing-option.highlight .plan-label {
+  color: #10b981;
+}
+
+.pricing-option .price {
+  font-size: 28px;
   font-weight: bold;
   color: #10b981;
-  text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.pricing-option .best-value {
+  font-size: 10px;
+  font-weight: bold;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .premium-feature-upgrade-btn {
@@ -211,8 +258,26 @@
     font-size: 16px;
   }
   
-  .premium-feature-pricing .price {
-    font-size: 28px;
+  .pricing-options {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .pricing-option {
+    padding: 14px;
+  }
+  
+  .pricing-option .plan-label {
+    font-size: 13px;
+  }
+  
+  .pricing-option .price {
+    font-size: 24px;
+  }
+  
+  .pricing-option .best-value {
+    font-size: 9px;
+    padding: 2px 6px;
   }
   
   .premium-feature-upgrade-btn {
@@ -245,6 +310,22 @@
   
   .premium-feature-list li {
     font-size: 12px;
+  }
+  
+  .pricing-option {
+    padding: 12px;
+  }
+  
+  .pricing-option .plan-label {
+    font-size: 12px;
+  }
+  
+  .pricing-option .price {
+    font-size: 22px;
+  }
+  
+  .pricing-option .best-value {
+    font-size: 8px;
   }
   
   .premium-feature-upgrade-btn {
@@ -287,4 +368,20 @@
 .light .premium-feature-referral-hint {
   color: #6b7280;
   border-top-color: #e5e7eb;
+}
+
+.light .pricing-option {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.light .pricing-option.highlight {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.light .pricing-option .plan-label {
+  color: #6b7280;
+}
+
+.light .pricing-option.highlight .plan-label {
+  color: #059669;
 }

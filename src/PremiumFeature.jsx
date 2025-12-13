@@ -111,7 +111,17 @@ export default function PremiumFeature({
         </div>
         
         <div className="premium-feature-pricing">
-          <span className="price">29 kr/mån</span>
+          <div className="pricing-options">
+            <div className="pricing-option">
+              <span className="plan-label">Individual</span>
+              <span className="price">29 kr/mån</span>
+            </div>
+            <div className="pricing-option highlight">
+              <span className="plan-label">Family</span>
+              <span className="price">49 kr/mån</span>
+              <span className="best-value">BÄST VÄRDE</span>
+            </div>
+          </div>
         </div>
         
         <button 
