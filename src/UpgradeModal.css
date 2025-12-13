@@ -13,6 +13,7 @@
   z-index: 10000;
   padding: 20px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .upgrade-modal {
@@ -24,6 +25,7 @@
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   box-shadow: 0 25px 80px rgba(16, 185, 129, 0.4);
   animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
@@ -48,8 +50,10 @@
   border: none;
   color: #9ca3af;
   font-size: 32px;
-  width: 40px;
-  height: 40px;
+  min-width: 44px; /* Touch target minimum */
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -57,12 +61,27 @@
   justify-content: center;
   transition: all 0.2s ease;
   line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .upgrade-modal-close:hover {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   transform: rotate(90deg);
+}
+
+/* Touch feedback for close button */
+@media (hover: none) and (pointer: coarse) {
+  .upgrade-modal-close:hover {
+    transform: none;
+  }
+  
+  .upgrade-modal-close:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.95);
+  }
 }
 
 /* Header */
@@ -105,12 +124,16 @@
 
 .plan-option {
   padding: 20px;
+  min-height: 120px; /* Touch-friendly */
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid transparent;
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .plan-option:hover {
@@ -123,6 +146,22 @@
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%);
   border-color: #10b981;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Touch feedback for plan options */
+@media (hover: none) and (pointer: coarse) {
+  .plan-option:hover {
+    transform: none;
+  }
+  
+  .plan-option:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .plan-option.selected:active {
+    transform: scale(0.98);
+  }
 }
 
 .plan-header {
@@ -256,6 +295,7 @@
 
 .payment-method-btn {
   padding: 15px;
+  min-height: 80px; /* Touch-friendly */
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid transparent;
   border-radius: 12px;
@@ -267,6 +307,9 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .payment-method-btn:hover {
@@ -278,6 +321,24 @@
   background: rgba(16, 185, 129, 0.2);
   border-color: #10b981;
   color: #10b981;
+}
+
+/* Touch feedback for payment buttons */
+@media (hover: none) and (pointer: coarse) {
+  .payment-method-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: transparent;
+  }
+  
+  .payment-method-btn:active {
+    transform: scale(0.97);
+    background: rgba(255, 255, 255, 0.12);
+  }
+  
+  .payment-method-btn.active:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+  }
 }
 
 .payment-icon {
@@ -321,10 +382,14 @@
   align-items: center;
   gap: 12px;
   padding: 15px;
+  min-height: 70px; /* Touch-friendly */
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .referral-tier:hover {
@@ -335,6 +400,24 @@
 .referral-tier.highlight {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.2) 100%);
   border-color: #10b981;
+}
+
+/* Touch feedback for referral tiers */
+@media (hover: none) and (pointer: coarse) {
+  .referral-tier:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: transparent;
+  }
+  
+  .referral-tier:active {
+    transform: scale(0.98);
+    background: rgba(16, 185, 129, 0.15);
+  }
+  
+  .referral-tier.highlight:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.2) 100%);
+    border-color: #10b981;
+  }
 }
 
 .tier-icon {
@@ -357,12 +440,16 @@
 .upgrade-modal-btn {
   width: 100%;
   padding: 16px 32px;
+  min-height: 56px; /* Touch-friendly minimum height */
   font-size: 18px;
   font-weight: bold;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .upgrade-modal-btn.primary {
@@ -374,6 +461,11 @@
 .upgrade-modal-btn.primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+}
+
+.upgrade-modal-btn.primary:active:not(:disabled) {
+  transform: translateY(0);
+  opacity: 0.9;
 }
 
 .upgrade-modal-btn.primary:disabled {
@@ -388,6 +480,30 @@
 
 .upgrade-modal-btn.secondary:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.upgrade-modal-btn.secondary:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Touch feedback for buttons */
+@media (hover: none) and (pointer: coarse) {
+  .upgrade-modal-btn.primary:hover:not(:disabled) {
+    transform: none;
+  }
+  
+  .upgrade-modal-btn.primary:active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
+  }
+  
+  .upgrade-modal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .upgrade-modal-btn.secondary:active {
+    transform: scale(0.98);
+  }
 }
 
 /* Social Proof */

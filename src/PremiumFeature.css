@@ -13,6 +13,7 @@
   z-index: 1000;
   padding: 20px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .premium-feature-content {
@@ -117,6 +118,7 @@
 .premium-feature-upgrade-btn {
   width: 100%;
   padding: 16px 32px;
+  min-height: 56px; /* Touch-friendly minimum height */
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -127,6 +129,9 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
   margin-bottom: 15px;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+  touch-action: manipulation; /* Optimize touch response */
+  user-select: none; /* Prevent text selection on double-tap */
 }
 
 .premium-feature-upgrade-btn:hover {
@@ -136,6 +141,19 @@
 
 .premium-feature-upgrade-btn:active {
   transform: translateY(0);
+  opacity: 0.9;
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .premium-feature-upgrade-btn:hover {
+    transform: none;
+  }
+  
+  .premium-feature-upgrade-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
+  }
 }
 
 .premium-feature-referral-hint {
