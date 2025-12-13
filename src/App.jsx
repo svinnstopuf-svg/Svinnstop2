@@ -951,22 +951,23 @@ export default function App() {
       referralService.trackItemAdded()
     }
     
-    // Rensa formuläret
-    setForm({ 
-      name: '', 
-      quantity: 1, 
-      expiresAt: '' 
-    })
-    setFoodSuggestions([])
-    setShowFoodSuggestions(false)
-    setUserSelectedUnit(false) // Återställ flaggan
-    setSelectedInventoryCategory('övrigt') // Återställ kategori till default
-    
-    // Fokusera tillbaka till namn-fältet
+    // FÖRDRÖJ formulärrensning för att undvika React DOM-fel
+    // Låt React rendera klart först innan vi rensar formuläret
     setTimeout(() => {
+      setForm({ 
+        name: '', 
+        quantity: 1, 
+        expiresAt: '' 
+      })
+      setFoodSuggestions([])
+      setShowFoodSuggestions(false)
+      setUserSelectedUnit(false)
+      setSelectedInventoryCategory('övrigt')
+      
+      // Fokusera tillbaka till namn-fältet
       const nameInput = document.querySelector('input[name="name"]')
       if (nameInput) nameInput.focus()
-    }, 100)
+    }, 50)
   }
 
   const onRemove = async (id, event) => {
