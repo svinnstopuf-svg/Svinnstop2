@@ -1886,15 +1886,17 @@ export default function App() {
                     Lägg till i kylskåp
                   </button>
                   <div className="form-preview">
-                    {form.name && form.expiresAt && form.quantity > 0 ? (
-                      <small key="valid">Lägger till: <strong>{form.quantity} {selectedInventoryUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></small>
-                    ) : (
-                      <small key="invalid" style={{color: 'var(--muted)'}}>
-                        {!form.name && '⚠️ Namn saknas'}
-                        {form.name && !form.expiresAt && '⚠️ Utgångsdatum saknas'}
-                        {form.name && form.expiresAt && form.quantity <= 0 && '⚠️ Antal måste vara större än 0'}
-                      </small>
-                    )}
+                    <small style={{color: form.name && form.expiresAt && form.quantity > 0 ? 'inherit' : 'var(--muted)'}}>
+                      {form.name && form.expiresAt && form.quantity > 0 ? (
+                        <>Lägger till: <strong>{form.quantity} {selectedInventoryUnit} {form.name}</strong> som går ut <strong>{form.expiresAt}</strong></>
+                      ) : (
+                        <>
+                          {!form.name && '⚠️ Namn saknas'}
+                          {form.name && !form.expiresAt && '⚠️ Utgångsdatum saknas'}
+                          {form.name && form.expiresAt && form.quantity <= 0 && '⚠️ Antal måste vara större än 0'}
+                        </>
+                      )}
+                    </small>
                   </div>
                 </div>
               </form>
