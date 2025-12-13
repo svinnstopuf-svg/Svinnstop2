@@ -1357,6 +1357,11 @@ export default function App() {
       expiresAt: suggestion && suggestion.date ? suggestion.date : ''
     }))
     
+    // Sätt kategori från suggestion så dropdown inte visas
+    if (suggestion && suggestion.category) {
+      setSelectedInventoryCategory(suggestion.category)
+    }
+    
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
     
