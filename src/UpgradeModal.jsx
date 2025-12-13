@@ -23,20 +23,21 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
   // Om användaren redan har premium, visa status
   if (isPremium) {
     return (
-      <div className="upgrade-modal-overlay" onClick={onClose}>
+      <div className="upgrade-modal-overlay">
         <div className="upgrade-modal" onClick={(e) => e.stopPropagation()}>
           <button 
             className="upgrade-modal-close" 
             onClick={(e) => {
               e.stopPropagation()
+              e.preventDefault()
               onClose()
             }}
+            type="button"
           >
             ×
           </button>
           
           <div className="upgrade-modal-premium-active">
-            <div className="premium-icon">✨</div>
             <h2>Du har Premium!</h2>
             
             {premiumStatus.lifetimePremium ? (
@@ -82,20 +83,21 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
   
   // Premium upgrade modal
   return (
-    <div className="upgrade-modal-overlay" onClick={onClose}>
+    <div className="upgrade-modal-overlay">
       <div className="upgrade-modal" onClick={(e) => e.stopPropagation()}>
         <button 
           className="upgrade-modal-close" 
           onClick={(e) => {
             e.stopPropagation()
+            e.preventDefault()
             onClose()
           }}
+          type="button"
         >
           ×
         </button>
         
         <div className="upgrade-modal-header">
-          <div className="upgrade-icon">✨</div>
           <h2>Uppgradera till Premium</h2>
           <p className="upgrade-subtitle">Få ut maximalt av Svinnstop</p>
         </div>
@@ -107,10 +109,9 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             onClick={() => setSelectedPlan('individual')}
           >
             <div className="plan-header">
-              <span className="plan-icon">👤</span>
               <span className="plan-name">Individual</span>
             </div>
-            <div className="plan-price">29 kr<span>/mån</span></div>
+            <div className="plan-price">29 kr/mån</div>
             <div className="plan-desc">För dig själv</div>
           </button>
           
@@ -119,11 +120,10 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             onClick={() => setSelectedPlan('family')}
           >
             <div className="plan-header">
-              <span className="plan-icon">👨‍👩‍👧‍👦</span>
               <span className="plan-name">Family</span>
               <span className="plan-badge">BÄST VÄRDE</span>
             </div>
-            <div className="plan-price">49 kr<span>/mån</span></div>
+            <div className="plan-price">49 kr/mån</div>
             <div className="plan-desc">Upp till 5 familjemedlemmar</div>
           </button>
         </div>
