@@ -98,8 +98,11 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
         </button>
         
         <div className="upgrade-modal-header">
-          <h2>Uppgradera till Premium</h2>
-          <p className="upgrade-subtitle">Få ut maximalt av Svinnstop</p>
+          <div className="mission-statement">
+            <h2>Uppgradera till Premium</h2>
+            <p className="upgrade-mission">Kämpa mot matsvinnet. Spara pengar.</p>
+            <p className="upgrade-subtitle">Tillsammans kan vi göra skillnad - både för din plånbok och vår planet</p>
+          </div>
         </div>
         
         {/* Plan Selection */}
@@ -253,9 +256,27 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
           </div>
         )}
         
+        <div className="upgrade-impact">
+          <h4>Din insats gör verklig skillnad</h4>
+          <div className="impact-stats">
+            <div className="impact-stat">
+              <div className="impact-icon">💰</div>
+              <div className="impact-value">~847 kr</div>
+              <div className="impact-label">Genomsnittlig besparing/mån</div>
+            </div>
+            <div className="impact-stat">
+              <div className="impact-icon">🌍</div>
+              <div className="impact-value">~12 kg</div>
+              <div className="impact-label">Mindre matsvinn/mån</div>
+            </div>
+          </div>
+          <p className="impact-description">
+            Varje krona du sparar är mat som inte slungas bort. Premium hjälper dig maximera både din ekonomi och din miljöpåverkan.
+          </p>
+        </div>
+        
         <div className="upgrade-social-proof">
-          <p><strong>4.8/5</strong> från användare</p>
-          <p>Genomsnittlig besparing: <strong>847 kr/mån</strong></p>
+          <p><strong>4.8/5</strong> från användare som kämpar mot matsvinnet</p>
         </div>
       </div>
     </div>

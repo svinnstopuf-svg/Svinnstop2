@@ -153,6 +153,20 @@ header {
   background-clip: text;
 }
 
+.app-mission {
+  margin: 12px 0 4px 0;
+  color: var(--primary-color);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.header-subtitle {
+  margin: 8px 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
 .header-content p {
   margin: 8px 0 0 0;
   color: var(--text-muted);

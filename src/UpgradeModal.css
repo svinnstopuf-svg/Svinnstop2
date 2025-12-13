@@ -97,10 +97,23 @@
   margin-bottom: 10px;
 }
 
+.mission-statement {
+  margin-bottom: 5px;
+}
+
+.upgrade-mission {
+  font-size: 18px;
+  font-weight: 600;
+  color: #10b981;
+  margin: 8px 0;
+  letter-spacing: 0.3px;
+}
+
 .upgrade-subtitle {
-  font-size: 16px;
+  font-size: 15px;
   color: #9ca3af;
   margin: 0;
+  line-height: 1.5;
 }
 
 /* Plan Selection */
@@ -473,10 +486,73 @@
   }
 }
 
+/* Impact Section */
+.upgrade-impact {
+  margin: 25px 0;
+  padding: 25px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.upgrade-impact h4 {
+  font-size: 20px;
+  color: #10b981;
+  text-align: center;
+  margin: 0 0 20px 0;
+  font-weight: 600;
+}
+
+.impact-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.impact-stat {
+  text-align: center;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.impact-stat:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.impact-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.impact-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #10b981;
+  margin-bottom: 4px;
+}
+
+.impact-label {
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+.impact-description {
+  font-size: 14px;
+  color: #d1d5db;
+  text-align: center;
+  margin: 0;
+  line-height: 1.6;
+}
+
 /* Social Proof */
 .upgrade-social-proof {
-  margin-top: 30px;
-  padding-top: 25px;
+  margin-top: 20px;
+  padding-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
 }
@@ -573,8 +649,49 @@
     margin-bottom: 8px;
   }
   
+  .upgrade-mission {
+    font-size: 16px;
+    margin: 6px 0;
+  }
+  
   .upgrade-subtitle {
     font-size: 14px;
+  }
+  
+  .upgrade-impact {
+    padding: 20px 15px;
+    margin: 20px 0;
+  }
+  
+  .upgrade-impact h4 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
+  .impact-stats {
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .impact-stat {
+    padding: 12px;
+  }
+  
+  .impact-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+  
+  .impact-value {
+    font-size: 24px;
+  }
+  
+  .impact-label {
+    font-size: 12px;
+  }
+  
+  .impact-description {
+    font-size: 13px;
   }
   
   .plan-selection {
@@ -706,8 +823,44 @@
     font-size: 20px;
   }
   
+  .upgrade-mission {
+    font-size: 15px;
+  }
+  
   .upgrade-subtitle {
     font-size: 13px;
+  }
+  
+  .upgrade-impact {
+    padding: 18px 12px;
+  }
+  
+  .upgrade-impact h4 {
+    font-size: 17px;
+  }
+  
+  .impact-stats {
+    gap: 12px;
+  }
+  
+  .impact-stat {
+    padding: 10px;
+  }
+  
+  .impact-icon {
+    font-size: 24px;
+  }
+  
+  .impact-value {
+    font-size: 22px;
+  }
+  
+  .impact-label {
+    font-size: 11px;
+  }
+  
+  .impact-description {
+    font-size: 12px;
   }
   
   .plan-option {
@@ -846,4 +999,37 @@
 
 .light .plan-desc {
   color: #6b7280;
+}
+
+.light .upgrade-mission {
+  color: #059669;
+}
+
+.light .upgrade-impact {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.light .upgrade-impact h4 {
+  color: #059669;
+}
+
+.light .impact-stat {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.light .impact-stat:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light .impact-value {
+  color: #059669;
+}
+
+.light .impact-label {
+  color: #6b7280;
+}
+
+.light .impact-description {
+  color: #4b5563;
 }

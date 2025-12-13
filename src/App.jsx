@@ -1606,6 +1606,7 @@ export default function App() {
       <header className="header">
         <div className="header-content">
           <h1 className="app-title"><span className="notranslate">Svinnstop</span></h1>
+          <p className="app-mission">Minska matsvinnet. Spara pengar.</p>
           <p className="header-subtitle">Spåra din inköpta mat, utgångsdatum och se receptidéer</p>
         </div>
       </header>
