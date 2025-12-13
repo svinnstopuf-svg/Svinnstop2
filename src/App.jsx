@@ -763,23 +763,29 @@ export default function App() {
     } else if (name === 'name') {
       setForm(prevForm => ({ ...prevForm, [name]: value }))
       
-      // Visa matvaruförslag när användaren skriver
-      if (value.trim().length > 0) {
-        const suggestions = searchFoods(value.trim())
-        setFoodSuggestions(suggestions)
-        setShowFoodSuggestions(suggestions.length > 0)
-        
-        // Uppdatera endast kategori baserat på namnet
-        // Enheten förblir 'st' om användaren inte manuellt ändrat den
-        
-        const suggestion = getExpiryDateSuggestion(value.trim())
-        if (suggestion.category) {
-          setSelectedInventoryCategory(suggestion.category)
-        }
-      } else {
-        setFoodSuggestions([])
-        setShowFoodSuggestions(false)
+      // DEBOUNCE suggestions för att undvika för många re-renders
+      // Rensa tidigare timeout
+      if (window.foodSuggestionsTimeout) {
+        clearTimeout(window.foodSuggestionsTimeout)
       }
+      
+      // Sätt ny timeout
+      window.foodSuggestionsTimeout = setTimeout(() => {
+        if (value.trim().length > 0) {
+          const suggestions = searchFoods(value.trim())
+          setFoodSuggestions(suggestions)
+          setShowFoodSuggestions(suggestions.length > 0)
+          
+          // Uppdatera endast kategori baserat på namnet
+          const suggestion = getExpiryDateSuggestion(value.trim())
+          if (suggestion.category) {
+            setSelectedInventoryCategory(suggestion.category)
+          }
+        } else {
+          setFoodSuggestions([])
+          setShowFoodSuggestions(false)
+        }
+      }, 150) // 150ms debounce
     } else {
       setForm(prevForm => ({ ...prevForm, [name]: value }))
     }
