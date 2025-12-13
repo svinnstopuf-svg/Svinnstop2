@@ -1,5 +1,6 @@
 // Svensk matvarudatabas för autocomplete
 import { getProductCategory } from './expiryDateAI'
+import { getCustomExpiryRule } from './userItemsService'
 
 const SWEDISH_FOODS = [
   // Mejeri
@@ -246,6 +247,29 @@ function fuzzyMatch(str1, str2) {
 
 // Få utgångsdatum förslag baserat på vara
 export function getExpiryDateSuggestion(foodName) {
+  // PRIORITET 1: Kolla om användaren har custom regel för denna vara
+  const customRule = getCustomExpiryRule(foodName)
+  
+  if (customRule) {
+    const date = new Date()
+    date.setDate(date.getDate() + customRule.days)
+    
+    // Hämta kategori och emoji från databas som fallback
+    const food = SWEDISH_FOODS.find(f => 
+      f.name.toLowerCase() === foodName.toLowerCase()
+    )
+    
+    return {
+      date: date.toISOString().split('T')[0],
+      category: food?.category || 'övrigt',
+      defaultUnit: food?.unit || 'st',
+      emoji: food?.emoji || '📦',
+      hasCustomRule: true, // Flagga för att visa 🎯
+      customDays: customRule.days
+    }
+  }
+  
+  // PRIORITET 2: Använd databas-förslag
   const food = SWEDISH_FOODS.find(f => 
     f.name.toLowerCase() === foodName.toLowerCase()
   )
@@ -257,18 +281,20 @@ export function getExpiryDateSuggestion(foodName) {
       date: date.toISOString().split('T')[0],
       category: food.category,
       defaultUnit: food.unit,
-      emoji: food.emoji
+      emoji: food.emoji,
+      hasCustomRule: false
     }
   }
   
-  // Fallback för okända varor
+  // PRIORITET 3: Fallback för okända varor
   const date = new Date()
   date.setDate(date.getDate() + 7)
   return {
     date: date.toISOString().split('T')[0],
     category: 'övrigt',
     defaultUnit: 'st',
-    emoji: '📦'
+    emoji: '📦',
+    hasCustomRule: false
   }
 }
 

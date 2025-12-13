@@ -169,6 +169,81 @@ export function importUserItems(items) {
   }
 }
 
+// Custom Expiry Rules - Lär sig användarens specifika utgångsdatum
+const CUSTOM_EXPIRY_KEY = 'svinnstop_custom_expiry_rules'
+
+// Hämta custom expiry regel för en vara
+export function getCustomExpiryRule(itemName) {
+  if (!itemName) return null
+  
+  try {
+    const data = localStorage.getItem(CUSTOM_EXPIRY_KEY)
+    if (data) {
+      const rules = JSON.parse(data)
+      const normalizedName = itemName.toLowerCase().trim()
+      return rules[normalizedName] || null
+    }
+  } catch (error) {
+    console.error('Kunde inte läsa custom expiry rules:', error)
+  }
+  return null
+}
+
+// Spara custom expiry regel
+export function setCustomExpiryRule(itemName, days) {
+  if (!itemName || !days || days <= 0) return { success: false }
+  
+  try {
+    const data = localStorage.getItem(CUSTOM_EXPIRY_KEY)
+    const rules = data ? JSON.parse(data) : {}
+    
+    const normalizedName = itemName.toLowerCase().trim()
+    rules[normalizedName] = {
+      itemName: itemName, // Behåll original casing
+      days: parseInt(days),
+      createdAt: new Date().toISOString(),
+      usageCount: (rules[normalizedName]?.usageCount || 0) + 1
+    }
+    
+    localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(rules))
+    console.log(`🎯 Custom regel sparad: ${itemName} = ${days} dagar`)
+    return { success: true }
+  } catch (error) {
+    console.error('Kunde inte spara custom expiry rule:', error)
+    return { success: false }
+  }
+}
+
+// Ta bort custom expiry regel
+export function deleteCustomExpiryRule(itemName) {
+  if (!itemName) return { success: false }
+  
+  try {
+    const data = localStorage.getItem(CUSTOM_EXPIRY_KEY)
+    if (data) {
+      const rules = JSON.parse(data)
+      const normalizedName = itemName.toLowerCase().trim()
+      delete rules[normalizedName]
+      localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(rules))
+    }
+    return { success: true }
+  } catch (error) {
+    console.error('Kunde inte ta bort custom expiry rule:', error)
+    return { success: false }
+  }
+}
+
+// Hämta alla custom expiry rules
+export function getAllCustomExpiryRules() {
+  try {
+    const data = localStorage.getItem(CUSTOM_EXPIRY_KEY)
+    return data ? JSON.parse(data) : {}
+  } catch (error) {
+    console.error('Kunde inte läsa custom expiry rules:', error)
+    return {}
+  }
+}
+
 export const userItemsService = {
   getUserItems,
   addUserItem,
@@ -176,5 +251,9 @@ export const userItemsService = {
   deleteUserItem,
   clearUserItems,
   exportUserItems,
-  importUserItems
+  importUserItems,
+  getCustomExpiryRule,
+  setCustomExpiryRule,
+  deleteCustomExpiryRule,
+  getAllCustomExpiryRules
 }
