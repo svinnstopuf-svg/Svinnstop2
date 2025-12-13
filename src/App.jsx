@@ -1401,37 +1401,39 @@ export default function App() {
     }
   }
   
-  // Välja matvaruförslag
+  // Välja matvaruuttagförslag
   const selectFoodSuggestion = (food) => {
     // FIX: Validera att food-objektet är giltigt
     if (!food || !food.name) {
-      console.error('Ogiltigt matvaruförslag:', food)
+      console.error('Ogiltigt matvaruuttagförslag:', food)
       return
     }
     
     const suggestion = getExpiryDateSuggestion(food.name)
     
-    // FIX: Använd functional update för att undvika stale state
-    setForm(prevForm => ({
-      ...prevForm,
-      name: food.name,
-      quantity: 1,
-      expiresAt: suggestion && suggestion.date ? suggestion.date : ''
-    }))
-    
-    // Sätt kategori från suggestion så dropdown inte visas
-    if (suggestion && suggestion.category) {
-      setSelectedInventoryCategory(suggestion.category)
-    }
-    
+    // STÄNG suggestions först
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
     
-    // Fokusera på quantity-fältet
+    // FÖRDRÖJ state-uppdateringar för att undvika React DOM-fel
     setTimeout(() => {
+      // FIX: Använd functional update för att undvika stale state
+      setForm(prevForm => ({
+        ...prevForm,
+        name: food.name,
+        quantity: 1,
+        expiresAt: suggestion && suggestion.date ? suggestion.date : ''
+      }))
+      
+      // Sätt kategori från suggestion så dropdown inte visas
+      if (suggestion && suggestion.category) {
+        setSelectedInventoryCategory(suggestion.category)
+      }
+      
+      // Fokusera på quantity-fältet
       const quantityInput = document.querySelector('input[name="quantity"]')
       if (quantityInput) quantityInput.focus()
-    }, 100)
+    }, 50)
   }
   
   // Lägg till matvaror från recept i inköpslistan
