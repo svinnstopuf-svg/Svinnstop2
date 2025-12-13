@@ -724,16 +724,20 @@ export default function App() {
       }, 5000) // Ge användaren 5 sekunder att lägga till något
       return () => clearTimeout(timer)
     }
-
-    // Steg 5: Kylskåp-fliken har öppnats (färgkodning)
-    if (guideStep === 5 && activeTab === 'inventory') {
-      console.log('✅ Steg 5: Kylskåp öppnad')
-      setTimeout(() => setGuideStep(6), 500)
+    
+    // Steg 5: "Rensa klara" har klickats (detekteras genom att kylskåpet fått nya varor)
+    // Detta steg väntar på att användaren ska klicka "Rensa klara"
+    // Vi kollar inte här eftersom det hanteras i ShoppingList-komponenten
+    
+    // Steg 6: Kylskåp-fliken har öppnats (färgkodning)
+    if (guideStep === 6 && activeTab === 'inventory') {
+      console.log('✅ Steg 6: Kylskåp öppnad')
+      setTimeout(() => setGuideStep(7), 500)
     }
-
-    // Steg 6: Guiden är klar
-    if (guideStep === 6) {
-      console.log('🎉 Steg 6: Guiden klar!')
+    
+    // Steg 7: Guiden är klar
+    if (guideStep === 7) {
+      console.log('🎉 Steg 7: Guiden klar!')
       setTimeout(() => {
         setGuideActive(false)
         localStorage.setItem('svinnstop_guide_seen', 'true')
@@ -749,6 +753,7 @@ export default function App() {
       'Tryck på "Lägg till" för att spara varan',
       'Gå till Inköpslista-fliken',
       'Lägg till något i inköpslistan',
+      'Bocka av varan och tryck "Rensa klara"',
       'Gå tillbaka till Kylskåp-fliken',
       'Klart! Du kan nu använda appen! 🎉'
     ]
@@ -761,7 +766,8 @@ export default function App() {
       'AI:n föreslår ett rimligt utgångsdatum baserat på varan. Tryck på knappen så ser du hur den fyller i datumet automatiskt!',
       'Nu har du lagt in all information. Tryck på "Lägg till" så sparas varan i ditt kylskåp. Du kommer att se den nedan med färgkodning baserat på utgångsdatumet.',
       'Inköpslistan är perfekt för att planera vad du behöver köpa. Gå dit nu så visar vi hur den fungerar!',
-      'Här lägger du till varor du behöver köpa. När du handlat kan du bocka av dem och trycka "Rensa klara" - då flyttas matvaror automatiskt till kylskåpet!',
+      'Här lägger du till varor du behöver köpa. Lägg till något och gå vidare!',
+      'När du handlat kan du bocka av varorna och trycka "Rensa klara". Då flyttas matvaror automatiskt till kylskåpet med AI-föreslaget utgångsdatum! Prova nu.',
       'Se hur varan du lade till färgkodas! 🟢 Grön = Fräscht, 🟡 Gul = Går ut snart, 🔴 Röd = Utgånget. Detta hjälper dig att äta rätt varor först!',
       'Nu vet du grunderna! Fortsätt använda appen för att spåra din mat och minska matsvinnet. Du hittar fler funktioner i profilen. Lycka till! 🌱'
     ]
@@ -1522,6 +1528,11 @@ export default function App() {
         setSelectedInventoryCategory(suggestion.category)
       }
       
+      // Sätt korrekt enhet från suggestion (t.ex. L för mjölk)
+      if (suggestion && suggestion.defaultUnit) {
+        setSelectedInventoryUnit(suggestion.defaultUnit)
+      }
+      
       // Fokusera på quantity-fältet
       const quantityInput = document.querySelector('input[name="quantity"]')
       if (quantityInput) quantityInput.focus()
@@ -1743,7 +1754,7 @@ export default function App() {
         <GuideBadge
           key={guideStep}
           step={guideStep + 1}
-          totalSteps={7}
+          totalSteps={8}
           instruction={getGuideInstruction(guideStep)}
           details={getGuideDetails(guideStep)}
           onClose={() => {
@@ -1822,6 +1833,9 @@ export default function App() {
           <div className="tab-panel">
             <ShoppingList 
               onDirectAddToInventory={handleDirectAddToInventory}
+              guideActive={guideActive}
+              guideStep={guideStep}
+              onGuideAdvance={() => setGuideStep(6)}
             />
           </div>
         )}

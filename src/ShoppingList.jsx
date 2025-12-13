@@ -9,7 +9,7 @@ import { getFamilyData } from './familyService'
 import { userItemsService, searchUserItems } from './userItemsService'
 import { sortShoppingItems } from './sortingUtils'
 
-export default function ShoppingList({ onAddToInventory, onDirectAddToInventory }) {
+export default function ShoppingList({ onAddToInventory, onDirectAddToInventory, guideActive, guideStep, onGuideAdvance }) {
   const [shoppingItems, setShoppingItems] = useState([])
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -339,6 +339,12 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
 
     // Sedan: ta bort alla klara varor från inköpslistan
     setShoppingItems(prev => prev.filter(item => !item.completed))
+    
+    // Guide: Om vi är på steg 5 (Rensa klara), avancera till steg 6
+    if (guideActive && guideStep === 5 && onGuideAdvance) {
+      console.log('✅ Steg 5: Rensa klara klickad')
+      setTimeout(() => onGuideAdvance(), 500)
+    }
   }
 
   // Spara nuvarande lista som mall
