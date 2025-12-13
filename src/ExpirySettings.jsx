@@ -5,8 +5,6 @@ import { setCustomExpiryRule } from './userItemsService'
 const ExpirySettings = ({ item, onUpdate, onClose }) => {
   const [newDate, setNewDate] = useState(item.expiresAt || '')
   const [reason, setReason] = useState('')
-  const [showCustomRuleDialog, setShowCustomRuleDialog] = useState(false)
-  const [pendingUpdate, setPendingUpdate] = useState(null)
 
   const handleSave = () => {
     if (!newDate) return
@@ -21,35 +19,20 @@ const ExpirySettings = ({ item, onUpdate, onClose }) => {
     console.log(`📝 Manuell justering av ${item.name}: ${item.expiresAt} → ${newDate}`)
     if (reason) console.log(`💭 Anledning: ${reason}`)
     
-    // Kolla om datumen är olika (användaren ändrade datumet)
+    // TYST AUTO-LEARNING: Spara automatiskt som custom regel om datumet ändrades
     if (item.expiresAt !== newDate) {
-      // Beräkna antal dagar skillnad
-      const oldDate = new Date(item.expiresAt)
-      const newDateObj = new Date(newDate)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      
+      const newDateObj = new Date(newDate)
       const daysFromToday = Math.ceil((newDateObj - today) / (1000 * 60 * 60 * 24))
       
-      // Spara pending update och visa custom rule dialog
-      setPendingUpdate({ updatedItem, daysFromToday })
-      setShowCustomRuleDialog(true)
-    } else {
-      // Ingen ändring, spara direkt
-      onUpdate(updatedItem)
-      onClose()
-    }
-  }
-  
-  const handleSaveWithCustomRule = (saveAsRule) => {
-    if (saveAsRule && pendingUpdate) {
-      // Spara som custom regel
-      setCustomExpiryRule(item.name, pendingUpdate.daysFromToday)
-      console.log(`🎯 Sparade custom regel för ${item.name}: ${pendingUpdate.daysFromToday} dagar`)
+      // Spara automatiskt som custom regel (tyst, ingen UI)
+      setCustomExpiryRule(item.name, daysFromToday)
+      console.log(`🧠 Appen lärde sig: ${item.name} = ${daysFromToday} dagar`)
     }
     
     // Uppdatera varan
-    onUpdate(pendingUpdate.updatedItem)
+    onUpdate(updatedItem)
     onClose()
   }
 
@@ -139,35 +122,6 @@ const ExpirySettings = ({ item, onUpdate, onClose }) => {
           </div>
         </div>
       </div>
-      
-      {showCustomRuleDialog && pendingUpdate && (
-        <div className="expiry-settings-overlay" style={{zIndex: 1001}}>
-          <div className="expiry-settings-modal" style={{maxWidth: '400px'}}>
-            <div className="settings-header">
-              <h3>🎯 Spara som regel?</h3>
-            </div>
-            <div className="settings-content">
-              <p style={{marginBottom: '20px', lineHeight: '1.5'}}>
-                Vill du att <strong>{item.name}</strong> alltid ska ha <strong>{pendingUpdate.daysFromToday} dagars</strong> hållbarhet?
-              </p>
-              <div className="settings-actions">
-                <button 
-                  onClick={() => handleSaveWithCustomRule(false)} 
-                  className="cancel-btn"
-                >
-                  Nej, bara denna gång
-                </button>
-                <button 
-                  onClick={() => handleSaveWithCustomRule(true)} 
-                  className="save-btn"
-                >
-                  🎯 Ja, spara regel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }

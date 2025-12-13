@@ -31,7 +31,7 @@ import { leaderboardService } from './leaderboardService'
 import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
 import { syncUserItemsToFirebase, syncCustomExpiryRulesToFirebase, listenToCustomExpiryRulesChanges } from './shoppingListSync'
-import { getCustomExpiryRule, exportCustomExpiryRules, importCustomExpiryRules } from './userItemsService'
+import { exportCustomExpiryRules, importCustomExpiryRules } from './userItemsService'
 import './mobile.css'
 import './newFeatures.css'
 import './premiumRequired.css'
@@ -2056,10 +2056,7 @@ export default function App() {
                         )}
                         <div className="item-content">
                           <div className="item-main">
-                            <strong className="notranslate" translate="no">
-                              {getCustomExpiryRule(i.name) && '🎯 '}
-                              {i.name}
-                            </strong>
+                            <strong className="notranslate" translate="no">{i.name}</strong>
                             <span className="item-quantity notranslate" translate="no">{i.quantity} {i.quantity === 1 && i.unit === 'stycken' ? 'stycke' : i.unit}</span>
                           </div>
                           <div className="item-sub">
