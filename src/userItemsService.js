@@ -207,6 +207,12 @@ export function setCustomExpiryRule(itemName, days) {
     
     localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(rules))
     console.log(`🎯 Custom regel sparad: ${itemName} = ${days} dagar`)
+    
+    // Trigga Firebase-synk om någon lyssnar
+    if (typeof window !== 'undefined' && window.syncCustomExpiryRules) {
+      window.syncCustomExpiryRules(rules)
+    }
+    
     return { success: true }
   } catch (error) {
     console.error('Kunde inte spara custom expiry rule:', error)
@@ -225,6 +231,11 @@ export function deleteCustomExpiryRule(itemName) {
       const normalizedName = itemName.toLowerCase().trim()
       delete rules[normalizedName]
       localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(rules))
+      
+      // Trigga Firebase-synk om någon lyssnar
+      if (typeof window !== 'undefined' && window.syncCustomExpiryRules) {
+        window.syncCustomExpiryRules(rules)
+      }
     }
     return { success: true }
   } catch (error) {
@@ -244,6 +255,33 @@ export function getAllCustomExpiryRules() {
   }
 }
 
+// Importera custom expiry rules (från Firebase)
+export function importCustomExpiryRules(rules) {
+  try {
+    const existing = getAllCustomExpiryRules()
+    const merged = { ...existing }
+    
+    // Merga regler - behåll den med högst usageCount
+    Object.keys(rules).forEach(key => {
+      if (!merged[key] || (rules[key].usageCount || 0) > (merged[key].usageCount || 0)) {
+        merged[key] = rules[key]
+      }
+    })
+    
+    localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(merged))
+    console.log(`🎯 Importerade ${Object.keys(rules).length} custom expiry rules`)
+    return { success: true }
+  } catch (error) {
+    console.error('Kunde inte importera custom expiry rules:', error)
+    return { success: false }
+  }
+}
+
+// Exportera custom expiry rules (för Firebase)
+export function exportCustomExpiryRules() {
+  return getAllCustomExpiryRules()
+}
+
 export const userItemsService = {
   getUserItems,
   addUserItem,
@@ -255,5 +293,7 @@ export const userItemsService = {
   getCustomExpiryRule,
   setCustomExpiryRule,
   deleteCustomExpiryRule,
-  getAllCustomExpiryRules
+  getAllCustomExpiryRules,
+  importCustomExpiryRules,
+  exportCustomExpiryRules
 }

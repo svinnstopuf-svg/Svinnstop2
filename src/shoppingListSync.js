@@ -119,6 +119,45 @@ export function listenToUserItemsChanges(callback) {
   })
 }
 
+// Synka custom expiry rules till Firebase
+export async function syncCustomExpiryRulesToFirebase(customRules) {
+  const family = getFamilyData()
+  if (!family.familyId || !family.syncEnabled) {
+    return
+  }
+
+  try {
+    const rulesRef = ref(database, `families/${family.familyId}/customExpiryRules`)
+    await set(rulesRef, customRules)
+    console.log('✅ Firebase: Custom expiry rules synced', Object.keys(customRules || {}).length, 'rules')
+  } catch (error) {
+    console.error('❌ Firebase: Failed to sync custom expiry rules', error)
+  }
+}
+
+// Lyssna på custom expiry rules-ändringar från Firebase
+export function listenToCustomExpiryRulesChanges(callback) {
+  const family = getFamilyData()
+  if (!family.familyId || !family.syncEnabled) {
+    console.log('⚠️ Firebase: Not listening to custom expiry rules - no family or sync disabled')
+    return null
+  }
+
+  console.log('👂 Firebase: Starting to listen for custom expiry rules changes', family.familyId)
+  const rulesRef = ref(database, `families/${family.familyId}/customExpiryRules`)
+  return onValue(rulesRef, (snap) => {
+    const data = snap.val()
+    if (data) {
+      console.log('✅ Firebase: Custom expiry rules updated from Firebase', Object.keys(data).length, 'rules')
+      callback(data)
+    } else {
+      console.log('⚠️ Firebase: No custom expiry rules in Firebase')
+    }
+  }, (error) => {
+    console.error('❌ Firebase: Error listening to custom expiry rules', error)
+  })
+}
+
 // Ta bort inköpslista från Firebase när familj lämnas
 export async function clearShoppingListFromFirebase() {
   const family = getFamilyData()
@@ -130,9 +169,11 @@ export async function clearShoppingListFromFirebase() {
     const shoppingRef = ref(database, `families/${family.familyId}/shoppingList`)
     const savedListsRef = ref(database, `families/${family.familyId}/savedShoppingLists`)
     const userItemsRef = ref(database, `families/${family.familyId}/userItems`)
+    const rulesRef = ref(database, `families/${family.familyId}/customExpiryRules`)
     await remove(shoppingRef)
     await remove(savedListsRef)
     await remove(userItemsRef)
+    await remove(rulesRef)
     console.log('✅ Firebase: Shopping list data cleared')
   } catch (error) {
     console.error('❌ Firebase: Failed to clear shopping list data', error)

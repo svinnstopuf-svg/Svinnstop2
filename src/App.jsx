@@ -30,8 +30,8 @@ import { premiumService } from './premiumService'
 import { leaderboardService } from './leaderboardService'
 import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
-import { syncUserItemsToFirebase } from './shoppingListSync'
-import { getCustomExpiryRule } from './userItemsService'
+import { syncUserItemsToFirebase, syncCustomExpiryRulesToFirebase, listenToCustomExpiryRulesChanges } from './shoppingListSync'
+import { getCustomExpiryRule, exportCustomExpiryRules, importCustomExpiryRules } from './userItemsService'
 import './mobile.css'
 import './newFeatures.css'
 import './premiumRequired.css'
@@ -412,6 +412,21 @@ export default function App() {
       })
   }, [])
   
+  // Setup custom expiry rules sync callback
+  useEffect(() => {
+    // Setup global callback för userItemsService att trigga Firebase-synk
+    window.syncCustomExpiryRules = (rules) => {
+      const family = getFamilyData()
+      if (family.familyId && family.syncEnabled) {
+        syncCustomExpiryRulesToFirebase(rules)
+      }
+    }
+    
+    return () => {
+      delete window.syncCustomExpiryRules
+    }
+  }, [])
+  
   // Separat useEffect för Firebase sync som lyssnar på familySyncTrigger
   useEffect(() => {
     const family = getFamilyData()
@@ -438,10 +453,27 @@ export default function App() {
         }
       })
       
+      // Lyssna på custom expiry rules från Firebase
+      const unsubscribeRules = listenToCustomExpiryRulesChanges((firebaseRules) => {
+        console.log('📥 Received custom expiry rules from Firebase:', Object.keys(firebaseRules).length, 'rules')
+        importCustomExpiryRules(firebaseRules)
+      })
+      
+      // Initial upload av lokala custom rules till Firebase
+      const localRules = exportCustomExpiryRules()
+      if (Object.keys(localRules).length > 0) {
+        console.log('📤 Uploading local custom expiry rules to Firebase')
+        syncCustomExpiryRulesToFirebase(localRules)
+      }
+      
       return () => {
         if (unsubscribe) {
           console.log('👋 Stopping Firebase inventory sync')
           unsubscribe()
+        }
+        if (unsubscribeRules) {
+          console.log('👋 Stopping Firebase custom expiry rules sync')
+          unsubscribeRules()
         }
       }
     } else {
