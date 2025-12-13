@@ -418,12 +418,21 @@ export default function App() {
     window.syncCustomExpiryRules = (rules) => {
       const family = getFamilyData()
       if (family.familyId && family.syncEnabled) {
+        // FÖRHINDRA LOOP: Kolla om detta kommer från Firebase
+        if (window._customRulesFromFirebase) {
+          console.log('🚫 Skippar Firebase-sync - custom rules kommer redan från Firebase')
+          window._customRulesFromFirebase = false // Reset
+          return
+        }
+        
+        console.log('🔄 Synkar lokala custom rules till Firebase')
         syncCustomExpiryRulesToFirebase(rules)
       }
     }
     
     return () => {
       delete window.syncCustomExpiryRules
+      delete window._customRulesFromFirebase
     }
   }, [])
   

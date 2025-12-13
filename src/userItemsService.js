@@ -190,7 +190,7 @@ export function getCustomExpiryRule(itemName) {
 }
 
 // Spara custom expiry regel
-export function setCustomExpiryRule(itemName, days) {
+export function setCustomExpiryRule(itemName, days, skipFirebaseSync = false) {
   if (!itemName || !days || days <= 0) return { success: false }
   
   try {
@@ -208,8 +208,8 @@ export function setCustomExpiryRule(itemName, days) {
     localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(rules))
     console.log(`🎯 Custom regel sparad: ${itemName} = ${days} dagar`)
     
-    // Trigga Firebase-synk om någon lyssnar
-    if (typeof window !== 'undefined' && window.syncCustomExpiryRules) {
+    // Trigga Firebase-synk om någon lyssnar (skippa om detta kommer från Firebase)
+    if (!skipFirebaseSync && typeof window !== 'undefined' && window.syncCustomExpiryRules) {
       window.syncCustomExpiryRules(rules)
     }
     
@@ -270,6 +270,12 @@ export function importCustomExpiryRules(rules) {
     
     localStorage.setItem(CUSTOM_EXPIRY_KEY, JSON.stringify(merged))
     console.log(`🎯 Importerade ${Object.keys(rules).length} custom expiry rules`)
+    
+    // Sätt flagga att data kommer från Firebase
+    if (typeof window !== 'undefined') {
+      window._customRulesFromFirebase = true
+    }
+    
     return { success: true }
   } catch (error) {
     console.error('Kunde inte importera custom expiry rules:', error)
