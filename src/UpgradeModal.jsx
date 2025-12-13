@@ -25,7 +25,15 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
     return (
       <div className="upgrade-modal-overlay" onClick={onClose}>
         <div className="upgrade-modal" onClick={(e) => e.stopPropagation()}>
-          <button className="upgrade-modal-close" onClick={onClose}>×</button>
+          <button 
+            className="upgrade-modal-close" 
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose()
+            }}
+          >
+            ×
+          </button>
           
           <div className="upgrade-modal-premium-active">
             <div className="premium-icon">✨</div>
@@ -33,7 +41,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             
             {premiumStatus.lifetimePremium ? (
               <p className="premium-status">
-                🎉 <strong>Lifetime Premium</strong> - Tack för ditt fantastiska stöd!
+                <strong>Lifetime Premium</strong> - Tack för ditt fantastiska stöd!
               </p>
             ) : (
               <p className="premium-status">
@@ -59,7 +67,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             
             {!premiumStatus.lifetimePremium && (
               <p className="premium-extend-hint">
-                💡 Bjud in fler vänner för att förlänga din premium!
+                Bjud in fler vänner för att förlänga din premium
               </p>
             )}
             
@@ -76,12 +84,20 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
   return (
     <div className="upgrade-modal-overlay" onClick={onClose}>
       <div className="upgrade-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="upgrade-modal-close" onClick={onClose}>×</button>
+        <button 
+          className="upgrade-modal-close" 
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
+        >
+          ×
+        </button>
         
         <div className="upgrade-modal-header">
-          <div className="upgrade-icon">🚀</div>
+          <div className="upgrade-icon">✨</div>
           <h2>Uppgradera till Premium</h2>
-          <p className="upgrade-subtitle">Få ut maximalt av Svinnstop!</p>
+          <p className="upgrade-subtitle">Få ut maximalt av Svinnstop</p>
         </div>
         
         {/* Plan Selection */}
@@ -116,56 +132,48 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
           <h3>Premium inkluderar:</h3>
           <ul>
             <li>
-              <span className="feature-icon">📦</span>
               <div>
                 <strong>Obegränsat antal varor</strong>
                 <p>Perfekt för stora hushåll och familjer</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">🚫</span>
               <div>
                 <strong>Ingen reklam</strong>
                 <p>Ren och smidig upplevelse</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">👨‍🍳</span>
               <div>
                 <strong>Receptförslag från kylskåp</strong>
                 <p>Få inspiration och använd vad du har</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">👨‍👩‍👧‍👦</span>
               <div>
                 <strong>Familjesynkronisering</strong>
                 <p>Dela kylskåp och inköpslista i realtid</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">🏅</span>
               <div>
                 <strong>Achievements & Badges</strong>
                 <p>Lås upp 25+ unika utmärkelser</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">📊</span>
               <div>
                 <strong>Statistik & Besparingar</strong>
                 <p>Se hur mycket du sparar i kr & kg</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">🏆</span>
               <div>
                 <strong>Leaderboard</strong>
                 <p>Tävla mot andra och jämför framsteg</p>
               </div>
             </li>
             <li>
-              <span className="feature-icon">🔔</span>
               <div>
                 <strong>Push-notifikationer</strong>
                 <p>Påminnelser innan mat går ut</p>
@@ -195,44 +203,40 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
         {paymentMethod === 'stripe' && (
           <div className="upgrade-stripe-section">
             <button className="upgrade-modal-btn primary" disabled>
-              💳 Betalningar kommer snart
+              Betalningar kommer snart
             </button>
             <p className="payment-coming-soon">
-              Vi arbetar på att aktivera betalningar. Under tiden kan du bjuda in vänner för att få premium gratis! 🎉
+              Vi arbetar på att aktivera betalningar. Under tiden kan du bjuda in vänner för att få premium gratis!
             </p>
           </div>
         )}
         
         {paymentMethod === 'referral' && (
           <div className="upgrade-referral-section">
-            <h4>Få Premium gratis! 🎁</h4>
+            <h4>Få Premium gratis</h4>
             <div className="referral-tiers">
               <div className="referral-tier">
-                <span className="tier-icon">📅</span>
                 <div>
                   <strong>1 vän</strong>
                   <p>7 dagar Premium</p>
                 </div>
               </div>
               <div className="referral-tier">
-                <span className="tier-icon">📆</span>
                 <div>
                   <strong>3 vänner</strong>
                   <p>30 dagar Premium</p>
                 </div>
               </div>
               <div className="referral-tier">
-                <span className="tier-icon">🎉</span>
                 <div>
                   <strong>10 vänner</strong>
                   <p>90 dagar Premium</p>
                 </div>
               </div>
               <div className="referral-tier highlight">
-                <span className="tier-icon">💎</span>
                 <div>
                   <strong>50 vänner</strong>
-                  <p>Lifetime Premium!</p>
+                  <p>Lifetime Premium</p>
                 </div>
               </div>
             </div>
@@ -250,7 +254,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
         )}
         
         <div className="upgrade-social-proof">
-          <p>⭐⭐⭐⭐⭐ <strong>4.8/5</strong> från användare</p>
+          <p><strong>4.8/5</strong> från användare</p>
           <p>Genomsnittlig besparing: <strong>847 kr/mån</strong></p>
         </div>
       </div>

@@ -254,8 +254,7 @@
 .upgrade-features li {
   display: flex;
   align-items: flex-start;
-  gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   padding: 15px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
@@ -265,11 +264,6 @@
 .upgrade-features li:hover {
   background: rgba(16, 185, 129, 0.1);
   transform: translateX(5px);
-}
-
-.feature-icon {
-  font-size: 32px;
-  flex-shrink: 0;
 }
 
 .upgrade-features li strong {
@@ -380,7 +374,6 @@
 .referral-tier {
   display: flex;
   align-items: center;
-  gap: 12px;
   padding: 15px;
   min-height: 70px; /* Touch-friendly */
   background: rgba(255, 255, 255, 0.05);
@@ -418,10 +411,6 @@
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.2) 100%);
     border-color: #10b981;
   }
-}
-
-.tier-icon {
-  font-size: 32px;
 }
 
 .referral-tier strong {
@@ -674,12 +663,7 @@
   
   .upgrade-features li {
     padding: 12px;
-    gap: 12px;
-    margin-bottom: 15px;
-  }
-  
-  .feature-icon {
-    font-size: 28px;
+    margin-bottom: 12px;
   }
   
   .upgrade-features li strong {
@@ -711,11 +695,6 @@
   
   .referral-tier {
     padding: 12px;
-    gap: 10px;
-  }
-  
-  .tier-icon {
-    font-size: 28px;
   }
   
   .referral-tier strong {
@@ -798,11 +777,6 @@
   
   .upgrade-features li {
     padding: 10px;
-    gap: 10px;
-  }
-  
-  .feature-icon {
-    font-size: 24px;
   }
   
   .upgrade-features li strong {
