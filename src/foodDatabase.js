@@ -247,27 +247,46 @@ function fuzzyMatch(str1, str2) {
 
 // Få utgångsdatum förslag baserat på vara
 export function getExpiryDateSuggestion(foodName) {
-  // PRIORITET 1: Kolla om användaren har custom regel för denna vara
-  const customRule = getCustomExpiryRule(foodName)
+  console.log(`🔍 getExpiryDateSuggestion körs för: "${foodName}"`)
+  
+  // PRIORITET 1: Custom expiry rules (användarens egna regler)
+  let customRule = null
+  try {
+    customRule = getCustomExpiryRule(foodName)
+    console.log(`✅ Custom rule för "${foodName}":`, customRule)
+  } catch (error) {
+    console.warn('Kunde inte hämta custom expiry rule:', error)
+  }
   
   if (customRule) {
+    // Lägg till dagar från midnatt för konsekvent datumberäkning
     const date = new Date()
+    date.setHours(0, 0, 0, 0)
     date.setDate(date.getDate() + customRule.days)
     
-    // Hämta kategori och emoji från databas som fallback
     const food = SWEDISH_FOODS.find(f => 
       f.name.toLowerCase() === foodName.toLowerCase()
     )
     
+    // Använd lokal tid för att undvika UTC-problem
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateString = `${year}-${month}-${day}`
+    
+    console.log(`🎯 Custom rule används! ${customRule.days} dagar -> ${dateString}`)
+    
     return {
-      date: date.toISOString().split('T')[0],
+      date: dateString,
       category: food?.category || 'övrigt',
       defaultUnit: food?.unit || 'st',
       emoji: food?.emoji || '📦',
-      hasCustomRule: true, // Flagga för att visa 🎯
+      hasCustomRule: true,
       customDays: customRule.days
     }
   }
+  
+  console.log(`⚠️ Ingen custom rule, använder databas-förslag`)
   
   // PRIORITET 2: Använd databas-förslag
   const food = SWEDISH_FOODS.find(f => 
@@ -275,10 +294,16 @@ export function getExpiryDateSuggestion(foodName) {
   )
   
   if (food) {
+    // Lägg till dagar från midnatt för konsekvent datumberäkning
     const date = new Date()
+    date.setHours(0, 0, 0, 0)
     date.setDate(date.getDate() + food.defaultDays)
+    // Använd lokal tid för att undvika UTC-problem
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
     return {
-      date: date.toISOString().split('T')[0],
+      date: `${year}-${month}-${day}`,
       category: food.category,
       defaultUnit: food.unit,
       emoji: food.emoji,
@@ -287,10 +312,16 @@ export function getExpiryDateSuggestion(foodName) {
   }
   
   // PRIORITET 3: Fallback för okända varor
+  // Lägg till dagar från midnatt för konsekvent datumberäkning
   const date = new Date()
+  date.setHours(0, 0, 0, 0)
   date.setDate(date.getDate() + 7)
+  // Använd lokal tid för att undvika UTC-problem
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
   return {
-    date: date.toISOString().split('T')[0],
+    date: `${year}-${month}-${day}`,
     category: 'övrigt',
     defaultUnit: 'st',
     emoji: '📦',

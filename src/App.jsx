@@ -19,6 +19,7 @@ import AdBanner from './AdBanner'
 import * as adService from './adService'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
+import { setCustomExpiryRule } from './userItemsService'
 import { notificationService } from './notificationService'
 import { savingsTracker } from './savingsTracker'
 import { achievementService } from './achievementService'
@@ -70,9 +71,13 @@ function svTimeLabel(raw) {
 }
 
 function daysUntil(dateStr) {
+  // Räkna kalenderdagar: 27 dec - 13 dec = 14 dagar
   const today = new Date()
-  const date = new Date(dateStr)
-  const diff = Math.ceil((date - new Date(today.toDateString())) / (1000 * 60 * 60 * 24))
+  today.setHours(0, 0, 0, 0)
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const expiryDate = new Date(year, month - 1, day)
+  expiryDate.setHours(0, 0, 0, 0)
+  const diff = Math.round((expiryDate - today) / (1000 * 60 * 60 * 24))
   return diff
 }
 
@@ -881,6 +886,21 @@ export default function App() {
     const finalUnit = selectedInventoryUnit
     const finalCategory = selectedInventoryCategory
     
+    // TYST AUTO-LEARNING: Spara custom expiry rule om användaren har ändrat datum
+    const defaultSuggestion = getExpiryDateSuggestion(itemName)
+    if (defaultSuggestion && itemExpiresAt !== defaultSuggestion.date) {
+      // Räkna kalenderdagar: 27 dec - 13 dec = 14 dagar (oavsett tid på dygnet)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const [year, month, day] = itemExpiresAt.split('-').map(Number)
+      const expiryDate = new Date(year, month - 1, day)
+      expiryDate.setHours(0, 0, 0, 0)
+      const daysFromToday = Math.round((expiryDate - today) / (1000 * 60 * 60 * 24))
+      
+      setCustomExpiryRule(itemName, daysFromToday)
+      console.log(`🧠 onAdd: Lärde mig custom regel för \"${itemName}\": ${daysFromToday} dagar (användare valde ${itemExpiresAt} istället för ${defaultSuggestion.date})`)
+    }
+    
     // Emoji baserat på kategori
     const getCategoryEmoji = (cat) => {
       const emojiMap = {
@@ -1151,7 +1171,7 @@ export default function App() {
     
     const originalItem = editingItem
     
-    // Lär AI:n från justeringen
+    // Lär AI:n från justeringen (gammal AI-motor)
     if (originalItem && originalItem.name) {
       learnFromUserAdjustment(
         originalItem.name,
@@ -1160,6 +1180,20 @@ export default function App() {
         originalItem.category,
         updatedItem.adjustmentReason || ''
       )
+      
+      // TYST AUTO-LEARNING: Spara också som custom regel (nytt system)
+      if (originalItem.expiresAt !== updatedItem.expiresAt) {
+        // Räkna kalenderdagar: 27 dec - 13 dec = 14 dagar (oavsett tid på dygnet)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const [year, month, day] = updatedItem.expiresAt.split('-').map(Number)
+        const newDateObj = new Date(year, month - 1, day)
+        newDateObj.setHours(0, 0, 0, 0)
+        const daysFromToday = Math.round((newDateObj - today) / (1000 * 60 * 60 * 24))
+        
+        setCustomExpiryRule(originalItem.name, daysFromToday)
+        console.log(`🧠 handleExpiryUpdate: Sparade custom regel: ${originalItem.name} = ${daysFromToday} dagar`)
+      }
     }
     
     // Uppdatera item i listan
@@ -1189,11 +1223,17 @@ export default function App() {
         setSelectedItems(new Set())
         setBulkExpiryDate('')
       } else {
-        // Starta bulk edit mode
-        const today = new Date()
-        const defaultDate = new Date(today)
-        defaultDate.setDate(today.getDate() + 7)
-        setBulkExpiryDate(defaultDate.toISOString().split('T')[0])
+        // Starta bulk edit mode - använd första valda varans datum om tillgängligt
+        const firstSelectedId = Array.from(selectedItems)[0]
+        const firstSelectedItem = firstSelectedId ? items.find(i => i.id === firstSelectedId) : null
+        
+        if (firstSelectedItem && firstSelectedItem.expiresAt) {
+          setBulkExpiryDate(firstSelectedItem.expiresAt)
+        } else {
+          // Fallback till dagens datum
+          const today = new Date()
+          setBulkExpiryDate(today.toISOString().split('T')[0])
+        }
       }
       return !prev
     })
@@ -1204,8 +1244,31 @@ export default function App() {
       const newSet = new Set(prev)
       if (newSet.has(itemId)) {
         newSet.delete(itemId)
+        // Om det inte finns fler valda varor, återställ datum till idag
+        if (newSet.size === 0) {
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const year = today.getFullYear()
+          const month = String(today.getMonth() + 1).padStart(2, '0')
+          const day = String(today.getDate()).padStart(2, '0')
+          setBulkExpiryDate(`${year}-${month}-${day}`)
+        } else {
+          // Använd första kvarvarande varans datum
+          const firstRemainingId = Array.from(newSet)[0]
+          const firstItem = items.find(i => i.id === firstRemainingId)
+          if (firstItem?.expiresAt) {
+            setBulkExpiryDate(firstItem.expiresAt)
+          }
+        }
       } else {
         newSet.add(itemId)
+        // Om detta är första varan som väljs, använd dess datum
+        if (newSet.size === 1) {
+          const selectedItem = items.find(i => i.id === itemId)
+          if (selectedItem?.expiresAt) {
+            setBulkExpiryDate(selectedItem.expiresAt)
+          }
+        }
       }
       return newSet
     })
@@ -1225,8 +1288,23 @@ export default function App() {
     
     const confirmed = confirm(`Ändra utgångsdatum till ${bulkExpiryDate} för ${selectedItems.size} valda varor?`)
     if (confirmed) {
+      // TYST AUTO-LEARNING: Spara custom expiry rules för varje vara
+      // Räkna kalenderdagar: 27 dec - 13 dec = 14 dagar (oavsett tid på dygnet)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const [year, month, day] = bulkExpiryDate.split('-').map(Number)
+      const newDateObj = new Date(year, month - 1, day)
+      newDateObj.setHours(0, 0, 0, 0)
+      const daysFromToday = Math.round((newDateObj - today) / (1000 * 60 * 60 * 24))
+      
       setItems(prev => prev.map(item => {
         if (selectedItems.has(item.id)) {
+          // Spara custom regel för varje vald vara
+          const defaultSuggestion = getExpiryDateSuggestion(item.name)
+          if (defaultSuggestion && bulkExpiryDate !== defaultSuggestion.date) {
+            setCustomExpiryRule(item.name, daysFromToday)
+            console.log(`🧠 Bulk edit: Lärde mig custom regel för \"${item.name}\": ${daysFromToday} dagar`)
+          }
           return { ...item, expiresAt: bulkExpiryDate }
         }
         return item
@@ -1880,8 +1958,9 @@ export default function App() {
                             type="button"
                             className="ai-suggestion-btn"
                             onClick={() => {
-                              const smartResult = calculateSmartExpiryDate(form.name, null)
-                              setForm(prev => ({ ...prev, expiresAt: smartResult.date }))
+                              const suggestion = getExpiryDateSuggestion(form.name)
+                              setForm(prev => ({ ...prev, expiresAt: suggestion.date }))
+                              console.log(`🤖 AI-förslag: ${form.name} = ${suggestion.date}${suggestion.hasCustomRule ? ' (custom regel)' : ''}`)
                             }}
                             title="Använd AI-förslag som utgångspunkt"
                           >
@@ -1901,21 +1980,18 @@ export default function App() {
                   >
                     Lägg till i kylskåp
                   </button>
-                  {form && (
-                    <div className="form-preview">
-                      <small style={{color: form.name && form.expiresAt && form.quantity > 0 ? 'inherit' : 'var(--muted)'}}>
-                        {form.name && form.expiresAt && form.quantity > 0 ? (
-                          <>Lägger till: <strong>{form.quantity || ''} {selectedInventoryUnit || ''} {form.name || ''}</strong> som går ut <strong>{form.expiresAt || ''}</strong></>
-                        ) : (
-                          <>
-                            {!form.name && '⚠️ Namn saknas'}
-                            {form.name && !form.expiresAt && '⚠️ Utgångsdatum saknas'}
-                            {form.name && form.expiresAt && form.quantity <= 0 && '⚠️ Antal måste vara större än 0'}
-                          </>
-                        )}
-                      </small>
-                    </div>
-                  )}
+                  <div className="form-preview" style={{color: form.name && form.expiresAt && form.quantity > 0 ? 'inherit' : 'var(--muted)'}}>
+                    <small>
+                      {form.name && form.expiresAt && form.quantity > 0 ? (
+                        `Lägger till: ${form.quantity} ${selectedInventoryUnit} ${form.name} som går ut ${form.expiresAt}`
+                      ) : (
+                        !form.name ? '⚠️ Namn saknas' :
+                        !form.expiresAt ? '⚠️ Utgångsdatum saknas' :
+                        form.quantity <= 0 ? '⚠️ Antal måste vara större än 0' :
+                        ''
+                      )}
+                    </small>
+                  </div>
                 </div>
               </form>
             </section>

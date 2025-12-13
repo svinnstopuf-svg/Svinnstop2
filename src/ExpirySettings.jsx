@@ -21,10 +21,13 @@ const ExpirySettings = ({ item, onUpdate, onClose }) => {
     
     // TYST AUTO-LEARNING: Spara automatiskt som custom regel om datumet ändrades
     if (item.expiresAt !== newDate) {
+      // Räkna kalenderdagar: 27 dec - 13 dec = 14 dagar (oavsett tid på dygnet)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const newDateObj = new Date(newDate)
-      const daysFromToday = Math.ceil((newDateObj - today) / (1000 * 60 * 60 * 24))
+      const [year, month, day] = newDate.split('-').map(Number)
+      const newDateObj = new Date(year, month - 1, day)
+      newDateObj.setHours(0, 0, 0, 0)
+      const daysFromToday = Math.round((newDateObj - today) / (1000 * 60 * 60 * 24))
       
       // Spara automatiskt som custom regel (tyst, ingen UI)
       setCustomExpiryRule(item.name, daysFromToday)
@@ -48,7 +51,11 @@ const ExpirySettings = ({ item, onUpdate, onClose }) => {
   const setQuickDate = (days) => {
     const date = new Date()
     date.setDate(date.getDate() + days)
-    setNewDate(date.toISOString().split('T')[0])
+    // Använd lokal tid för att undvika UTC-problem
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    setNewDate(`${year}-${month}-${day}`)
   }
 
   return (
