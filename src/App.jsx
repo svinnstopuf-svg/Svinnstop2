@@ -13,6 +13,10 @@ import AchievementsPage from './AchievementsPage'
 import FamilySharing from './FamilySharing'
 import Leaderboard from './Leaderboard'
 import ConfirmDialog from './ConfirmDialog'
+import UpgradeModal from './UpgradeModal'
+import PremiumFeature from './PremiumFeature'
+import AdBanner from './AdBanner'
+import * as adService from './adService'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { notificationService } from './notificationService'
@@ -22,6 +26,7 @@ import { syncInventoryToFirebase, listenToInventoryChanges } from './inventorySy
 import { getFamilyData } from './familyService'
 import { initAuth } from './firebaseConfig'
 import { referralService } from './referralService'
+import { premiumService } from './premiumService'
 import { leaderboardService } from './leaderboardService'
 import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
@@ -166,6 +171,32 @@ export function abbreviateUnit(unit) {
   return abbreviations[unitLower] || unit
 }
 
+// SECURITY FIX: Sync referral premium to main premium service
+function syncReferralPremiumToMain() {
+  try {
+    const referralData = referralService.getReferralData()
+    
+    // Check if user has premium from referrals
+    if (referralData.lifetimePremium) {
+      console.log('🔒 SECURITY: Syncing lifetime premium from referrals')
+      premiumService.activateLifetimePremium('referral')
+    } else if (referralData.premiumUntil) {
+      const expiryDate = new Date(referralData.premiumUntil)
+      const now = new Date()
+      const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24))
+      
+      if (daysLeft > 0) {
+        console.log(`🔒 SECURITY: Syncing ${daysLeft} days of premium from referrals`)
+        premiumService.activatePremium(daysLeft, 'referral')
+      } else {
+        console.log('⏰ Referral premium has expired')
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to sync referral premium:', error)
+  }
+}
+
 export default function App() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ 
@@ -207,6 +238,7 @@ export default function App() {
   const [currentDisplayUnit, setCurrentDisplayUnit] = useState('st') // Aktuell enhet som visas
   const [userSelectedUnit, setUserSelectedUnit] = useState(false) // Flagga om användaren manuellt valt enhet
   const [isInitialInventoryLoad, setIsInitialInventoryLoad] = useState(true) // Flagga för initial laddning
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false) // Premium upgrade modal
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -330,11 +362,29 @@ export default function App() {
   // Track daily login for achievements
     achievementService.trackDailyLogin()
     
+    // Track app open for referral verification
+    referralService.trackAppOpen()
+    
+    // Check premium expiry (SECURITY FIX)
+    premiumService.checkPremiumExpiry()
+    
+    // Initialize AdSense (only for free users)
+    adService.initializeAds()
+    
     // Initialize Firebase Authentication
     initAuth()
       .then(user => {
         if (user) {
           console.log('🔐 Svinnstop authentication ready')
+          
+          // Sync premium from Firebase (server-side truth)
+          premiumService.syncPremiumFromFirebase()
+            .then(() => {
+              console.log('✅ Premium synced from server')
+              // SECURITY FIX: Sync referral premium AFTER Firebase sync
+              syncReferralPremiumToMain()
+            })
+            .catch(err => console.warn('⚠️ Could not sync premium from server:', err))
           
           // Synka referral-kod till Firebase
           referralService.syncReferralCodeToFirebase()
@@ -719,6 +769,19 @@ export default function App() {
     e.preventDefault()
     if (!form.name || !form.expiresAt || form.quantity <= 0) return
     
+    // CHECK: 10-item limit for free users
+    const isPremium = premiumService.isPremiumActive()
+    const existingItemCheck = items.find(item => 
+      item.name.toLowerCase() === form.name.trim().toLowerCase()
+    )
+    
+    if (!isPremium && items.length >= 10 && !existingItemCheck) {
+      // Show upgrade modal
+      setShowUpgradeModal(true)
+      console.log('🚫 Free user reached 10-item limit')
+      return
+    }
+    
     // Använd värden från formuläret
     const itemName = form.name.trim()
     const itemQuantity = form.quantity
@@ -821,6 +884,9 @@ export default function App() {
         
         return updated
       })
+      
+      // Track item added for referral verification
+      referralService.trackItemAdded()
     }
     
     // Rensa formuläret
@@ -1931,20 +1997,27 @@ export default function App() {
                 </ul>
               )}
             </section>
+            
+            {/* Ad Banner - After inventory list */}
+            <AdBanner className="bottom" />
           </div>
         )}
         
         {/* Recept flik */}
         {activeTab === 'recipes' && (
           <div className="tab-panel">
-            <section className="card">
-              <div className="section-header">
-                <h2>Recept</h2>
-                <p className="section-subtitle">Hitta inspiration för din matlagning</p>
-              </div>
-              
-              {/* Sub-tabs för recept */}
-              <div className="recipe-tabs">
+            <PremiumFeature 
+              feature="recipes"
+              onUpgradeClick={() => setShowUpgradeModal(true)}
+            >
+              <section className="card">
+                <div className="section-header">
+                  <h2>Recept</h2>
+                  <p className="section-subtitle">Hitta inspiration för din matlagning</p>
+                </div>
+                
+                {/* Sub-tabs för recept */}
+                <div className="recipe-tabs">
                 <button 
                   className={`recipe-tab-btn ${recipeTab === 'mine' ? 'active' : ''}`}
                   onClick={() => setRecipeTab('mine')}
@@ -1960,6 +2033,9 @@ export default function App() {
                   <span className="tab-count">{recommendedRecipes.length}</span>
                 </button>
               </div>
+              
+              {/* Ad Banner - Before recipes list */}
+              <AdBanner className="top" />
               
               {/* Mina recept tab */}
               {recipeTab === 'mine' && (
@@ -2160,7 +2236,8 @@ export default function App() {
                   )}
                 </div>
               )}
-            </section>
+              </section>
+            </PremiumFeature>
           </div>
         )}
         
@@ -2208,6 +2285,11 @@ export default function App() {
                 <button 
                   className="profile-menu-item"
                   onClick={() => {
+                    const isPremium = premiumService.isPremiumActive()
+                    if (!isPremium) {
+                      setShowUpgradeModal(true)
+                      return
+                    }
                     if (notificationsEnabled) {
                       disableNotifications();
                     } else {
@@ -2218,18 +2300,25 @@ export default function App() {
                   <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
                   <div className="menu-content">
                     <span className="menu-title">{notificationsEnabled ? 'Inaktivera notiser' : 'Aktivera notiser'}</span>
-                    <span className="menu-description">{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'}</span>
+                    <span className="menu-description">{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'} {!premiumService.isPremiumActive() && '🔒'}</span>
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
                 
                 <button 
                   className="profile-menu-item"
-                  onClick={() => setActiveTab('savings')}
+                  onClick={() => {
+                    const isPremium = premiumService.isPremiumActive()
+                    if (!isPremium) {
+                      setShowUpgradeModal(true)
+                      return
+                    }
+                    setActiveTab('savings')
+                  }}
                 >
                   <span className="menu-icon">💰</span>
                   <div className="menu-content">
-                    <span className="menu-title">Mina besparingar</span>
+                    <span className="menu-title">Mina besparingar {!premiumService.isPremiumActive() && '🔒'}</span>
                     <span className="menu-description">Se hur mycket du har sparat</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -2237,11 +2326,18 @@ export default function App() {
                 
                 <button 
                   className="profile-menu-item"
-                  onClick={() => setActiveTab('achievements')}
+                  onClick={() => {
+                    const isPremium = premiumService.isPremiumActive()
+                    if (!isPremium) {
+                      setShowUpgradeModal(true)
+                      return
+                    }
+                    setActiveTab('achievements')
+                  }}
                 >
                   <span className="menu-icon">🏆</span>
                   <div className="menu-content">
-                    <span className="menu-title">Utmärkelser</span>
+                    <span className="menu-title">Utmärkelser {!premiumService.isPremiumActive() && '🔒'}</span>
                     <span className="menu-description">Dina prestationer</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -2249,11 +2345,18 @@ export default function App() {
                 
                 <button 
                   className="profile-menu-item"
-                  onClick={() => setActiveTab('leaderboard')}
+                  onClick={() => {
+                    const isPremium = premiumService.isPremiumActive()
+                    if (!isPremium) {
+                      setShowUpgradeModal(true)
+                      return
+                    }
+                    setActiveTab('leaderboard')
+                  }}
                 >
                   <span className="menu-icon">🏆</span>
                   <div className="menu-content">
-                    <span className="menu-title">Topplista</span>
+                    <span className="menu-title">Topplista {!premiumService.isPremiumActive() && '🔒'}</span>
                     <span className="menu-description">Tävla med vänner</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -2445,6 +2548,15 @@ export default function App() {
       onConfirm={confirmDialog.onConfirm}
       onCancel={confirmDialog.onCancel}
       onDismiss={confirmDialog.onDismiss}
+    />
+    
+    <UpgradeModal
+      isOpen={showUpgradeModal}
+      onClose={() => setShowUpgradeModal(false)}
+      onReferralClick={() => {
+        setShowUpgradeModal(false)
+        setActiveTab('referral')
+      }}
     />
     </>
   )

@@ -121,6 +121,9 @@ async function syncFromFirebase() {
     const referralsObj = referralsSnap.val() || {}
     const firebaseReferrals = Object.values(referralsObj)
     
+    // Räkna BARA aktiva referrals (pending räknas inte)
+    const activeReferrals = firebaseReferrals.filter(r => r.status === 'active')
+    
     // Hämta rewards från Firebase  
     const rewardsSnap = await get(ref(database, `users/${user.uid}/rewards`))
     const rewardsObj = rewardsSnap.val() || {}
@@ -130,8 +133,8 @@ async function syncFromFirebase() {
     const premiumSnap = await get(ref(database, `users/${user.uid}/premium`))
     const premiumData = premiumSnap.val() || {}
     
-    // Uppdatera data om det finns skillnader
-    const referralCount = firebaseReferrals.length
+    // Uppdatera data om det finns skillnader (använd BARA aktiva referrals)
+    const referralCount = activeReferrals.length
     
     // Kolla om vi behöver lägga till nya belöningar
     if (REWARDS[referralCount] && !firebaseRewards.find(r => r.referralCount === referralCount)) {
@@ -180,14 +183,15 @@ async function syncFromFirebase() {
       Object.assign(premiumData, updatedPremiumData)
     }
     
-    // Uppdatera localStorage
+    // Uppdatera localStorage (spara ALLA referrals men visa status)
     data.referrals = firebaseReferrals
+    data.activeReferrals = activeReferrals.length
     data.rewards = firebaseRewards
     data.lifetimePremium = premiumData.lifetimePremium || false
     data.premiumUntil = premiumData.premiumUntil || null
     
     saveReferralData(data)
-    console.log('✅ Firebase: Referral data synced', firebaseReferrals.length, 'referrals,', firebaseRewards.length, 'rewards')
+    console.log('✅ Firebase: Referral data synced', activeReferrals.length, 'active /', firebaseReferrals.length, 'total referrals,', firebaseRewards.length, 'rewards')
   } catch (error) {
     console.error('❌ Firebase: Failed to sync referral data', error)
   }
@@ -243,19 +247,23 @@ export async function useReferralCode(code) {
     
     const referrerUserId = codeSnap.val().userId
     
-    // Lägg till mig som referral hos referrer
+    // Lägg till mig som referral hos referrer (PENDING status)
     const referralRef = ref(database, `users/${referrerUserId}/referrals/${user.uid}`)
     await set(referralRef, {
       userId: user.uid,
       joinedAt: new Date().toISOString(),
-      status: 'active'
+      status: 'pending', // ⚠️ Pending tills användaren är aktiv
+      itemsAdded: 0,
+      daysActive: 0,
+      appOpens: 0,
+      lastActiveDate: new Date().toISOString()
     })
     
     // Spara vem som bjöd in mig
     const myUserRef = ref(database, `users/${user.uid}/referredBy`)
     await set(myUserRef, code.toUpperCase())
     
-    console.log('✅ Firebase: Referral code used successfully')
+    console.log('✅ Firebase: Referral code used (pending verification)')
     
     // Spara lokalt också
     data.referredBy = code.toUpperCase()
@@ -263,7 +271,7 @@ export async function useReferralCode(code) {
     
     return { 
       success: true, 
-      message: '🎉 Referral kod aktiverad!' 
+      message: '🎉 Referral kod aktiverad! Använd appen för att verifiera.' 
     }
   } catch (error) {
     console.error('❌ Firebase: Failed to use referral code', error)
@@ -375,6 +383,202 @@ export function getNextMilestone(currentCount) {
   return null // Användaren har nått alla milestones
 }
 
+// Verifiera referral baserat på aktivitet
+export async function verifyReferralActivity() {
+  const user = auth.currentUser
+  if (!user) return
+  
+  const data = getReferralData()
+  if (!data.referredBy) return // Ingen som bjöd in mig
+  
+  try {
+    // Hämta aktivitetsdata från Firebase (SECURITY FIX)
+    const activityData = await verifyActivityFromFirebase()
+    
+    // Aktivitetskrav för verifiering:
+    // 1. Minst 3 varor tillagda
+    // 2. Minst 2 olika dagar aktiv
+    // 3. Minst 3 app-öppningar
+    const meetsRequirements = 
+      activityData.itemsAdded >= 3 &&
+      activityData.daysActive >= 2 &&
+      activityData.appOpens >= 3
+    
+    if (!meetsRequirements) {
+      console.log('⏳ Referral not yet verified - needs more activity')
+      return
+    }
+    
+    // Hämta vem som bjöd in mig
+    const referrerCodeSnap = await get(ref(database, `referralCodes/${data.referredBy}`))
+    if (!referrerCodeSnap.exists()) return
+    
+    const referrerUserId = referrerCodeSnap.val().userId
+    
+    // Hämta min referral-status hos referrer
+    const myReferralRef = ref(database, `users/${referrerUserId}/referrals/${user.uid}`)
+    const myReferralSnap = await get(myReferralRef)
+    
+    if (!myReferralSnap.exists()) return
+    
+    const myReferralData = myReferralSnap.val()
+    
+    // Om redan aktiv, gör inget
+    if (myReferralData.status === 'active') {
+      console.log('✅ Referral already verified')
+      return
+    }
+    
+    // Verifiera!
+    await update(myReferralRef, {
+      status: 'active', // ✅ NU räknas den!
+      verifiedAt: new Date().toISOString(),
+      itemsAdded: activityData.itemsAdded,
+      daysActive: activityData.daysActive,
+      appOpens: activityData.appOpens
+    })
+    
+    console.log('✅ Referral verified! Referrer will get their reward.')
+    
+    // Triggera reward-check för referrer (görs automatiskt via syncFromFirebase)
+    
+  } catch (error) {
+    console.error('❌ Failed to verify referral:', error)
+  }
+}
+
+// Spåra användaraktivitet
+const ACTIVITY_STORAGE_KEY = 'svinnstop_activity_data'
+
+export function getActivityData() {
+  try {
+    const data = localStorage.getItem(ACTIVITY_STORAGE_KEY)
+    if (data) {
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Failed to read activity data:', error)
+  }
+  
+  return {
+    itemsAdded: 0,
+    daysActive: 0,
+    appOpens: 0,
+    lastActiveDate: null,
+    activeDates: [] // Array av datum-strängar
+  }
+}
+
+function saveActivityData(data) {
+  try {
+    localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(data))
+  } catch (error) {
+    console.error('Failed to save activity data:', error)
+  }
+}
+
+// Spåra när användaren lägger till vara
+export function trackItemAdded() {
+  const data = getActivityData()
+  data.itemsAdded += 1
+  saveActivityData(data)
+  
+  // Sync to Firebase (SECURITY FIX)
+  syncActivityToFirebase(data).catch(err => 
+    console.warn('Could not sync activity to Firebase:', err)
+  )
+  
+  // Kolla om vi nu uppfyller kraven
+  verifyReferralActivity().catch(err => 
+    console.warn('Could not verify referral:', err)
+  )
+  
+  console.log(`📊 Activity: ${data.itemsAdded} items added`)
+}
+
+// Spåra app-öppning
+export function trackAppOpen() {
+  const data = getActivityData()
+  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+  
+  data.appOpens += 1
+  
+  // Kolla om det är en ny dag
+  if (!data.activeDates.includes(today)) {
+    data.activeDates.push(today)
+    data.daysActive = data.activeDates.length
+    data.lastActiveDate = today
+  }
+  
+  saveActivityData(data)
+  
+  // Sync to Firebase (SECURITY FIX)
+  syncActivityToFirebase(data).catch(err => 
+    console.warn('Could not sync activity to Firebase:', err)
+  )
+  
+  // Kolla om vi nu uppfyller kraven
+  verifyReferralActivity().catch(err => 
+    console.warn('Could not verify referral:', err)
+  )
+  
+  console.log(`📊 Activity: ${data.appOpens} opens, ${data.daysActive} days active`)
+}
+
+// Sync activity to Firebase (SECURITY FIX)
+async function syncActivityToFirebase(activityData) {
+  const user = auth.currentUser
+  if (!user) return
+  
+  try {
+    const activityRef = ref(database, `users/${user.uid}/activity`)
+    await set(activityRef, {
+      itemsAdded: activityData.itemsAdded,
+      daysActive: activityData.daysActive,
+      appOpens: activityData.appOpens,
+      lastActiveDate: activityData.lastActiveDate,
+      activeDates: activityData.activeDates,
+      lastUpdated: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('❌ Failed to sync activity to Firebase:', error)
+  }
+}
+
+// Verify activity from Firebase (SECURITY FIX)
+export async function verifyActivityFromFirebase() {
+  const user = auth.currentUser
+  if (!user) return getActivityData()
+  
+  try {
+    const activityRef = ref(database, `users/${user.uid}/activity`)
+    const snap = await get(activityRef)
+    
+    if (snap.exists()) {
+      const serverActivity = snap.val()
+      
+      // Merge med localStorage (Firebase tar företräde)
+      const localActivity = getActivityData()
+      const mergedActivity = {
+        itemsAdded: Math.max(serverActivity.itemsAdded || 0, localActivity.itemsAdded),
+        daysActive: Math.max(serverActivity.daysActive || 0, localActivity.daysActive),
+        appOpens: Math.max(serverActivity.appOpens || 0, localActivity.appOpens),
+        lastActiveDate: serverActivity.lastActiveDate || localActivity.lastActiveDate,
+        activeDates: [...new Set([...(serverActivity.activeDates || []), ...(localActivity.activeDates || [])])]
+      }
+      
+      saveActivityData(mergedActivity)
+      console.log('🔒 SECURITY: Activity verified from Firebase')
+      
+      return mergedActivity
+    }
+  } catch (error) {
+    console.error('❌ Failed to verify activity from Firebase:', error)
+  }
+  
+  return getActivityData()
+}
+
 // Hämta delbar länk/text
 export function getShareableContent() {
   const data = getReferralData()
@@ -407,6 +611,11 @@ export function resetReferralData() {
   localStorage.removeItem(STORAGE_KEY)
 }
 
+// Reset activity data (för testing)
+export function resetActivityData() {
+  localStorage.removeItem(ACTIVITY_STORAGE_KEY)
+}
+
 // Default export
 export const referralService = {
   getReferralData,
@@ -418,5 +627,12 @@ export const referralService = {
   getShareableContent,
   resetReferralData,
   syncReferralCodeToFirebase,
-  listenToReferrals
+  listenToReferrals,
+  // Activity tracking
+  trackItemAdded,
+  trackAppOpen,
+  getActivityData,
+  verifyReferralActivity,
+  verifyActivityFromFirebase,
+  resetActivityData
 }

@@ -175,14 +175,21 @@ export default function ReferralProgram() {
         <h3>📊 Dina referrals</h3>
         <div className="stats-grid">
           <div className="stat-item">
+            <div className="stat-value">{referralData.activeReferrals || 0}</div>
+            <div className="stat-label">Aktiva vänner</div>
+          </div>
+          <div className="stat-item">
             <div className="stat-value">{referralData.referrals.length}</div>
-            <div className="stat-label">Vänner inbjudna</div>
+            <div className="stat-label">Totalt inbjudna</div>
           </div>
           <div className="stat-item">
             <div className="stat-value">{referralData.rewards.length}</div>
             <div className="stat-label">Belöningar</div>
           </div>
         </div>
+        <p className="activity-requirement-hint">
+          ℹ️ Referrals måste vara aktiva (3 varor, 2 dagar, 3 öppningar) för att räknas
+        </p>
       </div>
 
       {/* Nästa Milestone */}
@@ -264,7 +271,14 @@ export default function ReferralProgram() {
                 <div className="referral-date">
                   {new Date(ref.joinedAt).toLocaleDateString('sv-SE')}
                 </div>
-                <div className="referral-status">✅ Aktiv</div>
+                <div className={`referral-status ${ref.status === 'active' ? 'active' : 'pending'}`}>
+                  {ref.status === 'active' ? '✅ Aktiv' : '⏳ Väntar'}
+                </div>
+                {ref.status === 'pending' && (
+                  <div className="referral-activity-hint">
+                    Behöver: {ref.itemsAdded || 0}/3 varor, {ref.daysActive || 0}/2 dagar, {ref.appOpens || 0}/3 öppningar
+                  </div>
+                )}
               </div>
             ))}
           </div>

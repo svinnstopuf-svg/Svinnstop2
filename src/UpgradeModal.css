@@ -1,0 +1,627 @@
+/* Upgrade Modal */
+.upgrade-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.upgrade-modal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 2px solid #10b981;
+  border-radius: 24px;
+  padding: 40px 30px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 80px rgba(16, 185, 129, 0.4);
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.upgrade-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #9ca3af;
+  font-size: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.upgrade-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  transform: rotate(90deg);
+}
+
+/* Header */
+.upgrade-modal-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.upgrade-icon {
+  font-size: 64px;
+  margin-bottom: 15px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.upgrade-modal-header h2 {
+  font-size: 28px;
+  font-weight: bold;
+  color: #10b981;
+  margin-bottom: 10px;
+}
+
+.upgrade-subtitle {
+  font-size: 16px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Plan Selection */
+.plan-selection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.plan-option {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.plan-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #10b981;
+  transform: translateY(-2px);
+}
+
+.plan-option.selected {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border-color: #10b981;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.plan-icon {
+  font-size: 24px;
+}
+
+.plan-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #e5e7eb;
+}
+
+.plan-badge {
+  font-size: 10px;
+  font-weight: bold;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.plan-price {
+  font-size: 32px;
+  font-weight: bold;
+  color: #10b981;
+  margin-bottom: 8px;
+}
+
+.plan-price span {
+  font-size: 16px;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+.plan-desc {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Pricing (old - kept for compatibility) */
+.upgrade-pricing {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border-radius: 16px;
+}
+
+.price-amount {
+  font-size: 48px;
+  font-weight: bold;
+  color: #10b981;
+  text-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+}
+
+.price-period {
+  font-size: 20px;
+  color: #d1d5db;
+  margin-left: 5px;
+}
+
+/* Features */
+.upgrade-features {
+  margin-bottom: 30px;
+}
+
+.upgrade-features h3 {
+  font-size: 20px;
+  color: #10b981;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.upgrade-features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.upgrade-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.upgrade-features li:hover {
+  background: rgba(16, 185, 129, 0.1);
+  transform: translateX(5px);
+}
+
+.feature-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.upgrade-features li strong {
+  display: block;
+  color: #e5e7eb;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.upgrade-features li p {
+  color: #9ca3af;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Payment Methods */
+.upgrade-payment-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.payment-method-btn {
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: #d1d5db;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.payment-method-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #10b981;
+}
+
+.payment-method-btn.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.payment-icon {
+  font-size: 28px;
+}
+
+/* Stripe Section */
+.upgrade-stripe-section {
+  text-align: center;
+}
+
+.payment-coming-soon {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 12px;
+}
+
+/* Referral Section */
+.upgrade-referral-section {
+  text-align: center;
+}
+
+.upgrade-referral-section h4 {
+  font-size: 20px;
+  color: #10b981;
+  margin-bottom: 20px;
+}
+
+.referral-tiers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.referral-tier {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.referral-tier:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.referral-tier.highlight {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.2) 100%);
+  border-color: #10b981;
+}
+
+.tier-icon {
+  font-size: 32px;
+}
+
+.referral-tier strong {
+  display: block;
+  color: #e5e7eb;
+  font-size: 15px;
+}
+
+.referral-tier p {
+  color: #9ca3af;
+  font-size: 13px;
+  margin: 4px 0 0 0;
+}
+
+/* Buttons */
+.upgrade-modal-btn {
+  width: 100%;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upgrade-modal-btn.primary {
+  color: white;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.upgrade-modal-btn.primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+}
+
+.upgrade-modal-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upgrade-modal-btn.secondary {
+  color: #d1d5db;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.upgrade-modal-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Social Proof */
+.upgrade-social-proof {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.upgrade-social-proof p {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 8px 0;
+}
+
+.upgrade-social-proof strong {
+  color: #10b981;
+}
+
+/* Premium Active State */
+.upgrade-modal-premium-active {
+  text-align: center;
+}
+
+.premium-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.upgrade-modal-premium-active h2 {
+  font-size: 32px;
+  color: #10b981;
+  margin-bottom: 15px;
+}
+
+.premium-status {
+  font-size: 16px;
+  color: #d1d5db;
+  margin-bottom: 30px;
+}
+
+.premium-features-active {
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 25px;
+}
+
+.premium-features-active h3 {
+  font-size: 18px;
+  color: #10b981;
+  margin-bottom: 15px;
+}
+
+.premium-features-active ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.premium-features-active li {
+  font-size: 15px;
+  color: #e5e7eb;
+  margin-bottom: 10px;
+  padding-left: 10px;
+}
+
+.premium-extend-hint {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 12px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .upgrade-modal {
+    padding: 30px 20px;
+  }
+  
+  .upgrade-icon {
+    font-size: 48px;
+  }
+  
+  .upgrade-modal-header h2 {
+    font-size: 24px;
+  }
+  
+  .plan-selection {
+    grid-template-columns: 1fr;
+  }
+  
+  .plan-price {
+    font-size: 28px;
+  }
+  
+  .price-amount {
+    font-size: 36px;
+  }
+  
+  .upgrade-features li {
+    padding: 12px;
+  }
+  
+  .feature-icon {
+    font-size: 24px;
+  }
+  
+  .upgrade-payment-methods {
+    grid-template-columns: 1fr;
+  }
+  
+  .referral-tiers {
+    grid-template-columns: 1fr;
+  }
+  
+  .upgrade-modal-btn {
+    font-size: 16px;
+    padding: 14px 24px;
+  }
+}
+
+/* Light Theme */
+.light .upgrade-modal {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+}
+
+.light .upgrade-modal-close {
+  background: rgba(0, 0, 0, 0.05);
+  color: #6b7280;
+}
+
+.light .upgrade-modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+}
+
+.light .upgrade-subtitle {
+  color: #6b7280;
+}
+
+.light .price-period {
+  color: #4b5563;
+}
+
+.light .upgrade-features li {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.light .upgrade-features li:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.light .upgrade-features li strong {
+  color: #1f2937;
+}
+
+.light .upgrade-features li p {
+  color: #6b7280;
+}
+
+.light .payment-method-btn {
+  background: rgba(0, 0, 0, 0.03);
+  color: #4b5563;
+}
+
+.light .payment-method-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light .referral-tier {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.light .referral-tier:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.light .referral-tier strong {
+  color: #1f2937;
+}
+
+.light .referral-tier p {
+  color: #6b7280;
+}
+
+.light .upgrade-social-proof {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .upgrade-social-proof p {
+  color: #6b7280;
+}
+
+.light .premium-status {
+  color: #4b5563;
+}
+
+.light .premium-features-active li {
+  color: #1f2937;
+}
+
+.light .plan-option {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.light .plan-option:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light .plan-option.selected {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.light .plan-name {
+  color: #1f2937;
+}
+
+.light .plan-desc {
+  color: #6b7280;
+}
