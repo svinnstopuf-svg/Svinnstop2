@@ -235,7 +235,7 @@ export default function App() {
   const [showInventoryDialog, setShowInventoryDialog] = useState(false) // Dialog för manuell kylskåpsvara
   const [pendingInventoryItem, setPendingInventoryItem] = useState(null)
   const [selectedInventoryUnit, setSelectedInventoryUnit] = useState('st')
-  const [selectedInventoryCategory, setSelectedInventoryCategory] = useState('frukt')
+  const [selectedInventoryCategory, setSelectedInventoryCategory] = useState('övrigt')
   const [currentDisplayUnit, setCurrentDisplayUnit] = useState('st') // Aktuell enhet som visas
   const [userSelectedUnit, setUserSelectedUnit] = useState(false) // Flagga om användaren manuellt valt enhet
   const [isInitialInventoryLoad, setIsInitialInventoryLoad] = useState(true) // Flagga för initial laddning
@@ -899,6 +899,7 @@ export default function App() {
     setFoodSuggestions([])
     setShowFoodSuggestions(false)
     setUserSelectedUnit(false) // Återställ flaggan
+    setSelectedInventoryCategory('övrigt') // Återställ kategori till default
     
     // Fokusera tillbaka till namn-fältet
     setTimeout(() => {
@@ -1717,11 +1718,11 @@ export default function App() {
                   </label>
                 </div>
                 
-                {/* Kategoriväljare - visas när namn är ifyllt */}
-                {form.name && !showFoodSuggestions && (
+                {/* Kategoriväljare - visas endast när kategorin är okänd (övrigt) */}
+                {form.name && !showFoodSuggestions && selectedInventoryCategory === 'övrigt' && (
                   <div className="form-section" style={{marginTop: '16px'}}>
                     <label className="form-label">
-                      <span className="label-text">Kategori</span>
+                      <span className="label-text">Kategori (okänd vara)</span>
                       <select 
                         value={selectedInventoryCategory}
                         onChange={(e) => setSelectedInventoryCategory(e.target.value)}
