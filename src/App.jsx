@@ -202,7 +202,7 @@ export default function App() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ 
     name: '', 
-    quantity: 0, 
+    quantity: 1, 
     expiresAt: '' 
   })
   const [filter, setFilter] = useState('all')
@@ -893,7 +893,7 @@ export default function App() {
     // Rensa formuläret
     setForm({ 
       name: '', 
-      quantity: 0, 
+      quantity: 1, 
       expiresAt: '' 
     })
     setFoodSuggestions([])
