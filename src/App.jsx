@@ -30,6 +30,7 @@ import { premiumService } from './premiumService'
 import { leaderboardService } from './leaderboardService'
 import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
+import { syncUserItemsToFirebase } from './shoppingListSync'
 import './mobile.css'
 import './newFeatures.css'
 import './premiumRequired.css'
@@ -768,7 +769,25 @@ export default function App() {
 
   const onAdd = e => {
     e.preventDefault()
-    if (!form.name || !form.expiresAt || form.quantity <= 0) return
+    console.log('=== onAdd TRIGGERED ===')
+    console.log('Form values:', {
+      name: form.name,
+      expiresAt: form.expiresAt,
+      quantity: form.quantity,
+      type: typeof form.quantity
+    })
+    console.log('Selected category:', selectedInventoryCategory)
+    console.log('Selected unit:', selectedInventoryUnit)
+    
+    if (!form.name || !form.expiresAt || form.quantity <= 0) {
+      console.log('VALIDATION FAILED:', {
+        noName: !form.name,
+        noDate: !form.expiresAt,
+        badQuantity: form.quantity <= 0
+      })
+      return
+    }
+    console.log('Validation passed, continuing...')
     
     // CHECK: 10-item limit for free users
     const isPremium = premiumService.isPremiumActive()
@@ -825,7 +844,6 @@ export default function App() {
     if (result.success) {
       const family = getFamilyData()
       if (family.familyId && family.syncEnabled) {
-        const { syncUserItemsToFirebase } = require('./shoppingListSync')
         syncUserItemsToFirebase(result.items)
       }
     }
