@@ -367,30 +367,27 @@
 }
 
 .referral-tier:hover {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
 }
 
-.referral-tier.highlight {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.2) 100%);
-  border-color: #10b981;
+/* Special styling for lifetime premium (50 friends) - subtle gold accent */
+.referral-tier-special {
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.referral-tier-special strong {
+  color: #fbbf24;
 }
 
 /* Touch feedback for referral tiers */
 @media (hover: none) and (pointer: coarse) {
   .referral-tier:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-color: transparent;
   }
   
   .referral-tier:active {
     transform: scale(0.98);
-    background: rgba(16, 185, 129, 0.15);
-  }
-  
-  .referral-tier.highlight:hover {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.2) 100%);
-    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
   }
 }
 
@@ -805,6 +802,14 @@
 
 .light .referral-tier p {
   color: #6b7280;
+}
+
+.light .referral-tier-special {
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.light .referral-tier-special strong {
+  color: #d97706;
 }
 
 .light .upgrade-social-proof {

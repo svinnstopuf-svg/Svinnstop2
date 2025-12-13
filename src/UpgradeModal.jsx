@@ -233,7 +233,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
                   <p>90 dagar Premium</p>
                 </div>
               </div>
-              <div className="referral-tier highlight">
+              <div className="referral-tier referral-tier-special">
                 <div>
                   <strong>50 vänner</strong>
                   <p>Lifetime Premium</p>
