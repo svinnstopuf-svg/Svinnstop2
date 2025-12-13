@@ -480,49 +480,226 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .upgrade-modal-overlay {
+    padding: 15px;
+  }
+  
   .upgrade-modal {
-    padding: 30px 20px;
+    padding: 25px 18px;
+    border-radius: 20px;
+    max-height: 92vh;
+  }
+  
+  .upgrade-modal-close {
+    top: 12px;
+    right: 12px;
+    font-size: 28px;
+    width: 36px;
+    height: 36px;
   }
   
   .upgrade-icon {
     font-size: 48px;
+    margin-bottom: 12px;
+  }
+  
+  .upgrade-modal-header {
+    margin-bottom: 25px;
   }
   
   .upgrade-modal-header h2 {
-    font-size: 24px;
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+  
+  .upgrade-subtitle {
+    font-size: 14px;
   }
   
   .plan-selection {
     grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+  
+  .plan-option {
+    padding: 18px 16px;
+  }
+  
+  .plan-name {
+    font-size: 17px;
   }
   
   .plan-price {
     font-size: 28px;
+    margin-bottom: 6px;
+  }
+  
+  .plan-price span {
+    font-size: 14px;
+  }
+  
+  .plan-desc {
+    font-size: 12px;
   }
   
   .price-amount {
     font-size: 36px;
   }
   
+  .upgrade-features {
+    margin-bottom: 25px;
+  }
+  
+  .upgrade-features h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
   .upgrade-features li {
     padding: 12px;
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+  
+  .feature-icon {
+    font-size: 28px;
+  }
+  
+  .upgrade-features li strong {
+    font-size: 15px;
+  }
+  
+  .upgrade-features li p {
+    font-size: 13px;
+  }
+  
+  .upgrade-payment-methods {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .payment-method-btn {
+    padding: 14px;
+    font-size: 14px;
+  }
+  
+  .payment-icon {
+    font-size: 24px;
+  }
+  
+  .referral-tiers {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .referral-tier {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .tier-icon {
+    font-size: 28px;
+  }
+  
+  .referral-tier strong {
+    font-size: 14px;
+  }
+  
+  .referral-tier p {
+    font-size: 12px;
+  }
+  
+  .upgrade-modal-btn {
+    font-size: 16px;
+    padding: 14px 24px;
+  }
+  
+  .premium-icon {
+    font-size: 64px;
+    margin-bottom: 15px;
+  }
+  
+  .upgrade-modal-premium-active h2 {
+    font-size: 26px;
+    margin-bottom: 12px;
+  }
+  
+  .premium-status {
+    font-size: 15px;
+    margin-bottom: 25px;
+  }
+  
+  .premium-features-active {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .premium-features-active h3 {
+    font-size: 16px;
+  }
+  
+  .premium-features-active li {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  
+  .upgrade-social-proof {
+    margin-top: 25px;
+    padding-top: 20px;
+  }
+  
+  .upgrade-social-proof p {
+    font-size: 13px;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 380px) {
+  .upgrade-modal {
+    padding: 20px 15px;
+  }
+  
+  .upgrade-modal-header h2 {
+    font-size: 20px;
+  }
+  
+  .upgrade-subtitle {
+    font-size: 13px;
+  }
+  
+  .plan-option {
+    padding: 15px 12px;
+  }
+  
+  .plan-name {
+    font-size: 16px;
+  }
+  
+  .plan-price {
+    font-size: 24px;
+  }
+  
+  .upgrade-features li {
+    padding: 10px;
+    gap: 10px;
   }
   
   .feature-icon {
     font-size: 24px;
   }
   
-  .upgrade-payment-methods {
-    grid-template-columns: 1fr;
+  .upgrade-features li strong {
+    font-size: 14px;
   }
   
-  .referral-tiers {
-    grid-template-columns: 1fr;
+  .upgrade-features li p {
+    font-size: 12px;
   }
   
   .upgrade-modal-btn {
-    font-size: 16px;
-    padding: 14px 24px;
+    font-size: 15px;
+    padding: 12px 20px;
   }
 }
 

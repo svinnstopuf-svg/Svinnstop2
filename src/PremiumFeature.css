@@ -148,24 +148,49 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .premium-feature-overlay {
+    padding: 15px;
+  }
+  
   .premium-feature-content {
-    padding: 30px 20px;
+    padding: 25px 18px;
+    border-radius: 16px;
   }
   
   .premium-feature-icon {
     font-size: 48px;
+    margin-bottom: 15px;
   }
   
   .premium-feature-title {
     font-size: 20px;
+    margin-bottom: 12px;
   }
   
   .premium-feature-description {
     font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  
+  .premium-feature-list {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .premium-feature-list h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
   }
   
   .premium-feature-list li {
-    font-size: 14px;
+    font-size: 13px;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  
+  .premium-feature-list .checkmark {
+    font-size: 16px;
   }
   
   .premium-feature-pricing .price {
@@ -175,6 +200,38 @@
   .premium-feature-upgrade-btn {
     font-size: 16px;
     padding: 14px 24px;
+  }
+  
+  .premium-feature-referral-hint {
+    font-size: 13px;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 380px) {
+  .premium-feature-content {
+    padding: 20px 15px;
+  }
+  
+  .premium-feature-icon {
+    font-size: 40px;
+  }
+  
+  .premium-feature-title {
+    font-size: 18px;
+  }
+  
+  .premium-feature-description {
+    font-size: 13px;
+  }
+  
+  .premium-feature-list li {
+    font-size: 12px;
+  }
+  
+  .premium-feature-upgrade-btn {
+    font-size: 15px;
+    padding: 12px 20px;
   }
 }
 
