@@ -329,8 +329,9 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory 
             quantity: item.quantity || 1,
             unit: item.unit || suggestion.defaultUnit,
             expiresAt: suggestion.date,
-            category: suggestion.category,
-            emoji: suggestion.emoji
+            // Använd kategori från inköpslistan om den finns, annars suggestion
+            category: item.category || suggestion.category,
+            emoji: item.emoji || suggestion.emoji
           }
           onDirectAddToInventory(inventoryItem)
         })

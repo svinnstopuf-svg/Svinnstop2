@@ -1280,6 +1280,13 @@ export default function App() {
     setItems(prev => {
       const updated = [...prev, inventoryItem]
       
+      // VIKTIGT: Spara till localStorage!
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      } catch (error) {
+        console.error('Kunde inte spara till localStorage:', error)
+      }
+      
       // Uppdatera notifikationer för utgångsdatum
       if (notificationsEnabled) {
         notificationService.scheduleExpiryNotifications(updated)
