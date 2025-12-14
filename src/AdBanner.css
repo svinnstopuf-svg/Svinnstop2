@@ -142,3 +142,33 @@
   background: rgba(0, 0, 0, 0.02);
   border-color: rgba(0, 0, 0, 0.05);
 }
+
+/* Sticky ad banner */
+.sticky-ad-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 8px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.sticky-ad-wrapper .ad-container {
+  margin: 0;
+  padding: 8px;
+  min-height: 60px;
+  max-height: 100px;
+}
+
+/* Hide sticky ad for premium users */
+.premium-active .sticky-ad-wrapper {
+  display: none !important;
+}
+
+/* Add padding to bottom of app to prevent content being hidden by sticky ad */
+body:not(.premium-active) .container {
+  padding-bottom: 90px;
+}

@@ -2779,6 +2779,11 @@ export default function App() {
         setActiveTab('referral')
       }}
     />
+    
+    {/* Sticky Ad Banner - Always visible for free users */}
+    <div className="sticky-ad-wrapper">
+      <AdBanner className="sticky" />
+    </div>
     </>
   )
 }
