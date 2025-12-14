@@ -1,8 +1,16 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const {Resend} = require("resend");
+const stripe = require("stripe");
 
 admin.initializeApp();
+
+// Initialize Stripe with secret key
+const getStripeKey = () => {
+  const config = functions.config();
+  return (config.stripe && config.stripe.secret_key) || process.env.STRIPE_SECRET_KEY;
+};
+const stripeClient = stripe(getStripeKey());
 
 // Initialize Resend with API key from Firebase config
 const getResendKey = () => {
@@ -158,3 +166,210 @@ exports.sendWeeklyEmails = functions.pubsub
 
       return null;
     });
+
+// ============= STRIPE PAYMENT FUNCTIONS =============
+
+// Stripe Price IDs (Uppdatera med riktiga IDs från Stripe Dashboard)
+const STRIPE_PRICES = {
+  individual: process.env.STRIPE_PRICE_INDIVIDUAL || "price_individual_test",
+  family: process.env.STRIPE_PRICE_FAMILY || "price_family_test",
+  family_upgrade: process.env.STRIPE_PRICE_FAMILY_UPGRADE || "price_family_upgrade_test",
+};
+
+// Cloud Function: Skapa Stripe Checkout Session
+exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({error: "Method not allowed"});
+    return;
+  }
+
+  try {
+    const {userId, email, premiumType} = req.body;
+
+    if (!userId || !email || !premiumType) {
+      res.status(400).json({error: "Missing required fields"});
+      return;
+    }
+
+    // Hämta användarens nuvarande premium status
+    const userRef = admin.database().ref(`users/${userId}/premium`);
+    const snapshot = await userRef.once("value");
+    const currentPremium = snapshot.val() || {};
+
+    // Välj rätt price ID baserat på premiumType och current status
+    let priceId;
+    let mode = "subscription";
+
+    if (premiumType === "family_upgrade" || premiumType === "family") {
+      // Om användaren redan har Individual Premium (referral eller Stripe)
+      if (currentPremium.premiumType === "individual" && currentPremium.active) {
+        priceId = STRIPE_PRICES.family_upgrade;
+      } else {
+        priceId = STRIPE_PRICES.family;
+      }
+    } else if (premiumType === "individual") {
+      priceId = STRIPE_PRICES.individual;
+    } else {
+      res.status(400).json({error: "Invalid premiumType"});
+      return;
+    }
+
+    // Skapa Stripe Checkout Session
+    const session = await stripeClient.checkout.sessions.create({
+      mode: mode,
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      customer_email: email,
+      client_reference_id: userId,
+      metadata: {
+        userId: userId,
+        premiumType: premiumType,
+      },
+      success_url: "https://svinnstop.web.app/premium/success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://svinnstop.web.app/premium/cancel",
+      subscription_data: {
+        metadata: {
+          userId: userId,
+          premiumType: premiumType,
+        },
+      },
+    });
+
+    console.log("✅ Checkout session created:", session.id);
+    res.json({sessionId: session.id});
+  } catch (error) {
+    console.error("❌ Error creating checkout session:", error);
+    res.status(500).json({error: error.message});
+  }
+});
+
+// Cloud Function: Stripe Webhook
+exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret;
+
+  let event;
+
+  try {
+    event = stripeClient.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+  } catch (err) {
+    console.error("❌ Webhook signature verification failed:", err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  console.log("📥 Webhook event received:", event.type);
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        const userId = session.metadata.userId || session.client_reference_id;
+        const premiumType = session.metadata.premiumType;
+        const customerId = session.customer;
+        const subscriptionId = session.subscription;
+
+        console.log("✅ Payment successful for user:", userId);
+
+        // Aktivera premium i Firebase
+        const premiumRef = admin.database().ref(`users/${userId}/premium`);
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+
+        await premiumRef.set({
+          active: true,
+          lifetimePremium: false,
+          premiumUntil: expiryDate.toISOString(),
+          premiumType: premiumType === "family_upgrade" ? "family" : premiumType,
+          source: "stripe",
+          stripeCustomerId: customerId,
+          subscriptionId: subscriptionId,
+          lastUpdated: new Date().toISOString(),
+        });
+
+        console.log("✅ Premium activated for user:", userId);
+        break;
+      }
+
+      case "invoice.paid": {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+        const subscriptionId = invoice.subscription;
+
+        // Hitta användare baserat på Stripe customer ID
+        const usersRef = admin.database().ref("users");
+        const snapshot = await usersRef.orderByChild("premium/stripeCustomerId").equalTo(customerId).once("value");
+
+        if (snapshot.exists()) {
+          const userId = Object.keys(snapshot.val())[0];
+          const premiumRef = admin.database().ref(`users/${userId}/premium`);
+          const currentPremium = (await premiumRef.once("value")).val() || {};
+
+          // Förnya premium med 30 dagar
+          const currentExpiry = currentPremium.premiumUntil ? new Date(currentPremium.premiumUntil) : new Date();
+          const newExpiry = currentExpiry > new Date() ? currentExpiry : new Date();
+          newExpiry.setDate(newExpiry.getDate() + 30);
+
+          await premiumRef.update({
+            active: true,
+            premiumUntil: newExpiry.toISOString(),
+            lastUpdated: new Date().toISOString(),
+          });
+
+          console.log("✅ Premium renewed for user:", userId);
+        }
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+
+        // Hitta användare
+        const usersRef = admin.database().ref("users");
+        const snapshot = await usersRef.orderByChild("premium/stripeCustomerId").equalTo(customerId).once("value");
+
+        if (snapshot.exists()) {
+          const userId = Object.keys(snapshot.val())[0];
+          const premiumRef = admin.database().ref(`users/${userId}/premium`);
+          const currentPremium = (await premiumRef.once("value")).val() || {};
+
+          // Avaktivera Stripe premium, men behåll referral premium om det finns
+          if (currentPremium.source === "stripe") {
+            await premiumRef.update({
+              active: false,
+              premiumUntil: null,
+              subscriptionId: null,
+              lastUpdated: new Date().toISOString(),
+            });
+            console.log("✅ Stripe premium cancelled for user:", userId);
+          }
+        }
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({received: true});
+  } catch (error) {
+    console.error("❌ Error processing webhook:", error);
+    res.status(500).send("Webhook processing failed");
+  }
+});
