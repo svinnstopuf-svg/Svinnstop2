@@ -12,6 +12,28 @@
   align-items: center;
   min-height: 100px;
   overflow: hidden;
+  position: relative;
+}
+
+.ad-placeholder {
+  width: 100%;
+  position: relative;
+}
+
+.ad-placeholder-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Hide placeholder when ad loads */
+.adsbygoogle[data-ad-status="filled"] ~ .ad-placeholder-text {
+  display: none;
 }
 
 .ad-container.compact {

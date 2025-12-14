@@ -55,15 +55,21 @@ const AdBanner = ({
 
   return (
     <div className={`ad-container ${className}`}>
-      <ins
-        ref={adRef}
-        className="adsbygoogle"
-        style={{ display: 'block' }}
-        data-ad-client="ca-pub-7605250472589930"
-        data-ad-slot={slot}
-        data-ad-format={format}
-        data-full-width-responsive={responsive ? 'true' : 'false'}
-      />
+      <div className="ad-placeholder">
+        <ins
+          ref={adRef}
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-7605250472589930"
+          data-ad-slot={slot}
+          data-ad-format={format}
+          data-full-width-responsive={responsive ? 'true' : 'false'}
+        />
+        {/* Placeholder text - disappears when real ads load */}
+        <div className="ad-placeholder-text">
+          📰 Reklam
+        </div>
+      </div>
     </div>
   )
 }
