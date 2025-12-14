@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { syncPremiumFromFirebase } from './premiumService'
 
 const PremiumSuccess = () => {
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
 
   useEffect(() => {
     // Synka premium från Firebase efter betalning
@@ -23,7 +21,7 @@ const PremiumSuccess = () => {
   }, [])
 
   const goToApp = () => {
-    navigate('/')
+    window.location.href = '/'
   }
 
   return (

@@ -1,15 +1,12 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
 
 const PremiumCancel = () => {
-  const navigate = useNavigate()
-
   const goToApp = () => {
-    navigate('/')
+    window.location.href = '/'
   }
 
   const tryAgain = () => {
-    navigate('/?upgrade=true')
+    window.location.href = '/?upgrade=true'
   }
 
   return (

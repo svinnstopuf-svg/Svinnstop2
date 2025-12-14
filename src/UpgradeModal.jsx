@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { isPremiumActive, getPremiumStatus, getDaysLeftOfPremium } from './premiumService'
 import { calculateFamilyUpgradePrice, getPremiumDescription } from './familyPremiumService'
+import StripeCheckout from './StripeCheckout'
 import './UpgradeModal.css'
 
 /**
@@ -15,6 +16,7 @@ import './UpgradeModal.css'
 export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
   const [paymentMethod, setPaymentMethod] = useState('stripe') // 'stripe' or 'referral'
   const [selectedPlan, setSelectedPlan] = useState('family') // 'individual' or 'family'
+  const [showStripeCheckout, setShowStripeCheckout] = useState(false)
   const isPremium = isPremiumActive()
   const premiumStatus = getPremiumStatus()
   const daysLeft = getDaysLeftOfPremium()
@@ -68,8 +70,11 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
                     <span className="future-price">Sedan {familyPricing.futurePrice} kr/mån när referral premium tar slut</span>
                   )}
                 </div>
-                <button className="upgrade-modal-btn primary" disabled>
-                  Uppgradera till Family (kommer snart)
+                <button 
+                  className="upgrade-modal-btn primary"
+                  onClick={() => setShowStripeCheckout(true)}
+                >
+                  Uppgradera till Family
                 </button>
               </div>
             )}
@@ -244,13 +249,24 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
         
         {paymentMethod === 'stripe' && (
           <div className="upgrade-stripe-section">
-            <button className="upgrade-modal-btn primary" disabled>
-              Betalningar kommer snart
+            <button 
+              className="upgrade-modal-btn primary"
+              onClick={() => setShowStripeCheckout(true)}
+            >
+              Fortsätt till betalning
             </button>
-            <p className="payment-coming-soon">
-              Vi arbetar på att aktivera betalningar. Under tiden kan du bjuda in vänner för att få premium gratis!
+            <p className="payment-info">
+              Säker betalning via Stripe. Avsluta när som helst.
             </p>
           </div>
+        )}
+        
+        {/* Stripe Checkout Modal */}
+        {showStripeCheckout && (
+          <StripeCheckout
+            premiumType={selectedPlan}
+            onClose={() => setShowStripeCheckout(false)}
+          />
         )}
         
         {paymentMethod === 'referral' && (
