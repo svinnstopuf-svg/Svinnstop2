@@ -31,43 +31,44 @@ const PremiumSuccess = () => {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      background: 'var(--bg)',
-      padding: '20px'
+      background: '#0a0a0a',
+      padding: '20px',
+      color: '#ffffff'
     }}>
       <div style={{
-        background: 'var(--card-bg)',
+        background: '#1a1a1a',
         borderRadius: '16px',
         padding: '40px',
         maxWidth: '500px',
         width: '100%',
         textAlign: 'center',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)'
       }}>
         {loading ? (
           <>
             <div style={{ fontSize: '64px', marginBottom: '20px' }}>⏳</div>
-            <h1 style={{ color: 'var(--text)', marginBottom: '16px' }}>Aktiverar Premium...</h1>
-            <p style={{ color: 'var(--text-muted)' }}>
+            <h1 style={{ color: '#ffffff', marginBottom: '16px' }}>Aktiverar Premium...</h1>
+            <p style={{ color: '#999999' }}>
               Vänligen vänta medan vi aktiverar din premium-prenumeration.
             </p>
           </>
         ) : (
           <>
             <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎉</div>
-            <h1 style={{ color: 'var(--text)', marginBottom: '16px' }}>Välkommen till Premium!</h1>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+            <h1 style={{ color: '#ffffff', marginBottom: '16px' }}>Välkommen till Premium!</h1>
+            <p style={{ color: '#999999', marginBottom: '24px' }}>
               Tack för ditt stöd! Din prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.
             </p>
             
             <div style={{
-              background: 'var(--bg)',
+              background: '#0a0a0a',
               padding: '20px',
               borderRadius: '12px',
               marginBottom: '24px',
               textAlign: 'left'
             }}>
-              <h3 style={{ color: 'var(--text)', marginTop: 0 }}>Vad händer nu?</h3>
-              <ul style={{ color: 'var(--text)', paddingLeft: '20px' }}>
+              <h3 style={{ color: '#ffffff', marginTop: 0 }}>Vad händer nu?</h3>
+              <ul style={{ color: '#ffffff', paddingLeft: '20px' }}>
                 <li>✅ Obegränsat antal varor i kylskåpet</li>
                 <li>✅ Receptförslag baserat på ditt kylskåp</li>
                 <li>✅ Push-notifikationer om utgående varor</li>
