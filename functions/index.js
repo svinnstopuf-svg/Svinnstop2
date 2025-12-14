@@ -169,11 +169,11 @@ exports.sendWeeklyEmails = functions.pubsub
 
 // ============= STRIPE PAYMENT FUNCTIONS =============
 
-// Stripe Price IDs (Uppdatera med riktiga IDs från Stripe Dashboard)
+// Stripe Price IDs
 const STRIPE_PRICES = {
-  individual: process.env.STRIPE_PRICE_INDIVIDUAL || "price_individual_test",
-  family: process.env.STRIPE_PRICE_FAMILY || "price_family_test",
-  family_upgrade: process.env.STRIPE_PRICE_FAMILY_UPGRADE || "price_family_upgrade_test",
+  individual: "price_1SeFd3D8sKgXsuDAlRaQjmna", // 29 SEK/mån
+  family: "price_1SeFfLD8sKgXsuDAMNnARtuo", // 49 SEK/mån
+  family_upgrade: "price_1SeFgND8sKgXsuDATGb7Affr", // 20 SEK/mån
 };
 
 // Cloud Function: Skapa Stripe Checkout Session
@@ -208,7 +208,7 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
 
     // Välj rätt price ID baserat på premiumType och current status
     let priceId;
-    let mode = "subscription";
+    const mode = "subscription";
 
     if (premiumType === "family_upgrade" || premiumType === "family") {
       // Om användaren redan har Individual Premium (referral eller Stripe)
@@ -261,7 +261,8 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
 // Cloud Function: Stripe Webhook
 exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
   const sig = req.headers["stripe-signature"];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret;
+  const config = functions.config();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || (config.stripe && config.stripe.webhook_secret);
 
   let event;
 
@@ -309,7 +310,6 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
       case "invoice.paid": {
         const invoice = event.data.object;
         const customerId = invoice.customer;
-        const subscriptionId = invoice.subscription;
 
         // Hitta användare baserat på Stripe customer ID
         const usersRef = admin.database().ref("users");
