@@ -25,6 +25,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   const [selectedCategory, setSelectedCategory] = useState('frukt')
   const [selectedIsFood, setSelectedIsFood] = useState(true)
   const [quantity, setQuantity] = useState(1)
+  const [itemMode, setItemMode] = useState('food') // 'food' eller 'other'
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [shoppingFromFirebase, setShoppingFromFirebase] = useState(false)
   
@@ -238,9 +239,10 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
     e.preventDefault()
     if (!newItem.trim()) return
 
-    const finalUnit = selectedUnit
-    const finalCategory = selectedCategory
-    const isFood = selectedIsFood
+    // Bestäm värden baserat på läge
+    const finalUnit = itemMode === 'other' ? 'st' : selectedUnit
+    const finalCategory = itemMode === 'other' ? 'övrigt' : selectedCategory
+    const isFood = itemMode === 'food'
     
     // Emoji baserat på kategori
     const getCategoryEmoji = (cat) => {
@@ -297,6 +299,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
     setSelectedCategory('frukt')
     setSelectedIsFood(true)
     setQuantity(1)
+    setItemMode('food')
   }
   
   // Ta bort vara
@@ -551,19 +554,61 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       </div>
 
       <form onSubmit={addManualItem} className="add-shopping-item">
+        {/* Välj typ av vara */}
+        <div style={{marginBottom: '16px', display: 'flex', gap: '8px'}}>
+          <button
+            type="button"
+            onClick={() => setItemMode('food')}
+            style={{
+              flex: 1,
+              padding: '12px',
+              fontSize: '15px',
+              fontWeight: 600,
+              background: itemMode === 'food' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'var(--card-bg)',
+              color: itemMode === 'food' ? 'white' : 'var(--text)',
+              border: itemMode === 'food' ? '2px solid #059669' : '2px solid var(--border)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: itemMode === 'food' ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
+            }}
+          >
+            🛒 Matvara
+          </button>
+          <button
+            type="button"
+            onClick={() => setItemMode('other')}
+            style={{
+              flex: 1,
+              padding: '12px',
+              fontSize: '15px',
+              fontWeight: 600,
+              background: itemMode === 'other' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--card-bg)',
+              color: itemMode === 'other' ? 'white' : 'var(--text)',
+              border: itemMode === 'other' ? '2px solid #2563eb' : '2px solid var(--border)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: itemMode === 'other' ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
+            }}
+          >
+            🧴 Annat
+          </button>
+        </div>
+
         <div className="input-container">
           <div className="input-with-suggestions">
             <input
               type="text"
               value={newItem}
               onChange={handleInputChange}
-              placeholder="Skriv varunamn för förslag... (t.ex. 'mjö' för mjölk)"
+              placeholder={itemMode === 'food' ? "Skriv varunamn för förslag... (t.ex. 'mjö' för mjölk)" : "Skriv varunamn (t.ex. diskmedel, schampo)"}
               className="shopping-input"
               autoComplete="off"
             />
             
-            {/* Sökförslag */}
-            {showSuggestions && suggestions.length > 0 && (
+            {/* Sökförslag - endast för matvaror */}
+            {itemMode === 'food' && showSuggestions && suggestions.length > 0 && (
               <div className="food-suggestions">
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--input-bg)'}}>
                   <span style={{fontSize: '11px', fontWeight: 600, color: 'var(--muted)'}}>Förslag:</span>
@@ -596,7 +641,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
           </div>
         </div>
         
-        {/* Antal och enhet - alltid synligt */}
+        {/* Antal och enhet */}
         <div style={{marginTop: '12px'}}>
           <div className="form-row" style={{marginBottom: '12px'}}>
             <label className="form-label">
@@ -607,34 +652,47 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
                   min="0" 
                   step="0.1"
                   value={quantity} 
-                  onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === '' || val === '-') {
+                      setQuantity('')
+                    } else {
+                      setQuantity(parseFloat(val) || 0)
+                    }
+                  }}
                   onFocus={(e) => e.target.select()}
                   placeholder="1"
                   className="form-input quantity-input"
                   style={{flex: 1}}
                 />
-                <select 
-                  value={selectedUnit}
-                  onChange={(e) => setSelectedUnit(e.target.value)}
-                  className="form-input"
-                  style={{width: 'auto', minWidth: '80px'}}
-                >
-                  <option value="st">st</option>
-                  <option value="kg">kg</option>
-                  <option value="hg">hg</option>
-                  <option value="g">g</option>
-                  <option value="L">L</option>
-                  <option value="dl">dl</option>
-                  <option value="cl">cl</option>
-                  <option value="ml">ml</option>
-                </select>
+                {/* Enhet - endast för matvaror */}
+                {itemMode === 'food' && (
+                  <select 
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    className="form-input"
+                    style={{width: 'auto', minWidth: '80px'}}
+                  >
+                    <option value="st">st</option>
+                    <option value="kg">kg</option>
+                    <option value="hg">hg</option>
+                    <option value="g">g</option>
+                    <option value="L">L</option>
+                    <option value="dl">dl</option>
+                    <option value="cl">cl</option>
+                    <option value="ml">ml</option>
+                  </select>
+                )}
+                {itemMode === 'other' && (
+                  <span style={{padding: '10px 16px', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--muted)', fontSize: '14px'}}>st</span>
+                )}
               </div>
             </label>
           </div>
         </div>
         
-        {/* Kategori - visas när namn är ifyllt och förslag är stängda */}
-        {newItem.trim() && !showSuggestions && (
+        {/* Kategori och submit - endast för matvaror */}
+        {itemMode === 'food' && newItem.trim() && !showSuggestions && (
           <div style={{marginTop: '12px'}}>
             <div className="form-row" style={{marginBottom: '12px'}}>
               <label className="form-label">
@@ -655,6 +713,15 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
               </label>
             </div>
             
+            <button type="submit" className="btn-primary btn-large" style={{width: '100%'}}>
+              Lägg till i inköpslista
+            </button>
+          </div>
+        )}
+        
+        {/* Submit för icke-matvaror - ingen kategori krävs */}
+        {itemMode === 'other' && newItem.trim() && (
+          <div style={{marginTop: '12px'}}>
             <button type="submit" className="btn-primary btn-large" style={{width: '100%'}}>
               Lägg till i inköpslista
             </button>
