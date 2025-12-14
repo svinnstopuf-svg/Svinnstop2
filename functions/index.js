@@ -178,11 +178,12 @@ const STRIPE_PRICES = {
 
 // Cloud Function: Skapa Stripe Checkout Session
 exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
-  // Enable CORS
+  // Set CORS headers
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type");
 
+  // Handle preflight
   if (req.method === "OPTIONS") {
     res.status(204).send("");
     return;
@@ -194,11 +195,28 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const {userId, email, premiumType} = req.body;
+    let {userId, email, premiumType} = req.body;
 
-    if (!userId || !email || !premiumType) {
+    console.log("📥 Request body:", JSON.stringify(req.body));
+    console.log("userId:", userId, "email:", email, "premiumType:", premiumType);
+
+    if (!userId || !premiumType) {
+      console.error("❌ Missing fields - userId:", userId, "premiumType:", premiumType);
       res.status(400).json({error: "Missing required fields"});
       return;
+    }
+
+    // If email is missing, fetch from Firebase Auth
+    if (!email) {
+      try {
+        const userRecord = await admin.auth().getUser(userId);
+        email = userRecord.email;
+        console.log("📧 Fetched email from Firebase Auth:", email);
+      } catch (authError) {
+        console.error("❌ Failed to fetch user email:", authError);
+        res.status(400).json({error: "Could not retrieve user email"});
+        return;
+      }
     }
 
     // Hämta användarens nuvarande premium status
@@ -240,8 +258,8 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
         userId: userId,
         premiumType: premiumType,
       },
-      success_url: "https://svinnstop.web.app/premium/success?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://svinnstop.web.app/premium/cancel",
+      success_url: "https://svinnstop.web.app/#/premium/success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://svinnstop.web.app/#/premium/cancel",
       subscription_data: {
         metadata: {
           userId: userId,
@@ -251,7 +269,8 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
     });
 
     console.log("✅ Checkout session created:", session.id);
-    res.json({sessionId: session.id});
+    console.log("🔗 Checkout URL:", session.url);
+    res.json({url: session.url, sessionId: session.id});
   } catch (error) {
     console.error("❌ Error creating checkout session:", error);
     res.status(500).json({error: error.message});

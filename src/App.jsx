@@ -17,6 +17,8 @@ import UpgradeModal from './UpgradeModal'
 import PremiumFeature from './PremiumFeature'
 import AdBanner from './AdBanner'
 import * as adService from './adService'
+import PremiumSuccess from './PremiumSuccess'
+import PremiumCancel from './PremiumCancel'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { setCustomExpiryRule } from './userItemsService'
@@ -206,6 +208,17 @@ function syncReferralPremiumToMain() {
 }
 
 export default function App() {
+  // Check for special routes using hash-based routing
+  const hash = window.location.hash
+  
+  if (hash === '#/premium/success') {
+    return <PremiumSuccess />
+  }
+  
+  if (hash === '#/premium/cancel') {
+    return <PremiumCancel />
+  }
+  
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ 
     name: '', 

@@ -4,7 +4,7 @@ import { auth } from './firebaseConfig'
 import { calculateFamilyUpgradePrice } from './familyPremiumService'
 
 // Initialize Stripe (test mode)
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_PLACEHOLDER')
+const stripePromise = loadStripe('pk_test_51SeFaRD8sKgXsuDA0jAGuLhGTCo7DUpeFAVFMpwElYy51lBG5GIUsNhAimj4kSGLnfkBNTUKxwR9eYo3k3ILlM1E00btEuNKXz')
 
 const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
   const [loading, setLoading] = useState(false)
@@ -40,16 +40,17 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
         throw new Error(errorData.error || 'Kunde inte skapa checkout session')
       }
 
-      const { sessionId } = await response.json()
-
-      // Redirect till Stripe Checkout
-      const stripe = await stripePromise
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        sessionId: sessionId,
-      })
-
-      if (stripeError) {
-        throw stripeError
+      const data = await response.json()
+      
+      // Använd url om den finns, annars sessionId (fallback)
+      if (data.url) {
+        window.location.href = data.url
+      } else if (data.sessionId) {
+        // Fallback till gammal metod om backend returnerar sessionId
+        const stripe = await stripePromise
+        await stripe.redirectToCheckout({ sessionId: data.sessionId })
+      } else {
+        throw new Error('Ingen checkout URL mottagen')
       }
     } catch (err) {
       console.error('Checkout error:', err)
