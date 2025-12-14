@@ -258,8 +258,8 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
         userId: userId,
         premiumType: premiumType,
       },
-      success_url: "https://svinnstop.web.app/#/premium/success?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://svinnstop.web.app/#/premium/cancel",
+      success_url: "https://svinnstop.web.app/?payment=success&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://svinnstop.web.app/?payment=cancelled",
       subscription_data: {
         metadata: {
           userId: userId,

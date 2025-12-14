@@ -17,8 +17,6 @@ import UpgradeModal from './UpgradeModal'
 import PremiumFeature from './PremiumFeature'
 import AdBanner from './AdBanner'
 import * as adService from './adService'
-import PremiumSuccess from './PremiumSuccess'
-import PremiumCancel from './PremiumCancel'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
 import { setCustomExpiryRule } from './userItemsService'
@@ -208,16 +206,6 @@ function syncReferralPremiumToMain() {
 }
 
 export default function App() {
-  // Check for special routes using hash-based routing
-  const hash = window.location.hash
-  
-  if (hash === '#/premium/success') {
-    return <PremiumSuccess />
-  }
-  
-  if (hash === '#/premium/cancel') {
-    return <PremiumCancel />
-  }
   
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ 
@@ -367,9 +355,26 @@ export default function App() {
       setTheme(prefersDark ? 'dark' : 'light')
     }
     
-    // Kolla om URL:en innehåller en referral-kod
+    // Kolla om URL:en innehåller en referral-kod eller payment status
     const urlParams = new URLSearchParams(window.location.search)
     const hasReferralCode = urlParams.has('ref')
+    const paymentStatus = urlParams.get('payment')
+    
+    // Visa success-meddelande om betalning lyckades
+    if (paymentStatus === 'success') {
+      setTimeout(() => {
+        alert('🎉 Välkommen till Premium!\n\nDin prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+        // Rensa URL
+        window.history.replaceState({}, document.title, '/')
+        // Synka premium
+        premiumService.syncPremiumFromFirebase()
+      }, 500)
+    } else if (paymentStatus === 'cancelled') {
+      setTimeout(() => {
+        alert('😔 Betalningen avbröts\n\nInget har debiterats från ditt konto. Du kan försöka igen när som helst!')
+        window.history.replaceState({}, document.title, '/')
+      }, 500)
+    }
     
     // Kolla om användaren har sett guiden
     const hasSeenGuide = localStorage.getItem('svinnstop_guide_seen')
