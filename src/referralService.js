@@ -156,7 +156,9 @@ async function syncFromFirebase() {
       if (reward.value === 'lifetime') {
         await set(premiumRef, {
           lifetimePremium: true,
-          premiumUntil: null
+          premiumUntil: null,
+          premiumType: 'individual', // Referral premium = Individual
+          source: 'referral'
         })
       } else {
         const today = new Date()
@@ -166,7 +168,9 @@ async function syncFromFirebase() {
         
         await set(premiumRef, {
           lifetimePremium: premiumData.lifetimePremium || false,
-          premiumUntil: newPremiumDate.toISOString()
+          premiumUntil: newPremiumDate.toISOString(),
+          premiumType: 'individual', // Referral premium = Individual
+          source: 'referral'
         })
       }
       

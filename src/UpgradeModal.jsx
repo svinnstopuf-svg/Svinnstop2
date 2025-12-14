@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { isPremiumActive, getPremiumStatus, getDaysLeftOfPremium } from './premiumService'
+import { calculateFamilyUpgradePrice, getPremiumDescription } from './familyPremiumService'
 import './UpgradeModal.css'
 
 /**
@@ -17,6 +18,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
   const isPremium = isPremiumActive()
   const premiumStatus = getPremiumStatus()
   const daysLeft = getDaysLeftOfPremium()
+  const familyPricing = calculateFamilyUpgradePrice()
   
   if (!isOpen) return null
   
@@ -40,16 +42,36 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
           <div className="upgrade-modal-premium-active">
             <h2>Du har Premium!</h2>
             
+            <p className="premium-status">
+              <strong>{getPremiumDescription()}</strong>
+            </p>
             {premiumStatus.lifetimePremium ? (
-              <p className="premium-status">
-                <strong>Lifetime Premium</strong> - Tack för ditt fantastiska stöd!
+              <p className="premium-type">
+                Tack för ditt fantastiska stöd!
               </p>
             ) : (
-              <p className="premium-status">
-                Din premium är aktiv i <strong>{daysLeft} dagar</strong>
+              <p className="premium-type">
+                {daysLeft} dagar kvar
                 {premiumStatus.source === 'referral' && ' (från referrals)'}
                 {premiumStatus.source === 'stripe' && ' (prenumeration)'}
               </p>
+            )}
+            
+            {/* Visa Family Upgrade om användaren har Individual Premium */}
+            {premiumStatus.premiumType === 'individual' && (
+              <div className="family-upgrade-offer">
+                <h3>Uppgradera till Family Premium?</h3>
+                <p>{familyPricing.description}</p>
+                <div className="family-upgrade-price">
+                  <span className="price-amount">{familyPricing.price} kr/mån</span>
+                  {familyPricing.futurePrice && (
+                    <span className="future-price">Sedan {familyPricing.futurePrice} kr/mån när referral premium tar slut</span>
+                  )}
+                </div>
+                <button className="upgrade-modal-btn primary" disabled>
+                  Uppgradera till Family (kommer snart)
+                </button>
+              </div>
             )}
             
             <div className="premium-features-active">
@@ -126,8 +148,25 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
               <span className="plan-name">Family</span>
               <span className="plan-badge">BÄST VÄRDE</span>
             </div>
-            <div className="plan-price">49 kr/mån</div>
-            <div className="plan-desc">Upp till 5 familjemedlemmar</div>
+            <div className="plan-price">
+              {familyPricing.isUpgrade && premiumStatus.premiumType === 'individual' ? (
+                <>
+                  <span className="upgrade-price">{familyPricing.price} kr/mån</span>
+                  <span className="upgrade-label">Upgrade</span>
+                </>
+              ) : (
+                '49 kr/mån'
+              )}
+            </div>
+            <div className="plan-desc">
+              {familyPricing.isUpgrade && premiumStatus.premiumType === 'individual' ? (
+                familyPricing.isLifetimeUpgrade ? 
+                  'Lägg till family-features (lifetime)' : 
+                  'Lägg till family-features (+20 kr)'
+              ) : (
+                'Upp till 5 familjemedlemmar'
+              )}
+            </div>
           </button>
         </div>
         
