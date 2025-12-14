@@ -364,10 +364,9 @@ export default function App() {
     if (paymentStatus === 'success') {
       setTimeout(() => {
         alert('🎉 Välkommen till Premium!\n\nDin prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
-        // Rensa URL
+        // Rensa URL och reloada sidan för att visa nya privilegier
         window.history.replaceState({}, document.title, '/')
-        // Synka premium
-        premiumService.syncPremiumFromFirebase()
+        window.location.reload()
       }, 500)
     } else if (paymentStatus === 'cancelled') {
       setTimeout(() => {
