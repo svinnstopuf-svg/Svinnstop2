@@ -128,7 +128,7 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
           </p>
           
           <p className="test-mode-notice">
-            🧪 TEST MODE: Använd kortnummer 4242 4242 4242 4242 för att testa
+            TEST MODE
           </p>
         </div>
       </div>
