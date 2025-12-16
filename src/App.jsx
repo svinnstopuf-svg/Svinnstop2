@@ -309,11 +309,40 @@ export default function App() {
     // Kolla om vi är i en familj med synk
     const family = getFamilyData()
     
-    // Om i familj med sync, vänta på Firebase-data istället för att ladda localStorage
+    // Om i familj med sync, ladda localStorage OCH vänta på Firebase-uppdatering
     if (family.familyId && family.syncEnabled) {
-      console.log('⏳ Väntar på Firebase-data för kylskåp...')
-      console.log('👨‍👩‍👧‍👦 Familj aktiv - Firebase har företräde')
-      // isInitialInventoryLoad hålls true tills Firebase data kommer
+      console.log('👨‍👩‍👧‍👦 Familj aktiv - laddar localStorage + Firebase sync')
+      
+      // Ladda från localStorage först (snabb laddning)
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed)) {
+            const validItems = parsed.filter(item => 
+              item && 
+              typeof item === 'object' && 
+              item.id && 
+              item.name && 
+              item.quantity !== undefined && 
+              item.expiresAt
+            )
+            setItems(validItems)
+            console.log('💾 Laddade kylskåp från localStorage:', validItems.length, 'varor')
+          }
+        } catch (error) {
+          console.error('Kunde inte ladda items från localStorage:', error)
+        }
+      }
+      
+      // Sätt timeout för att markera initial load som klar (tillfälle om Firebase är tom)
+      setTimeout(() => {
+        if (isInitialInventoryLoad) {
+          console.log('⏰ Initial load timeout - tillåter nu sparning')
+          setIsInitialInventoryLoad(false)
+        }
+      }, 2000) // 2 sekunder för Firebase att svara
+      // isInitialInventoryLoad hålls true tills Firebase data kommer ELLER timeout
     } else {
       // Endast ladda localStorage om INTE i familj
       const saved = localStorage.getItem(STORAGE_KEY)
