@@ -428,7 +428,7 @@ exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const {selectedIngredients, preferences, ingredientMode = 'staples'} = req.body;
+    const {selectedIngredients, preferences, ingredientMode = "staples"} = req.body;
 
     if (!selectedIngredients || selectedIngredients.length === 0) {
       res.status(400).json({error: "No ingredients provided"});
