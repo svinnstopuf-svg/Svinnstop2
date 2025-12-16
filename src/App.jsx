@@ -34,6 +34,7 @@ import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
 import { syncUserItemsToFirebase, syncCustomExpiryRulesToFirebase, listenToCustomExpiryRulesChanges } from './shoppingListSync'
 import { exportCustomExpiryRules, importCustomExpiryRules } from './userItemsService'
+import * as analytics from './analyticsService'
 import './mobile.css'
 import './newFeatures.css'
 import './premiumRequired.css'
@@ -451,6 +452,10 @@ export default function App() {
     
     // Initialize AdSense (only for free users)
     adService.initializeAds()
+    
+    // Initialize Google Analytics
+    analytics.initAnalytics()
+    analytics.trackAppOpened()
     
     // Initialize Firebase Authentication
     initAuth()
