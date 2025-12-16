@@ -19,7 +19,7 @@ export default function GuideWelcome({ onStart, onSkip }) {
           <div className="pitch-icon">🎁</div>
           <div className="pitch-content">
             <h3>Få Premium gratis!</h3>
-            <p>Bjud in vänner och få <strong>7 dagar Premium gratis</strong> per vän</p>
+            <p>Bjud in vän och få <strong>7 dagar Premium</strong></p>
             <div className="pitch-benefits">
               <span>✅ Obegränsat antal varor</span>
               <span>✅ AI-receptförslag</span>
