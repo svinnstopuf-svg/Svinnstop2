@@ -575,7 +575,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
               boxShadow: itemMode === 'food' ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
             }}
           >
-            Matvara
+            🛒 Matvara
           </button>
           <button
             type="button"
@@ -594,7 +594,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
               boxShadow: itemMode === 'other' ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
             }}
           >
-            Annat
+            🧴 Annat
           </button>
         </div>
 

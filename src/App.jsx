@@ -16,6 +16,7 @@ import ConfirmDialog from './ConfirmDialog'
 import UpgradeModal from './UpgradeModal'
 import PremiumFeature from './PremiumFeature'
 import AdBanner from './AdBanner'
+import AIRecipeGenerator from './AIRecipeGenerator'
 import * as adService from './adService'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
@@ -249,6 +250,7 @@ export default function App() {
   const [isInitialInventoryLoad, setIsInitialInventoryLoad] = useState(true) // Flagga för initial laddning
   const [showUpgradeModal, setShowUpgradeModal] = useState(false) // Premium upgrade modal
   const [shouldClearForm, setShouldClearForm] = useState(false) // Flagga för att rensa formulär
+  const [showAIRecipeGenerator, setShowAIRecipeGenerator] = useState(false) // AI Recipe Generator modal
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -2242,18 +2244,35 @@ export default function App() {
                 <div className="recipe-tabs">
                 <button 
                   className={`recipe-tab-btn ${recipeTab === 'mine' ? 'active' : ''}`}
-                  onClick={() => setRecipeTab('mine')}
+                  onClick={() => {
+                    setRecipeTab('mine')
+                    setShowAIRecipeGenerator(false)
+                  }}
                 >
                   Mina recept
                   {suggestions.length > 0 && <span className="tab-count">{suggestions.length}</span>}
                 </button>
                 <button 
                   className={`recipe-tab-btn ${recipeTab === 'recommended' ? 'active' : ''}`}
-                  onClick={() => setRecipeTab('recommended')}
+                  onClick={() => {
+                    setRecipeTab('recommended')
+                    setShowAIRecipeGenerator(false)
+                  }}
                 >
                   Rekommenderade
                   <span className="tab-count">{recommendedRecipes.length}</span>
                 </button>
+                {items.length > 0 && (
+                  <button 
+                    className={`recipe-tab-btn ${recipeTab === 'ai' ? 'active' : ''}`}
+                    onClick={() => {
+                      setRecipeTab('ai')
+                      setShowAIRecipeGenerator(true)
+                    }}
+                  >
+                    AI-Recept
+                  </button>
+                )}
               </div>
               
               {/* Ad Banner - Before recipes list */}
@@ -2779,6 +2798,20 @@ export default function App() {
         setActiveTab('referral')
       }}
     />
+    
+    {showAIRecipeGenerator && (
+      <AIRecipeGenerator
+        inventory={items}
+        onClose={() => {
+          setShowAIRecipeGenerator(false)
+          setRecipeTab('mine') // Återställ till första tab
+        }}
+        onRecipeGenerated={(recipe) => {
+          console.log('✅ AI-recept genererat:', recipe.name)
+          // Receptet sparas automatiskt i komponenten
+        }}
+      />
+    )}
     
     {/* Sticky Ad Banner - Always visible for free users */}
     <div className="sticky-ad-wrapper">

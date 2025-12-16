@@ -2207,12 +2207,20 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 /* === RECIPE SUB-TABS === */
 .recipe-tabs {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   margin: 20px 0;
-  padding: 4px;
+  padding: 6px;
   background: var(--glass);
   border-radius: var(--border-radius-sm);
   border: 1px solid var(--glass-border);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .recipe-tabs {
+    gap: 8px;
+    padding: 4px;
+  }
 }
 
 .recipe-tab-btn {
