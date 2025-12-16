@@ -428,7 +428,7 @@ exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const {selectedIngredients, preferences} = req.body;
+    const {selectedIngredients, preferences, ingredientMode = 'staples'} = req.body;
 
     if (!selectedIngredients || selectedIngredients.length === 0) {
       res.status(400).json({error: "No ingredients provided"});
@@ -440,6 +440,22 @@ exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
         .map((item) => `${item.name} (${item.quantity} ${item.unit})`)
         .join(", ");
 
+    // Build ingredient instruction based on mode
+    let ingredientInstruction = "";
+    if (ingredientMode === "strict") {
+      ingredientInstruction = "Använd ENDAST de angivna ingredienserna. " +
+        "Lägg INTE till några extra ingredienser, inte ens salt, peppar eller olja. " +
+        "Skapa receptet med exakt det som finns tillgängligt.";
+    } else if (ingredientMode === "staples") {
+      ingredientInstruction = "Använd ALLA angivna ingredienser. " +
+        "Du får lägga till vanliga basvaror som salt, peppar, olja, vitlök, lök, " +
+        "men INTE andra huvudingredienser som användaren kan sakna.";
+    } else if (ingredientMode === "creative") {
+      ingredientInstruction = "Använd ALLA angivna ingredienser som bas. " +
+        "Du får föreslå extra ingredienser för att göra receptet bättre. " +
+        "Märk tydligt vilka ingredienser som är extra i receptet.";
+    }
+
     const prompt = `Du är en kock som skapar recept. Skapa ett unikt och detaljerat recept ` +
       `baserat på dessa ingredienser:
 
@@ -448,6 +464,8 @@ ${ingredientsList}
 ${preferences.cuisine ? `Kökstyp: ${preferences.cuisine}` : ""}
 ${preferences.difficulty ? `Svårighetsgrad: ${preferences.difficulty}` : ""}
 ${preferences.time ? `Maximal tid: ${preferences.time} minuter` : ""}
+
+${ingredientInstruction}
 
 Svara i följande JSON-format:
 {
@@ -471,9 +489,7 @@ Svara i följande JSON-format:
     "fat": "20g"
   },
   "tips": ["Tips 1", "Tips 2"]
-}
-
-Använd ALLA angivna ingredienser. Lägg till vanliga kryddor och basics (salt, peppar, olja) om det behövs.`;
+}`;
 
     // Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

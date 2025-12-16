@@ -1,7 +1,7 @@
 // AI Recipe Generator med Cloud Function
 // Genererar personliga recept baserat på användarens ingredienser
 
-export const generateAIRecipe = async (selectedIngredients, preferences = {}) => {
+export const generateAIRecipe = async (selectedIngredients, preferences = {}, ingredientMode = 'staples') => {
   try {
     const response = await fetch('https://us-central1-svinnstop.cloudfunctions.net/generateAIRecipe', {
       method: 'POST',
@@ -10,7 +10,8 @@ export const generateAIRecipe = async (selectedIngredients, preferences = {}) =>
       },
       body: JSON.stringify({
         selectedIngredients,
-        preferences
+        preferences,
+        ingredientMode
       })
     })
 

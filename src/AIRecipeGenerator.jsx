@@ -9,6 +9,7 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
     difficulty: '',
     time: ''
   })
+  const [ingredientMode, setIngredientMode] = useState('staples') // 'strict', 'staples', 'creative'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [generatedRecipe, setGeneratedRecipe] = useState(null)
@@ -41,7 +42,7 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
     setError(null)
 
     try {
-      const result = await generateAIRecipe(selectedIngredients, preferences)
+      const result = await generateAIRecipe(selectedIngredients, preferences, ingredientMode)
       
       if (result.success) {
         setGeneratedRecipe(result.recipe)
@@ -306,7 +307,54 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
           </div>
 
           <div className="section">
-            <h3>2. Preferenser (valfritt)</h3>
+            <h3>2. Ingrediensflexibilitet</h3>
+            <div className="ingredient-mode">
+              <label className={`mode-option ${ingredientMode === 'strict' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  value="strict"
+                  checked={ingredientMode === 'strict'}
+                  onChange={(e) => setIngredientMode(e.target.value)}
+                  disabled={loading}
+                />
+                <div className="mode-content">
+                  <strong>Endast valda ingredienser</strong>
+                  <span>Använd bara det du valt, inga tillägg</span>
+                </div>
+              </label>
+
+              <label className={`mode-option ${ingredientMode === 'staples' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  value="staples"
+                  checked={ingredientMode === 'staples'}
+                  onChange={(e) => setIngredientMode(e.target.value)}
+                  disabled={loading}
+                />
+                <div className="mode-content">
+                  <strong>Tillåt basvaror</strong>
+                  <span>Kan lägga till salt, peppar, olja, vitlök etc.</span>
+                </div>
+              </label>
+
+              <label className={`mode-option ${ingredientMode === 'creative' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  value="creative"
+                  checked={ingredientMode === 'creative'}
+                  onChange={(e) => setIngredientMode(e.target.value)}
+                  disabled={loading}
+                />
+                <div className="mode-content">
+                  <strong>Kreativt läge</strong>
+                  <span>Kan föreslå extra ingredienser för bättre resultat</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>3. Preferenser (valfritt)</h3>
             <div className="preferences-grid">
               <div>
                 <label>Kökstyp</label>
@@ -504,6 +552,59 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
           color: var(--accent);
           margin: 0;
           font-weight: 600;
+        }
+
+        .ingredient-mode {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .mode-option {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 16px;
+          background: var(--bg);
+          border: 2px solid var(--border);
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .mode-option:hover {
+          border-color: var(--accent);
+          transform: translateX(4px);
+        }
+
+        .mode-option.selected {
+          border-color: #667eea;
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        .mode-option input[type="radio"] {
+          margin-top: 2px;
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+        }
+
+        .mode-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .mode-content strong {
+          font-size: 15px;
+          color: var(--text);
+          display: block;
+        }
+
+        .mode-content span {
+          font-size: 13px;
+          color: var(--muted);
         }
 
         .preferences-grid {
