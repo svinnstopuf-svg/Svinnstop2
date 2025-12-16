@@ -13,14 +13,33 @@ export default function GuideWelcome({ onStart, onSkip }) {
         <p className="guide-welcome-subtext">
           Det tar bara någon minut och du lär dig alla viktiga funktioner.
         </p>
+        
+        {/* Premium Pitch - Viral Growth */}
+        <div className="guide-premium-pitch">
+          <div className="pitch-icon">🎁</div>
+          <div className="pitch-content">
+            <h3>Få Premium gratis!</h3>
+            <p>Bjud in en vän och ni får båda <strong>7 dagar Premium gratis</strong></p>
+            <div className="pitch-benefits">
+              <span>✅ Obegränsat antal varor</span>
+              <span>✅ AI-receptförslag</span>
+              <span>✅ Ingen reklam</span>
+            </div>
+          </div>
+        </div>
+        
         <div className="guide-welcome-buttons">
           <button className="guide-btn guide-btn-secondary" onClick={onSkip}>
-            Nej tack, jag testar själv
+            Hoppa över guiden
           </button>
           <button className="guide-btn guide-btn-primary" onClick={onStart}>
-            Ja, visa mig! →
+            Starta guiden →
           </button>
         </div>
+        
+        <p className="guide-welcome-footnote">
+          Appen är gratis att använda. Premium är valfritt.
+        </p>
       </div>
     </div>
   )

@@ -60,7 +60,60 @@
 .guide-welcome-subtext {
   font-size: 14px;
   color: var(--text-secondary);
-  margin: 0 0 32px 0;
+  margin: 0 0 24px 0;
+}
+
+/* Premium Pitch */
+.guide-premium-pitch {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 0 0 24px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  text-align: left;
+}
+
+.pitch-icon {
+  font-size: 40px;
+  flex-shrink: 0;
+}
+
+.pitch-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.pitch-content p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.pitch-content p strong {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.pitch-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pitch-benefits span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.guide-welcome-footnote {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 16px 0 0 0;
+  opacity: 0.7;
 }
 
 .guide-welcome-buttons {
