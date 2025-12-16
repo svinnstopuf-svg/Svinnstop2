@@ -491,13 +491,7 @@ export default function App() {
     
     if (family.familyId && family.syncEnabled) {
       console.log('🔄 Starting Firebase inventory sync for family:', family.familyId)
-      
-      // Rensa localStorage när Firebase sync aktiveras (förhindrar överskrivning)
-      const existingItems = localStorage.getItem(STORAGE_KEY)
-      if (existingItems) {
-        localStorage.removeItem(STORAGE_KEY)
-        console.log('🧹 Rensade kylskåp localStorage - Firebase tar över')
-      }
+      console.log('💾 Hybrid mode: localStorage för snabb laddning, Firebase för realtidssynk')
       
       const unsubscribe = listenToInventoryChanges((firebaseInventory) => {
         console.log('📥 Received inventory from Firebase:', firebaseInventory.length, 'items')
@@ -505,7 +499,11 @@ export default function App() {
         // Sätt flagga att data kommer från Firebase
         itemsFromFirebase.current = true
         
+        // Uppdatera state med Firebase-data (senaste sanning)
         setItems(firebaseInventory)
+        
+        // Spara OCKSÅ till localStorage så nästa reload är snabb
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(firebaseInventory))
         
         // Markera att initial load är klar
         if (isInitialInventoryLoad) {
@@ -607,10 +605,8 @@ export default function App() {
           return
         }
         
-        // Spara till localStorage ENDAST om INTE i familj
-        if (!family.familyId || !family.syncEnabled) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-        }
+        // Spara ALLTID till localStorage (både solo och familj)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
         
         // Track max active items for achievements (ALLTID - personlig data)
         const achievementData = achievementService.getAchievementData()

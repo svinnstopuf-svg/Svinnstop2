@@ -73,10 +73,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       return
     }
     
-    // Spara till localStorage ENDAST om INTE i familj
-    if (!family.familyId || !family.syncEnabled) {
-      localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
-    }
+    // Spara ALLTID till localStorage (både solo och familj)
+    localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
     
     // Synka till Firebase om familj är aktiv
     if (family.familyId && family.syncEnabled) {
@@ -93,12 +91,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       return
     }
 
-    // Rensa localStorage när Firebase sync aktiveras (förhindrar överskrivning)
-    const existingList = localStorage.getItem('svinnstop_shopping_list')
-    if (existingList) {
-      localStorage.removeItem('svinnstop_shopping_list')
-      console.log('🧹 Rensade inköpslista localStorage - Firebase tar över')
-    }
+    console.log('💾 Hybrid mode: localStorage för snabb laddning, Firebase för realtidssynk')
     
     const unsubscribe = listenToShoppingListChanges((remoteItems) => {
       console.log('📥 Mottog inköpslista från Firebase:', remoteItems.length, 'varor')
@@ -106,14 +99,14 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       // Sätt flagga att data kommer från Firebase
       setShoppingFromFirebase(true)
       
-      // Undvik loopar genom att jämföra innehåll
-      const localStr = JSON.stringify(shoppingItems)
-      const remoteStr = JSON.stringify(remoteItems)
-      if (localStr !== remoteStr) {
-        setShoppingItems(remoteItems)
-        setIsSyncing(true)
-        setTimeout(() => setIsSyncing(false), 1000)
-      }
+      // Uppdatera state med Firebase-data (senaste sanning)
+      setShoppingItems(remoteItems)
+      
+      // Spara OCKSÅ till localStorage så nästa reload är snabb
+      localStorage.setItem('svinnstop_shopping_list', JSON.stringify(remoteItems))
+      
+      setIsSyncing(true)
+      setTimeout(() => setIsSyncing(false), 1000)
       
       // Markera att initial load är klar
       if (isInitialLoad) {
