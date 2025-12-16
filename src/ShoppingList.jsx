@@ -36,6 +36,10 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
     // Om i familj, vänta på Firebase-data istället
     if (family.familyId && family.syncEnabled) {
       console.log('⏳ Väntar på Firebase-data för inköpslista...')
+      // VIKTIGT: Rensa localStorage direkt för att förhindra överskrivning
+      localStorage.removeItem('svinnstop_shopping_list')
+      console.log('🧹 Rensade inköpslista localStorage - Firebase har företräde')
+      // isInitialLoad hålls true tills Firebase data kommer
       return
     }
     
@@ -91,10 +95,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       return
     }
 
-    // Rensa inköpslista localStorage när i familj
-    localStorage.removeItem('svinnstop_shopping_list')
-    console.log('🧹 Rensade inköpslista localStorage - Firebase tar över')
-
+    // localStorage rensas redan i initial load useEffect, behöver ej dubbla här
+    
     const unsubscribe = listenToShoppingListChanges((remoteItems) => {
       console.log('📥 Mottog inköpslista från Firebase:', remoteItems.length, 'varor')
       

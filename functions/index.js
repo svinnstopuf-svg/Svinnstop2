@@ -440,7 +440,8 @@ exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
         .map((item) => `${item.name} (${item.quantity} ${item.unit})`)
         .join(", ");
 
-    const prompt = `Du är en kock som skapar recept. Skapa ett unikt och detaljerat recept baserat på dessa ingredienser:
+    const prompt = `Du är en kock som skapar recept. Skapa ett unikt och detaljerat recept ` +
+      `baserat på dessa ingredienser:
 
 ${ingredientsList}
 
@@ -486,7 +487,8 @@ Använd ALLA angivna ingredienser. Lägg till vanliga kryddor och basics (salt, 
         messages: [
           {
             role: "system",
-            content: "Du är en professionell kock som skapar kreativa och genomförbara recept på svenska. Svara alltid med valid JSON.",
+            content: "Du är en professionell kock som skapar kreativa och " +
+              "genomförbara recept på svenska. Svara alltid med valid JSON.",
           },
           {
             role: "user",
@@ -501,7 +503,8 @@ Använd ALLA angivna ingredienser. Lägg till vanliga kryddor och basics (salt, 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("❌ OpenAI API error:", errorData);
-      res.status(response.status).json({error: errorData.error?.message || "OpenAI API error"});
+      const errorMessage = (errorData.error && errorData.error.message) || "OpenAI API error";
+      res.status(response.status).json({error: errorMessage});
       return;
     }
 

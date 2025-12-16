@@ -312,6 +312,10 @@ export default function App() {
     // Om i familj, vänta på Firebase-data istället för att ladda localStorage
     if (family.familyId && family.syncEnabled) {
       console.log('⏳ Väntar på Firebase-data för kylskåp...')
+      // VIKTIGT: Rensa localStorage direkt för att förhindra överskrivning
+      localStorage.removeItem(STORAGE_KEY)
+      console.log('🧹 Rensade kylskåp localStorage - Firebase har företräde')
+      // isInitialInventoryLoad hålls true tills Firebase data kommer
     } else {
       // Endast ladda localStorage om INTE i familj
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -490,10 +494,7 @@ export default function App() {
     if (family.familyId && family.syncEnabled) {
       console.log('🔄 Starting Firebase inventory sync for family:', family.familyId)
       
-      // Rensa ENDAST kylskåp localStorage (behåll achievements, referrals etc)
-      localStorage.removeItem(STORAGE_KEY)
-      console.log('🧹 Rensade kylskåp localStorage - Firebase tar över')
-      console.log('✅ Behåller personlig data (achievements, referrals, savings)')
+      // localStorage rensas redan i initial load useEffect, behöver ej dubbla här
       
       const unsubscribe = listenToInventoryChanges((firebaseInventory) => {
         console.log('📥 Received inventory from Firebase:', firebaseInventory.length, 'items')
