@@ -2,6 +2,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const {Resend} = require("resend");
 const stripe = require("stripe");
+const fetch = require("node-fetch");
 
 admin.initializeApp();
 
@@ -390,5 +391,144 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
   } catch (error) {
     console.error("❌ Error processing webhook:", error);
     res.status(500).send("Webhook processing failed");
+  }
+});
+
+// ============= AI RECIPE GENERATION =============
+
+// Get OpenAI API key
+const getOpenAIKey = () => {
+  const config = functions.config();
+  return (config.openai && config.openai.api_key) || process.env.OPENAI_API_KEY;
+};
+
+// Cloud Function: Generate AI Recipe
+exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
+  // Set CORS headers
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({error: "Method not allowed"});
+    return;
+  }
+
+  const openaiKey = getOpenAIKey();
+  if (!openaiKey) {
+    console.error("❌ OpenAI API key not configured");
+    res.status(500).json({error: "OpenAI API key not configured"});
+    return;
+  }
+
+  try {
+    const {selectedIngredients, preferences} = req.body;
+
+    if (!selectedIngredients || selectedIngredients.length === 0) {
+      res.status(400).json({error: "No ingredients provided"});
+      return;
+    }
+
+    // Format ingredients for prompt
+    const ingredientsList = selectedIngredients
+        .map((item) => `${item.name} (${item.quantity} ${item.unit})`)
+        .join(", ");
+
+    const prompt = `Du är en kock som skapar recept. Skapa ett unikt och detaljerat recept baserat på dessa ingredienser:
+
+${ingredientsList}
+
+${preferences.cuisine ? `Kökstyp: ${preferences.cuisine}` : ""}
+${preferences.difficulty ? `Svårighetsgrad: ${preferences.difficulty}` : ""}
+${preferences.time ? `Maximal tid: ${preferences.time} minuter` : ""}
+
+Svara i följande JSON-format:
+{
+  "name": "Receptnamn på svenska",
+  "description": "Kort beskrivning av rätten",
+  "servings": 2,
+  "prepTime": "15 min",
+  "cookTime": "30 min",
+  "difficulty": "Medel",
+  "ingredients": [
+    {"item": "ingrediens", "amount": "mängd"}
+  ],
+  "instructions": [
+    "Steg 1...",
+    "Steg 2..."
+  ],
+  "nutrition": {
+    "calories": "500",
+    "protein": "25g",
+    "carbs": "40g",
+    "fat": "20g"
+  },
+  "tips": ["Tips 1", "Tips 2"]
+}
+
+Använd ALLA angivna ingredienser. Lägg till vanliga kryddor och basics (salt, peppar, olja) om det behövs.`;
+
+    // Call OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Du är en professionell kock som skapar kreativa och genomförbara recept på svenska. Svara alltid med valid JSON.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.8,
+        max_tokens: 1500,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ OpenAI API error:", errorData);
+      res.status(response.status).json({error: errorData.error?.message || "OpenAI API error"});
+      return;
+    }
+
+    const data = await response.json();
+    const recipeText = data.choices[0].message.content.trim();
+
+    // Extract JSON from response
+    const jsonMatch = recipeText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("❌ Could not find JSON in OpenAI response");
+      res.status(500).json({error: "Could not parse recipe from AI"});
+      return;
+    }
+
+    const recipe = JSON.parse(jsonMatch[0]);
+
+    // Add metadata
+    recipe.id = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    recipe.source = "AI-genererat";
+    recipe.isAI = true;
+    recipe.createdAt = Date.now();
+    recipe.usedIngredients = selectedIngredients;
+
+    console.log("✅ Recipe generated:", recipe.name);
+    res.json({success: true, recipe: recipe});
+  } catch (error) {
+    console.error("❌ Error generating AI recipe:", error);
+    res.status(500).json({error: error.message || "Failed to generate recipe"});
   }
 });
