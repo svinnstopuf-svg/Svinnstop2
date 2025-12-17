@@ -1,7 +1,7 @@
 // Analytics Service - Conversion Tracking with Google Analytics GA4
 // Tracks critical user actions for optimization
 
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX' // TODO: Replace with real GA4 ID
+const GA_MEASUREMENT_ID = 'G-S5T81MFX4E'
 
 // Initialize Google Analytics
 export function initAnalytics() {
