@@ -29,19 +29,11 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [shoppingFromFirebase, setShoppingFromFirebase] = useState(false)
   
-  // Ladda inköpslista från localStorage (endast om INTE i familj)
+  // Ladda inköpslista från localStorage
   useEffect(() => {
     const family = getFamilyData()
     
-    // Om i familj, vänta på Firebase-data istället
-    if (family.familyId && family.syncEnabled) {
-      console.log('⏳ Väntar på Firebase-data för inköpslista...')
-      console.log('👨‍👩‍👧‍👦 Familj aktiv - Firebase har företräde')
-      // isInitialLoad hålls true tills Firebase data kommer
-      return
-    }
-    
-    // Annars, ladda från localStorage
+    // Ladda ALLTID från localStorage först (för snabb UX)
     const saved = localStorage.getItem('svinnstop_shopping_list')
     if (saved) {
       try {
@@ -54,7 +46,12 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
     
     // Ladda sparade listor
     setSavedLists(shoppingListService.getSavedShoppingLists())
-    setIsInitialLoad(false)
+    
+    // Om INTE i familj, släpp isInitialLoad direkt
+    if (!family.familyId || !family.syncEnabled) {
+      setIsInitialLoad(false)
+    }
+    // Annars vänta på Firebase data (isInitialLoad hålls true)
   }, [])
 
   // Spara inköpslista till localStorage och synka med Firebase
@@ -105,13 +102,11 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       // Spara OCKSÅ till localStorage så nästa reload är snabb
       localStorage.setItem('svinnstop_shopping_list', JSON.stringify(remoteItems))
       
+      // Markera att initial load är klar (krävs för att tillåta synk tillbaka)
+      setIsInitialLoad(false)
+      
       setIsSyncing(true)
       setTimeout(() => setIsSyncing(false), 1000)
-      
-      // Markera att initial load är klar
-      if (isInitialLoad) {
-        setIsInitialLoad(false)
-      }
     })
 
     return () => unsubscribe && unsubscribe()

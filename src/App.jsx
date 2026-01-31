@@ -17,6 +17,7 @@ import UpgradeModal from './UpgradeModal'
 import PremiumFeature from './PremiumFeature'
 import AdBanner from './AdBanner'
 import AIRecipeGenerator from './AIRecipeGenerator'
+import { getSavedAIRecipes, deleteAIRecipe } from './aiRecipeService'
 import * as adService from './adService'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
 import { searchFoods, getExpiryDateSuggestion, learnIngredientsFromRecipe } from './foodDatabase'
@@ -252,6 +253,8 @@ export default function App() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false) // Premium upgrade modal
   const [shouldClearForm, setShouldClearForm] = useState(false) // Flagga för att rensa formulär
   const [showAIRecipeGenerator, setShowAIRecipeGenerator] = useState(false) // AI Recipe Generator modal
+  const [savedAIRecipes, setSavedAIRecipes] = useState([]) // Sparade AI-recept
+  const [selectedSavedRecipe, setSelectedSavedRecipe] = useState(null) // Valt sparat recept att visa
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -493,6 +496,12 @@ export default function App() {
         // Auth är klar (misslyckades men vi fortsätte)
         setIsAuthReady(true)
       })
+  }, [])
+  
+  // Ladda sparade AI-recept från localStorage
+  useEffect(() => {
+    const recipes = getSavedAIRecipes()
+    setSavedAIRecipes(recipes)
   }, [])
   
   // Setup custom expiry rules sync callback
@@ -2307,6 +2316,19 @@ export default function App() {
                     AI-Recept
                   </button>
                 )}
+                <button 
+                  className={`recipe-tab-btn ${recipeTab === 'saved' ? 'active' : ''}`}
+                  onClick={() => {
+                    setRecipeTab('saved')
+                    setShowAIRecipeGenerator(false)
+                    // Uppdatera listan när man klickar på fliken
+                    const updated = getSavedAIRecipes()
+                    setSavedAIRecipes(updated)
+                  }}
+                >
+                  Sparade AI-recept
+                  {savedAIRecipes.length > 0 && <span className="tab-count">{savedAIRecipes.length}</span>}
+                </button>
               </div>
               
               {/* Ad Banner - Before recipes list */}
@@ -2511,7 +2533,78 @@ export default function App() {
                   )}
                 </div>
               )}
-                </>
+              
+              {/* Sparade AI-recept tab */}
+              {recipeTab === 'saved' && (
+                <div className="recipe-tab-content">
+                  {savedAIRecipes.length === 0 ? (
+                    <div className="empty-recipes">
+                      <p>🤖 Inga sparade AI-recept ännu!</p>
+                      <p style={{fontSize: '14px', marginTop: '8px', color: 'var(--muted)'}}>Generera recept i AI-Recept-fliken för att spara dem här.</p>
+                    </div>
+                  ) : (
+                    <div className="recipes">
+                      {savedAIRecipes.map(r => (
+                        <div key={r.id} className="recipe-card ai-recipe-card">
+                          <div className="recipe-header">
+                            <h3 className="notranslate">{r.name}</h3>
+                            <button 
+                              className="delete-recipe-btn"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setConfirmDialog({
+                                  isOpen: true,
+                                  title: 'Radera recept',
+                                  message: `Är du säker på att du vill radera "${r.name}"?`,
+                                  onConfirm: () => {
+                                    deleteAIRecipe(r.id)
+                                    const updated = getSavedAIRecipes()
+                                    setSavedAIRecipes(updated)
+                                    setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null })
+                                  },
+                                  onCancel: () => {
+                                    setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null })
+                                  }
+                                })
+                              }}
+                              title="Radera recept"
+                            >
+                              Ta bort
+                            </button>
+                          </div>
+                          
+                          <div className="recipe-meta">
+                            <span className="servings">👥 {r.servings} portioner</span>
+                            <span className="time">⏱️ Förberedelse: {r.prepTime}</span>
+                            <span className="time">🔥 Tillagning: {r.cookTime}</span>
+                            <span className="difficulty">📊 {r.difficulty}</span>
+                          </div>
+                          
+                          <p className="recipe-description">{r.description}</p>
+                          
+                          {r.warning && (
+                            <div className="ai-recipe-warning">
+                              <strong>⚠️ Obs:</strong> {r.warning}
+                            </div>
+                          )}
+                          
+                          <button 
+                            className="view-recipe-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              console.log('Visar recept:', r.name, r)
+                              setSelectedSavedRecipe(r)
+                            }}
+                          >
+                            Visa fullständigt recept
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              </>
               )}
             </section>
           </div>
@@ -2842,9 +2935,83 @@ export default function App() {
         }}
         onRecipeGenerated={(recipe) => {
           console.log('✅ AI-recept genererat:', recipe.name)
-          // Receptet sparas automatiskt i komponenten
+          // Uppdatera listan över sparade recept
+          const updated = getSavedAIRecipes()
+          setSavedAIRecipes(updated)
         }}
       />
+    )}
+    
+    {selectedSavedRecipe && (
+      <div className="ai-recipe-overlay" onClick={() => setSelectedSavedRecipe(null)}>
+        <div className="ai-recipe-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>{selectedSavedRecipe.name}</h2>
+            <button onClick={() => setSelectedSavedRecipe(null)} className="close-btn">×</button>
+          </div>
+
+          <div className="recipe-content">
+            <div className="recipe-meta">
+              <span>Förberedelse: {selectedSavedRecipe.prepTime}</span>
+              <span>Tillagning: {selectedSavedRecipe.cookTime}</span>
+              <span>Portioner: {selectedSavedRecipe.servings}</span>
+              <span>{selectedSavedRecipe.difficulty}</span>
+            </div>
+
+            <p className="recipe-description">{selectedSavedRecipe.description}</p>
+
+            {selectedSavedRecipe.warning && (
+              <div className="warning-box">
+                <strong>⚠️ Obs:</strong> {selectedSavedRecipe.warning}
+              </div>
+            )}
+
+            <div className="recipe-section">
+              <h3>Ingredienser</h3>
+              <ul>
+                {selectedSavedRecipe.ingredients.map((ing, idx) => (
+                  <li key={idx} className={ing.optional ? 'optional-ingredient' : ''}>
+                    {ing.amount} {ing.item}
+                    {ing.optional && <span className="optional-badge">Valfri</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="recipe-section">
+              <h3>Instruktioner</h3>
+              <ol>
+                {selectedSavedRecipe.instructions.map((step, idx) => (
+                  <li key={idx}>{step}</li>
+                ))}
+              </ol>
+            </div>
+
+            {selectedSavedRecipe.nutrition && (
+              <div className="recipe-section nutrition">
+                <h3>Näringsinformation (per portion)</h3>
+                <div className="nutrition-grid">
+                  <div><strong>Kalorier:</strong> {selectedSavedRecipe.nutrition.calories}</div>
+                  <div><strong>Protein:</strong> {selectedSavedRecipe.nutrition.protein}</div>
+                  <div><strong>Kolhydrater:</strong> {selectedSavedRecipe.nutrition.carbs}</div>
+                  <div><strong>Fett:</strong> {selectedSavedRecipe.nutrition.fat}</div>
+                </div>
+              </div>
+            )}
+
+            {selectedSavedRecipe.tips && selectedSavedRecipe.tips.length > 0 && (
+              <div className="recipe-section">
+                <h3>Tips</h3>
+                <ul>
+                  {selectedSavedRecipe.tips.map((tip, idx) => (
+                    <li key={idx}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     )}
     
     {/* Sticky Ad Banner - Always visible for free users */}

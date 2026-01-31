@@ -437,61 +437,85 @@ exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
 
     // Format ingredients for prompt
     const ingredientsList = selectedIngredients
-        .map((item) => `${item.name} (${item.quantity} ${item.unit})`)
-        .join(", ");
+        .map((item) => `- ${item.name}: ${item.quantity} ${item.unit}`)
+        .join("\n");
 
     // Build ingredient instruction based on mode
     let ingredientInstruction = "";
     if (ingredientMode === "strict") {
-      ingredientInstruction = "Använd ENDAST de angivna ingredienserna. " +
-        "Lägg INTE till några extra ingredienser, inte ens salt, peppar eller olja. " +
-        "Skapa receptet med exakt det som finns tillgängligt.";
+      ingredientInstruction = `### INGREDIENSREGLER (STRICT MODE)
+- Använd ENDAST de listade ingredienserna nedan
+- Du får ENDAST lägga till: vatten, salt
+- INGA andra ingredienser är tillåtna (inte ens peppar, olja eller lök)
+- Om ingredienserna inte räcker för en måltid, skapa ett tillbehör/snacks och ` +
+      `lägg till "warning": "Begränsade ingredienser - ` +
+      `detta är ett enkelt tillbehör" i JSON-svaret`;
     } else if (ingredientMode === "staples") {
-      ingredientInstruction = "Använd ALLA angivna ingredienser. " +
-        "Du får lägga till vanliga basvaror som salt, peppar, olja, vitlök, lök, " +
-        "men INTE andra huvudingredienser som användaren kan sakna.";
+      ingredientInstruction = `### INGREDIENSREGLER (STAPLES MODE)
+- Använd ALLA listade ingredienser nedan som huvudingredienser
+- Du får lägga till vanliga basvaror: salt, peppar, olja, smör, vitlök, lök, mjöl, socker
+- INGA andra huvudingredienser (kött, grönsaker, mejeriprodukter) får läggas till
+- Om ingredienserna inte räcker för en måltid, skapa ett tillbehör/snacks och ` +
+      `lägg till "warning": "Begränsade ingredienser - ` +
+      `detta är ett enkelt tillbehör" i JSON-svaret`;
     } else if (ingredientMode === "creative") {
-      ingredientInstruction = "Använd ALLA angivna ingredienser som bas. " +
-        "Du får föreslå extra ingredienser för att göra receptet bättre. " +
-        "Märk tydligt vilka ingredienser som är extra i receptet.";
+      ingredientInstruction = `### INGREDIENSREGLER (CREATIVE MODE)
+- Använd ALLA listade ingredienser nedan som bas
+- Du får föreslå MAX 3 extra ingredienser för att förbättra receptet
+- Markera extra ingredienser med "optional": true i ingredients-arrayen
+- Om ingredienserna inte räcker för en måltid, skapa ett tillbehör/snacks och ` +
+      `lägg till "warning": "Begränsade ingredienser - ` +
+      `detta är ett enkelt tillbehör" i JSON-svaret`;
     }
 
-    const prompt = `Du är en kock som skapar recept. Skapa ett unikt och detaljerat recept ` +
-      `baserat på dessa ingredienser:
+    const prompt = `### PERSONA
+Du är en professionell kock som skapar praktiska, genomförbara recept på svenska.
 
+### INPUT
+Tillgängliga ingredienser:
 ${ingredientsList}
-
-${preferences.cuisine ? `Kökstyp: ${preferences.cuisine}` : ""}
+${preferences.cuisine ? `\nKökstyp: ${preferences.cuisine}` : ""}
 ${preferences.difficulty ? `Svårighetsgrad: ${preferences.difficulty}` : ""}
 ${preferences.time ? `Maximal tid: ${preferences.time} minuter` : ""}
 
 ${ingredientInstruction}
 
-Svara i följande JSON-format:
+### OUTPUT-KRAV
+Skapa ett unikt recept och svara med följande JSON-struktur:
 {
   "name": "Receptnamn på svenska",
-  "description": "Kort beskrivning av rätten",
+  "description": "Kort lockande beskrivning (1-2 meningar)",
   "servings": 2,
   "prepTime": "15 min",
-  "cookTime": "30 min",
-  "difficulty": "Medel",
+  "cookTime": "20 min",
+  "difficulty": "Lätt|Medel|Avancerad",
   "ingredients": [
-    {"item": "ingrediens", "amount": "mängd"}
+    {"item": "ingrediens", "amount": "mängd", "optional": false}
   ],
   "instructions": [
-    "Steg 1...",
+    "Steg 1 med tydliga instruktioner",
     "Steg 2..."
   ],
   "nutrition": {
-    "calories": "500",
-    "protein": "25g",
-    "carbs": "40g",
-    "fat": "20g"
+    "calories": "[BERÄKNA baserat på ingredienser] kcal",
+    "protein": "[BERÄKNA] g",
+    "carbs": "[BERÄKNA] g",
+    "fat": "[BERÄKNA] g"
   },
-  "tips": ["Tips 1", "Tips 2"]
-}`;
+  "tips": ["Praktiskt tips 1", "Praktiskt tips 2"],
+  "warning": null
+}
 
-    // Call OpenAI API
+### NÄRINGSINFORMATION
+BERÄKNA näringsinformationen baserat på de faktiska ingredienserna och deras mängder.
+Använd uppskattade näringsvärden för varje ingrediens och summera för hela receptet.
+Dela sedan med antalet portioner för att få värden per portion.
+Se till att värdena är RIMLIGA och VARIERAR baserat på ingredienserna.
+
+Om ingredienserna är otillräckliga för en hel måltid, ` +
+    `skapa ett tillbehör/snacks och sätt "warning" till en förklarande text.`;
+
+    // Call OpenAI API with JSON mode
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -504,14 +528,15 @@ Svara i följande JSON-format:
           {
             role: "system",
             content: "Du är en professionell kock som skapar kreativa och " +
-              "genomförbara recept på svenska. Svara alltid med valid JSON.",
+              "genomförbara recept på svenska. Du svarar alltid med välstrukturerad JSON.",
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.8,
+        response_format: {type: "json_object"},
+        temperature: 0.5,
         max_tokens: 1500,
       }),
     });
@@ -527,15 +552,26 @@ Svara i följande JSON-format:
     const data = await response.json();
     const recipeText = data.choices[0].message.content.trim();
 
-    // Extract JSON from response
-    const jsonMatch = recipeText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("❌ Could not find JSON in OpenAI response");
+    // Parse JSON directly (no regex needed with JSON mode)
+    let recipe;
+    try {
+      recipe = JSON.parse(recipeText);
+    } catch (parseError) {
+      console.error("❌ Failed to parse JSON from OpenAI:", parseError);
+      console.error("❌ Raw response:", recipeText);
       res.status(500).json({error: "Could not parse recipe from AI"});
       return;
     }
 
-    const recipe = JSON.parse(jsonMatch[0]);
+    // Validate required fields
+    const requiredFields = ["name", "description", "servings", "prepTime", "cookTime",
+      "difficulty", "ingredients", "instructions", "nutrition", "tips"];
+    const missingFields = requiredFields.filter((field) => !(field in recipe));
+    if (missingFields.length > 0) {
+      console.error("❌ Missing required fields:", missingFields);
+      res.status(500).json({error: `AI response missing fields: ${missingFields.join(", ")}`});
+      return;
+    }
 
     // Add metadata
     recipe.id = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -544,7 +580,15 @@ Svara i följande JSON-format:
     recipe.createdAt = Date.now();
     recipe.usedIngredients = selectedIngredients;
 
+    // Ensure warning field exists (null if not set)
+    if (!recipe.warning) {
+      recipe.warning = null;
+    }
+
     console.log("✅ Recipe generated:", recipe.name);
+    if (recipe.warning) {
+      console.log("⚠️ Warning:", recipe.warning);
+    }
     res.json({success: true, recipe: recipe});
   } catch (error) {
     console.error("❌ Error generating AI recipe:", error);

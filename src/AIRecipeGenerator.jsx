@@ -88,11 +88,20 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
 
             <p className="recipe-description">{generatedRecipe.description}</p>
 
+            {generatedRecipe.warning && (
+              <div className="warning-box">
+                <strong>⚠️ Obs:</strong> {generatedRecipe.warning}
+              </div>
+            )}
+
             <div className="recipe-section">
               <h3>Ingredienser</h3>
               <ul>
                 {generatedRecipe.ingredients.map((ing, idx) => (
-                  <li key={idx}>{ing.amount} {ing.item}</li>
+                  <li key={idx} className={ing.optional ? 'optional-ingredient' : ''}>
+                    {ing.amount} {ing.item}
+                    {ing.optional && <span className="optional-badge">Valfri</span>}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -213,6 +222,21 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
             color: var(--text);
           }
 
+          .warning-box {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: #000;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 15px;
+            border-left: 4px solid #ff6f00;
+          }
+
+          .warning-box strong {
+            display: block;
+            margin-bottom: 4px;
+          }
+
           .recipe-section {
             margin-bottom: 28px;
           }
@@ -233,6 +257,23 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
             margin-bottom: 10px;
             line-height: 1.6;
             color: var(--text);
+          }
+
+          .optional-ingredient {
+            opacity: 0.8;
+            font-style: italic;
+          }
+
+          .optional-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            font-style: normal;
           }
 
           .nutrition-grid {
@@ -684,10 +725,17 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
         }
 
         @media (max-width: 768px) {
+          .ai-recipe-overlay {
+            padding: 12px;
+            align-items: flex-start;
+            overflow-y: auto;
+          }
+          
           .ai-recipe-modal {
-            max-width: 100%;
-            max-height: 100vh;
-            border-radius: 0;
+            max-width: 96%;
+            max-height: none;
+            margin: 20px auto;
+            border-radius: 16px;
           }
 
           .modal-header {
@@ -695,24 +743,47 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
           }
 
           .modal-header h2 {
-            font-size: 20px;
+            font-size: 19px;
+            padding-right: 36px;
+          }
+          
+          .close-btn {
+            font-size: 32px;
+            width: 40px;
+            height: 40px;
           }
 
           .generator-content {
             padding: 16px;
           }
+          
+          .section h3 {
+            font-size: 16px;
+          }
 
           .ingredient-grid {
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 8px;
+            gap: 10px;
           }
 
           .ingredient-card {
-            padding: 10px 12px;
+            padding: 10px;
           }
 
           .ingredient-name {
             font-size: 13px;
+          }
+          
+          .mode-option {
+            padding: 14px;
+          }
+          
+          .mode-content strong {
+            font-size: 14px;
+          }
+          
+          .mode-content span {
+            font-size: 12px;
           }
 
           .preferences-grid {
@@ -733,12 +804,13 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
           }
 
           .recipe-meta {
-            gap: 8px;
-            font-size: 12px;
+            gap: 10px;
+            font-size: 13px;
           }
 
           .nutrition-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
           }
         }
       `}</style>
