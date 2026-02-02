@@ -442,7 +442,7 @@ export async function hasFamilyPremiumBenefits() {
     }
   }
   
-  // Check if user is in a family and if family owner has Family Premium
+  // Check if user is in a family and if family has Family Premium
   try {
     // Import getFamilyData dynamically to avoid circular dependency
     const { getFamilyData } = await import('./familyService')
@@ -457,36 +457,27 @@ export async function hasFamilyPremiumBenefits() {
       }
     }
     
-    // Check Firebase for family members' premium status
-    const familyRef = ref(database, `families/${familyData.familyId}/members`)
-    const snap = await get(familyRef)
-    
-    if (snap.exists()) {
-      const members = snap.val()
-      
-      // Check each member for Family Premium
-      for (const memberId in members) {
-        const member = members[memberId]
-        
-        // Get member's premium status from Firebase
-        // Note: We need a userId to check premium, but members only have memberId
-        // This is a limitation - we'd need to store userId in member data
-        // For now, we'll check if family has a premium flag
-      }
-    }
-    
-    // Check if family itself has premium flag
+    // Check if family itself has premium flag (set when owner buys Family Premium)
     const familyPremiumRef = ref(database, `families/${familyData.familyId}/premium`)
     const familyPremiumSnap = await get(familyPremiumRef)
     
     if (familyPremiumSnap.exists()) {
       const familyPremium = familyPremiumSnap.val()
       
+      // Check if premium is active and not expired
       if (familyPremium.active && familyPremium.premiumType === 'family') {
-        return {
-          hasBenefits: true,
-          source: 'family',
-          type: 'family'
+        // Check expiry
+        if (familyPremium.premiumUntil) {
+          const expiryTime = new Date(familyPremium.premiumUntil).getTime()
+          const now = Date.now()
+          
+          if (now < expiryTime) {
+            return {
+              hasBenefits: true,
+              source: 'family',
+              type: 'family'
+            }
+          }
         }
       }
     }

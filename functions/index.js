@@ -330,26 +330,49 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         // If user bought Family Premium, set premium on their family
         if (finalPremiumType === "family") {
           try {
-            // Find user's family
+            // Find user's family by searching all families for this userId
             const familiesRef = admin.database().ref("families");
-            const familySnapshot = await familiesRef.orderByChild(`members/${userId}`).once("value");
+            const familiesSnapshot = await familiesRef.once("value");
 
-            if (familySnapshot.exists()) {
-              // User is in a family - set family premium
-              const families = familySnapshot.val();
-              const familyId = Object.keys(families)[0];
+            if (familiesSnapshot.exists()) {
+              const families = familiesSnapshot.val();
+              let userFamilyId = null;
 
-              const familyPremiumRef = admin.database().ref(`families/${familyId}/premium`);
-              await familyPremiumRef.set({
-                active: true,
-                premiumType: "family",
-                premiumUntil: expiryDate.toISOString(),
-                source: "stripe",
-                ownerId: userId,
-                lastUpdated: new Date().toISOString(),
-              });
+              // Search through all families for this userId
+              for (const familyId in families) {
+                if (Object.prototype.hasOwnProperty.call(families, familyId)) {
+                  const family = families[familyId];
+                  if (family.members) {
+                    for (const memberId in family.members) {
+                      if (Object.prototype.hasOwnProperty.call(family.members, memberId)) {
+                        const member = family.members[memberId];
+                        if (member.userId === userId) {
+                          userFamilyId = familyId;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  if (userFamilyId) break;
+                }
+              }
 
-              console.log("✅ Family premium activated for family:", familyId);
+              if (userFamilyId) {
+                // User is in a family - set family premium
+                const familyPremiumRef = admin.database().ref(`families/${userFamilyId}/premium`);
+                await familyPremiumRef.set({
+                  active: true,
+                  premiumType: "family",
+                  premiumUntil: expiryDate.toISOString(),
+                  source: "stripe",
+                  ownerId: userId,
+                  lastUpdated: new Date().toISOString(),
+                });
+
+                console.log("✅ Family premium activated for family:", userFamilyId);
+              } else {
+                console.log("ℹ️ User bought Family Premium but is not in a family yet");
+              }
             }
           } catch (familyError) {
             console.error("❌ Failed to set family premium:", familyError);

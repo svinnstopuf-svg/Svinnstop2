@@ -1,7 +1,7 @@
 // Family Sharing Service - Collaborative Food Inventory
 // Allows families to share and sync their food inventory
 
-import { database } from './firebaseConfig'
+import { database, auth } from './firebaseConfig'
 import { ref, set, get, onValue, update, push, child } from 'firebase/database'
 
 const STORAGE_KEY = 'svinnstop_family_data'
@@ -78,6 +78,7 @@ export async function createFamily(familyName, creatorName) {
 
   const memberId = `member_${Date.now()}`
   const now = new Date().toISOString()
+  const userId = auth.currentUser?.uid || null
 
   // Skriv till Firebase
   const familyRef = ref(database, `families/${familyId}`)
@@ -91,6 +92,7 @@ export async function createFamily(familyName, creatorName) {
     members: {
       [memberId]: {
         id: memberId,
+        userId: userId,
         name: creatorName,
         role: ROLES.OWNER,
         joinedAt: now
@@ -169,12 +171,14 @@ export async function joinFamily(familyCode, memberName) {
 
   const memberId = `member_${Date.now()}`
   const now = new Date().toISOString()
+  const userId = auth.currentUser?.uid || null
 
   // Lägg till medlem i familj i Firebase
   const memberRef = ref(database, `families/${familyId}/members/${memberId}`)
   try {
     await set(memberRef, {
       id: memberId,
+      userId: userId,
       name: memberName,
       role: ROLES.MEMBER,
       joinedAt: now
