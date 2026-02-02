@@ -170,6 +170,27 @@ export default function FamilySharing({ items, onFamilyChange }) {
       })
     }
   }
+  
+  async function handleTransferOwnership(memberId, memberName) {
+    const confirmed = confirm(`Är du säker på att du vill överföra ägande till ${memberName}?\n\nDu kommer bli vanlig medlem och ${memberName} blir ny ägare.`)
+    
+    if (!confirmed) return
+    
+    const result = await familyService.transferOwnership(memberId)
+    
+    if (result.success) {
+      setMessage({
+        type: 'success',
+        text: result.message
+      })
+      loadFamilyData()
+    } else {
+      setMessage({
+        type: 'error',
+        text: `❌ ${result.error}`
+      })
+    }
+  }
 
   function handleManualSync() {
     const result = familyService.syncItems(items)
@@ -455,13 +476,24 @@ export default function FamilySharing({ items, onFamilyChange }) {
                   </div>
 
                   {!member.isMe && (isOwner || familyData.myRole === ROLES.ADMIN) && (
-                    <button
-                      className="remove-member-btn"
-                      onClick={() => handleRemoveMember(member.id)}
-                      title="Ta bort medlem"
-                    >
-                      🗑️
-                    </button>
+                    <div className="member-actions">
+                      {isOwner && (
+                        <button
+                          className="transfer-owner-btn"
+                          onClick={() => handleTransferOwnership(member.id, member.name)}
+                          title="Överför ägande"
+                        >
+                          👑
+                        </button>
+                      )}
+                      <button
+                        className="remove-member-btn"
+                        onClick={() => handleRemoveMember(member.id)}
+                        title="Ta bort medlem"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

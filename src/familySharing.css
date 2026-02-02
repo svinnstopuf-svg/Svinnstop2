@@ -551,6 +551,29 @@ input:checked + .slider:before {
   color: var(--text-secondary);
 }
 
+.member-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.transfer-owner-btn {
+  background: rgba(255, 193, 7, 0.1);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.transfer-owner-btn:hover {
+  background: rgba(255, 193, 7, 0.2);
+  transform: scale(1.1);
+}
+
 .remove-member-btn {
   background: rgba(244, 67, 54, 0.1);
   border: none;

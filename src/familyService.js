@@ -341,6 +341,66 @@ export function syncItems(localItems) {
   }
 }
 
+// Överför ägande till annan medlem (endast owner)
+export async function transferOwnership(newOwnerMemberId) {
+  const data = getFamilyData()
+
+  if (!data.familyId) {
+    return { success: false, error: 'Du är inte medlem i någon grupp' }
+  }
+
+  if (data.myRole !== ROLES.OWNER) {
+    return { 
+      success: false, 
+      error: 'Endast ägaren kan överföra ägande' 
+    }
+  }
+
+  const newOwner = data.members.find(m => m.id === newOwnerMemberId)
+  
+  if (!newOwner) {
+    return { success: false, error: 'Medlem hittades inte' }
+  }
+
+  if (newOwner.isMe) {
+    return { success: false, error: 'Du är redan ägare' }
+  }
+
+  try {
+    // Uppdatera roller i Firebase
+    const myMemberRef = ref(database, `families/${data.familyId}/members/${data.myMemberId}`)
+    const newOwnerRef = ref(database, `families/${data.familyId}/members/${newOwnerMemberId}`)
+
+    // Sätt mig till member
+    await update(myMemberRef, { role: ROLES.MEMBER })
+    // Sätt ny medlem till owner
+    await update(newOwnerRef, { role: ROLES.OWNER })
+
+    // Uppdatera lokalt
+    data.myRole = ROLES.MEMBER
+    data.members = data.members.map(m => {
+      if (m.id === data.myMemberId) {
+        return { ...m, role: ROLES.MEMBER }
+      }
+      if (m.id === newOwnerMemberId) {
+        return { ...m, role: ROLES.OWNER }
+      }
+      return m
+    })
+    saveFamilyData(data)
+
+    console.log('✅ Firebase: Ownership transferred successfully')
+
+    return {
+      success: true,
+      message: `${newOwner.name} är nu ägare av gruppen`
+    }
+  } catch (error) {
+    console.error('❌ Firebase: Failed to transfer ownership', error)
+    return { success: false, error: 'Kunde inte överföra ägande. Försök igen.' }
+  }
+}
+
 // Ta bort medlem (endast owner/admin)
 export function removeMember(memberId) {
   const data = getFamilyData()
@@ -425,6 +485,7 @@ export const familyService = {
   createFamily,
   joinFamily,
   leaveFamily,
+  transferOwnership,
   toggleSync,
   startMemberSync,
   isInFamily,
