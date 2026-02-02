@@ -1,7 +1,19 @@
 // Firebase Configuration for Svinnstop
 import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth'
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  linkWithCredential,
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 
 // TEMPORARY CONFIG - MÅSTE BYTAS UT MOT DIN EGEN FIREBASE CONFIG
@@ -82,5 +94,17 @@ export function callFunction(functionName) {
   return httpsCallable(functions, functionName)
 }
 
-export { database, auth, functions }
+export { 
+  database, 
+  auth, 
+  functions,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  linkWithCredential,
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
+}
 export default app

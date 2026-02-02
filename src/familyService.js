@@ -122,6 +122,35 @@ export async function createFamily(familyName, creatorName) {
   data.createdAt = now
 
   saveFamilyData(data)
+  
+  // FIX: Check if creator has Family Premium - set it on the family
+  try {
+    if (userId) {
+      const userPremiumRef = ref(database, `users/${userId}/premium`)
+      const userPremiumSnap = await get(userPremiumRef)
+      
+      if (userPremiumSnap.exists()) {
+        const userPremium = userPremiumSnap.val()
+        
+        // If user has active Family Premium, set it on the family
+        if (userPremium.active && userPremium.premiumType === 'family') {
+          const familyPremiumRef = ref(database, `families/${familyId}/premium`)
+          await set(familyPremiumRef, {
+            active: true,
+            premiumType: 'family',
+            premiumUntil: userPremium.premiumUntil,
+            source: userPremium.source || 'stripe',
+            ownerId: userId,
+            lastUpdated: new Date().toISOString()
+          })
+          console.log('✅ Family Premium set on newly created family')
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to set Family Premium on family:', error)
+    // Don't fail the create operation - just log the error
+  }
 
   return { success: true, familyCode, familyName }
 }
@@ -214,12 +243,41 @@ export async function joinFamily(familyCode, memberName) {
   data.invitePending = false
 
   saveFamilyData(data)
+  
+  // FIX: Check if joining user has Family Premium - propagate to family
+  try {
+    if (userId) {
+      const userPremiumRef = ref(database, `users/${userId}/premium`)
+      const userPremiumSnap = await get(userPremiumRef)
+      
+      if (userPremiumSnap.exists()) {
+        const userPremium = userPremiumSnap.val()
+        
+        // If user has active Family Premium, set it on the family
+        if (userPremium.active && userPremium.premiumType === 'family') {
+          const familyPremiumRef = ref(database, `families/${familyId}/premium`)
+          await set(familyPremiumRef, {
+            active: true,
+            premiumType: 'family',
+            premiumUntil: userPremium.premiumUntil,
+            source: userPremium.source || 'stripe',
+            ownerId: userId,
+            lastUpdated: new Date().toISOString()
+          })
+          console.log('✅ Family Premium propagated to family from joining member')
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to propagate Family Premium to family:', error)
+    // Don't fail the join operation - just log the error
+  }
 
   return { success: true, familyName, familyCode: uppercaseCode }
 }
 
 // Lämna familjegruppen
-export function leaveFamily() {
+export async function leaveFamily() {
   const data = getFamilyData()
 
   if (!data.familyId) {
@@ -234,12 +292,37 @@ export function leaveFamily() {
     }
   }
 
-  // Återställ till default
+  // FIX: Ta bort medlem från Firebase först
+  const familyId = data.familyId
+  const myMemberId = data.myMemberId
+  
+  try {
+    // Ta bort medlemmen från Firebase
+    const memberRef = ref(database, `families/${familyId}/members/${myMemberId}`)
+    await set(memberRef, null) // Sätt till null för att ta bort
+    console.log('✅ Firebase: Member removed successfully')
+    
+    // Om detta var sista medlemmen OCH owner, ta bort hela familjen
+    if (data.myRole === ROLES.OWNER && data.members.length <= 1) {
+      // Ta bort familj och kod
+      const familyRef = ref(database, `families/${familyId}`)
+      const codeRef = ref(database, `codes/${data.familyCode}`)
+      await set(familyRef, null)
+      await set(codeRef, null)
+      console.log('✅ Firebase: Family deleted (last member left)')
+    }
+  } catch (error) {
+    console.error('❌ Firebase: Failed to remove member', error)
+    return { success: false, error: 'Kunde inte lämna familjegrupp. Försök igen.' }
+  }
+
+  // Återställ till default EFTER Firebase-ändring
   const resetData = {
     familyId: null,
     familyCode: null,
     familyName: null,
     myRole: null,
+    myMemberId: null,
     members: [],
     invitePending: false,
     syncEnabled: false,
@@ -270,6 +353,42 @@ export function startMemberSync(callback) {
     const d = getFamilyData()
     const myMemberId = d.myMemberId
     
+    // FIX: Kolla om jag har blivit borttagen från familjen
+    const iAmStillMember = members.some(m => m.id === myMemberId)
+    
+    if (!iAmStillMember && myMemberId) {
+      console.log('⚠️ You have been removed from the family')
+      
+      // Återställ till default (jag är inte längre medlem)
+      const resetData = {
+        familyId: null,
+        familyCode: null,
+        familyName: null,
+        myRole: null,
+        myMemberId: null,
+        members: [],
+        invitePending: false,
+        syncEnabled: false,
+        lastSyncAt: null,
+        createdAt: null
+      }
+      saveFamilyData(resetData)
+      
+      // Triggra callback med tom lista för att uppdatera UI
+      if (callback) {
+        callback([])
+      }
+      
+      // Reloada sidan för att rensa alla listeners och states
+      setTimeout(() => {
+        alert('⚠️ Du har tagits bort från familjegruppen')
+        window.location.reload()
+      }, 100)
+      
+      return
+    }
+    
+    // Normal uppdatering av medlemslista
     d.members = members.map(m => ({ ...m, isMe: m.id === myMemberId }))
     d.lastSyncAt = new Date().toISOString()
     saveFamilyData(d)
@@ -402,7 +521,7 @@ export async function transferOwnership(newOwnerMemberId) {
 }
 
 // Ta bort medlem (endast owner/admin)
-export function removeMember(memberId) {
+export async function removeMember(memberId) {
   const data = getFamilyData()
 
   if (!data.familyId) {
@@ -428,6 +547,17 @@ export function removeMember(memberId) {
     return { success: false, error: 'Du kan inte ta bort dig själv' }
   }
 
+  // FIX: Ta bort medlem från Firebase
+  try {
+    const memberRef = ref(database, `families/${data.familyId}/members/${memberId}`)
+    await set(memberRef, null)
+    console.log('✅ Firebase: Member removed successfully')
+  } catch (error) {
+    console.error('❌ Firebase: Failed to remove member', error)
+    return { success: false, error: 'Kunde inte ta bort medlem. Försök igen.' }
+  }
+
+  // Uppdatera lokalt EFTER Firebase-ändring
   data.members.splice(memberIndex, 1)
   saveFamilyData(data)
 

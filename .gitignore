@@ -8,3 +8,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Firebase Admin SDK
+serviceAccountKey.json
+Serviceaccountkey.son.txt
+users.json

@@ -60,7 +60,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             )}
             
             {/* Visa Family Upgrade om användaren har Individual Premium */}
-            {premiumStatus.premiumType === 'individual' && (
+            {premiumStatus.premiumType === 'individual' && !showStripeCheckout && (
               <div className="family-upgrade-offer">
                 <h3>Uppgradera till Family Premium?</h3>
                 <p>{familyPricing.description}</p>
@@ -77,6 +77,14 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
                   Uppgradera till Family
                 </button>
               </div>
+            )}
+            
+            {/* Stripe Checkout för Family Upgrade */}
+            {showStripeCheckout && premiumStatus.premiumType === 'individual' && (
+              <StripeCheckout
+                premiumType="family_upgrade"
+                onClose={() => setShowStripeCheckout(false)}
+              />
             )}
             
             <div className="premium-features-active">

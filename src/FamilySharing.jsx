@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { familyService, ROLES } from './familyService'
+import { refreshFamilyPremiumCache } from './familyPremiumSync'
 import './familySharing.css'
 
 export default function FamilySharing({ items, onFamilyChange }) {
@@ -52,6 +53,11 @@ export default function FamilySharing({ items, onFamilyChange }) {
       if (onFamilyChange) {
         onFamilyChange()
       }
+      
+      // Uppdatera family premium cache
+      refreshFamilyPremiumCache()
+        .then(() => console.log('✅ Family premium cache refreshed after create'))
+        .catch(err => console.warn('⚠️ Could not refresh family premium cache:', err))
     } else {
       setMessage({
         type: 'error',
@@ -81,6 +87,20 @@ export default function FamilySharing({ items, onFamilyChange }) {
       if (onFamilyChange) {
         onFamilyChange()
       }
+      
+      // Uppdatera family premium cache och kolla om familjen har premium
+      refreshFamilyPremiumCache()
+        .then((benefits) => {
+          console.log('✅ Family premium cache refreshed after join')
+          
+          // Visa meddelande om familjen har Family Premium
+          if (benefits && benefits.hasBenefits && benefits.source === 'family') {
+            setTimeout(() => {
+              alert('🎉 Välkommen till familjen!\n\n✨ Familjen har Family Premium!\n\nDu har nu tillgång till alla premium-funktioner:\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ AI-receptgenerator\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+            }, 500)
+          }
+        })
+        .catch(err => console.warn('⚠️ Could not refresh family premium cache:', err))
     } else {
       setMessage({
         type: 'error',
@@ -89,11 +109,11 @@ export default function FamilySharing({ items, onFamilyChange }) {
     }
   }
 
-  function handleLeaveFamily() {
+  async function handleLeaveFamily() {
     const confirmed = confirm('Är du säker på att du vill lämna familjegruppen?')
     
     if (confirmed) {
-      const result = familyService.leaveFamily()
+      const result = await familyService.leaveFamily()
       
       if (result.success) {
         setMessage({
@@ -101,6 +121,11 @@ export default function FamilySharing({ items, onFamilyChange }) {
           text: '✅ Du har lämnat familjegruppen'
         })
         loadFamilyData()
+        
+        // FIX: Trigga Firebase sync cleanup
+        if (onFamilyChange) {
+          onFamilyChange()
+        }
       } else {
         setMessage({
           type: 'error',
@@ -154,8 +179,8 @@ export default function FamilySharing({ items, onFamilyChange }) {
     }
   }
 
-  function handleRemoveMember(memberId) {
-    const result = familyService.removeMember(memberId)
+  async function handleRemoveMember(memberId) {
+    const result = await familyService.removeMember(memberId)
     
     if (result.success) {
       setMessage({
@@ -172,10 +197,6 @@ export default function FamilySharing({ items, onFamilyChange }) {
   }
   
   async function handleTransferOwnership(memberId, memberName) {
-    const confirmed = confirm(`Är du säker på att du vill överföra ägande till ${memberName}?\n\nDu kommer bli vanlig medlem och ${memberName} blir ny ägare.`)
-    
-    if (!confirmed) return
-    
     const result = await familyService.transferOwnership(memberId)
     
     if (result.success) {
@@ -454,7 +475,24 @@ export default function FamilySharing({ items, onFamilyChange }) {
 
             <div className="members-list">
               {familyData.members.map(member => (
-                <div key={member.id} className="member-card">
+                <div 
+                  key={member.id} 
+                  className={`member-card ${!member.isMe && isOwner ? 'clickable' : ''}`}
+                  onClick={() => {
+                    if (!member.isMe && isOwner) {
+                      // Show transfer ownership option
+                      const shouldTransfer = confirm(
+                        `${member.name}\n\n` +
+                        `Roll: ${member.role === ROLES.OWNER ? 'Ägare' : member.role === ROLES.ADMIN ? 'Admin' : 'Medlem'}\n\n` +
+                        `Vill du överföra ägandet till ${member.name}?\n\n` +
+                        `Du kommer bli vanlig medlem och ${member.name} blir ny ägare.`
+                      )
+                      if (shouldTransfer) {
+                        handleTransferOwnership(member.id, member.name)
+                      }
+                    }
+                  }}
+                >
                   <div className="member-info">
                     <div className="member-avatar">
                       {member.role === ROLES.OWNER && '👑'}
@@ -476,24 +514,16 @@ export default function FamilySharing({ items, onFamilyChange }) {
                   </div>
 
                   {!member.isMe && (isOwner || familyData.myRole === ROLES.ADMIN) && (
-                    <div className="member-actions">
-                      {isOwner && (
-                        <button
-                          className="transfer-owner-btn"
-                          onClick={() => handleTransferOwnership(member.id, member.name)}
-                          title="Överför ägande"
-                        >
-                          👑
-                        </button>
-                      )}
-                      <button
-                        className="remove-member-btn"
-                        onClick={() => handleRemoveMember(member.id)}
-                        title="Ta bort medlem"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                    <button
+                      className="remove-member-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRemoveMember(member.id)
+                      }}
+                      title="Ta bort medlem"
+                    >
+                      🗑️
+                    </button>
                   )}
                 </div>
               ))}

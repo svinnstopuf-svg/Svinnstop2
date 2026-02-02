@@ -650,3 +650,7 @@ Om ingredienserna är otillräckliga för en hel måltid, ` +
     res.status(500).json({error: error.message || "Failed to generate recipe"});
   }
 });
+
+// ============= CLEANUP FUNCTIONS =============
+const {cleanPremiumData} = require("./cleanPremium");
+exports.cleanPremiumData = cleanPremiumData;

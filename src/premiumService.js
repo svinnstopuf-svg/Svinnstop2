@@ -355,6 +355,59 @@ export function listenToPremiumChanges(callback) {
   })
 }
 
+// Lyssna på family premium-ändringar från Firebase (realtid)
+export async function listenToFamilyPremiumChanges(callback) {
+  try {
+    // Import getFamilyData dynamically to avoid circular dependency
+    const { getFamilyData } = await import('./familyService')
+    const familyData = getFamilyData()
+    
+    if (!familyData.familyId) {
+      console.log('ℹ️ Not in a family - cannot listen to family premium')
+      return null
+    }
+    
+    const familyPremiumRef = ref(database, `families/${familyData.familyId}/premium`)
+    return onValue(familyPremiumRef, (snap) => {
+      const familyPremium = snap.val()
+      
+      // Update localStorage cache
+      const cache = {
+        active: familyPremium?.active && familyPremium?.premiumType === 'family' || false,
+        timestamp: Date.now()
+      }
+      
+      // Check expiry if exists
+      if (familyPremium?.premiumUntil) {
+        const expiryTime = new Date(familyPremium.premiumUntil).getTime()
+        const now = Date.now()
+        if (now >= expiryTime) {
+          cache.active = false
+        }
+      }
+      
+      localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify(cache))
+      
+      if (cache.active) {
+        console.log('👨‍👩‍👧‍👦 Firebase: Family Premium activated - benefits granted')
+      } else {
+        console.log('ℹ️ Firebase: Family Premium deactivated or expired')
+      }
+      
+      if (callback) {
+        callback({
+          hasBenefits: cache.active,
+          source: cache.active ? 'family' : null,
+          type: cache.active ? 'family' : null
+        })
+      }
+    })
+  } catch (error) {
+    console.error('❌ Failed to setup family premium listener:', error)
+    return null
+  }
+}
+
 // Kontrollera och synka premium från Firebase vid app-start
 export async function syncPremiumFromFirebase() {
   const user = auth.currentUser
@@ -545,6 +598,7 @@ export const premiumService = {
   deactivatePremium,
   syncPremiumToFirebase,
   listenToPremiumChanges,
+  listenToFamilyPremiumChanges,
   syncPremiumFromFirebase,
   checkPremiumExpiry,
   getDaysLeftOfPremium,

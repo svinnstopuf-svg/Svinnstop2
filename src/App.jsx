@@ -15,6 +15,7 @@ import Leaderboard from './Leaderboard'
 import ConfirmDialog from './ConfirmDialog'
 import UpgradeModal from './UpgradeModal'
 import PremiumFeature from './PremiumFeature'
+import AuthModal from './components/AuthModal'
 import AdBanner from './AdBanner'
 import AIRecipeGenerator from './AIRecipeGenerator'
 import { getSavedAIRecipes, deleteAIRecipe } from './aiRecipeService'
@@ -27,7 +28,7 @@ import { savingsTracker } from './savingsTracker'
 import { achievementService } from './achievementService'
 import { syncInventoryToFirebase, listenToInventoryChanges } from './inventorySync'
 import { getFamilyData } from './familyService'
-import { initAuth } from './firebaseConfig'
+import { initAuth, auth, signOut } from './firebaseConfig'
 import { referralService } from './referralService'
 import { premiumService } from './premiumService'
 import { leaderboardService } from './leaderboardService'
@@ -262,6 +263,8 @@ export default function App() {
   const [showAIRecipeGenerator, setShowAIRecipeGenerator] = useState(false) // AI Recipe Generator modal
   const [savedAIRecipes, setSavedAIRecipes] = useState([]) // Sparade AI-recept
   const [selectedSavedRecipe, setSelectedSavedRecipe] = useState(null) // Valt sparat recept att visa
+  const [showAuthModal, setShowAuthModal] = useState(false) // Email/password authentication modal
+  const [authModalMode, setAuthModalMode] = useState('login') // 'login' eller 'signup'
   
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
@@ -406,11 +409,16 @@ export default function App() {
     
     // Visa success-meddelande om betalning lyckades
     if (paymentStatus === 'success') {
+      // Rensa URL direkt (förhindrar loop)
+      window.history.replaceState({}, document.title, '/')
+      
       setTimeout(() => {
-        alert('🎉 Välkommen till Premium!\n\nDin prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
-        // Rensa URL och reloada sidan för att visa nya privilegier
-        window.history.replaceState({}, document.title, '/')
-        window.location.reload()
+        alert('🎉 Välkommen till Premium!\n\nDin prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ AI-receptgenerator\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+        
+        // FIX: Vänta på Firebase sync innan reload (förhindrar vit skärm)
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
       }, 500)
     } else if (paymentStatus === 'cancelled') {
       setTimeout(() => {
@@ -419,35 +427,27 @@ export default function App() {
       }, 500)
     }
     
-    // Kolla om användaren har sett guiden
+    // FIX: Prioritera sparad tab för att behålla position vid refresh
+    // Kolla först om användaren har en sparad tab (högsta prioritet vid refresh)
+    const savedTab = localStorage.getItem('svinnstop_active_tab')
     const hasSeenGuide = localStorage.getItem('svinnstop_guide_seen')
     
     if (!hasSeenGuide) {
       // Första gången - visa välkomstdialog
       setShowGuideWelcome(true)
       setActiveTab('inventory') // Sätt till inventory-fliken
-    } else if (hasReferralCode) {
-      // Inte första gången, men har referral-kod i URL
-      const hasVisitedReferral = localStorage.getItem('svinnstop_referral_visited')
-      
-      if (!hasVisitedReferral) {
-        // Första gången med referral-kod (men efter onboarding)
-        console.log('🎁 First time referral code detected, navigating to referral tab')
-        setActiveTab('referral')
-        localStorage.setItem('svinnstop_referral_visited', 'true')
-      } else {
-        // Har redan besökt referral-fliken, gå till kylskåp
-        console.log('✅ Referral already visited, going to default tab')
-        setActiveTab('inventory')
-      }
+    } else if (hasReferralCode && !localStorage.getItem('svinnstop_referral_visited')) {
+      // Första gången med referral-kod (men efter onboarding)
+      console.log('🎁 First time referral code detected, navigating to referral tab')
+      setActiveTab('referral')
+      localStorage.setItem('svinnstop_referral_visited', 'true')
+    } else if (savedTab && ['shopping', 'inventory', 'recipes', 'profile', 'family', 'achievements', 'savings', 'referral', 'leaderboard'].includes(savedTab)) {
+      // Ladda senaste aktiva tab (fungerar även vid refresh)
+      console.log('✅ Restoring saved tab:', savedTab)
+      setActiveTab(savedTab)
     } else {
-      // Ladda senaste aktiva tab
-      const savedTab = localStorage.getItem('svinnstop_active_tab')
-      if (savedTab && ['shopping', 'inventory', 'recipes', 'profile'].includes(savedTab)) {
-        setActiveTab(savedTab)
-      } else {
-        setActiveTab('inventory') // Default till kylskåp
-      }
+      // Default till kylskåp om ingen sparad tab finns
+      setActiveTab('inventory')
     }
     
     
@@ -511,27 +511,37 @@ export default function App() {
     setSavedAIRecipes(recipes)
   }, [])
   
-  // Synka family premium status till localStorage cache
+  // Lyssna på reopen auth modal event
   useEffect(() => {
+    const handleReopenAuthModal = (event) => {
+      const { mode } = event.detail
+      console.log('🔄 Reopening auth modal with mode:', mode)
+      setAuthModalMode(mode)
+      setShowAuthModal(true)
+    }
+    
+    window.addEventListener('reopenAuthModal', handleReopenAuthModal)
+    return () => window.removeEventListener('reopenAuthModal', handleReopenAuthModal)
+  }, [])
+  
+  // Synka family premium status till localStorage cache OCH starta listener
+  useEffect(() => {
+    const familyData = getFamilyData()
+    
+    if (!familyData.familyId) {
+      // Inte i en familj - rensa cache
+      localStorage.removeItem('svinnstop_family_premium_cache')
+      return
+    }
+    
+    // Initial sync
     const syncFamilyPremiumCache = async () => {
-      const familyData = getFamilyData()
-      
-      if (!familyData.familyId) {
-        // Inte i en familj - rensa cache
-        localStorage.removeItem('svinnstop_family_premium_cache')
-        return
-      }
-      
       try {
-        // Anropa den asynkrona funktionen
         const benefits = await premiumService.hasFamilyPremiumBenefits()
-        
-        // Uppdatera cache
         const cache = {
           active: benefits.hasBenefits && benefits.source === 'family',
           timestamp: Date.now()
         }
-        
         localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify(cache))
         
         if (benefits.hasBenefits && benefits.source === 'family') {
@@ -542,13 +552,43 @@ export default function App() {
       }
     }
     
-    // Synka nu
     syncFamilyPremiumCache()
     
-    // Synka varje 5 minuter
+    // FIX: Starta Firebase listener för family premium (realtime)
+    let unsubscribeFamilyPremium = null
+    let previousPremiumState = null // Track previous state to detect changes
+    
+    premiumService.listenToFamilyPremiumChanges((benefits) => {
+      console.log('🔥 Family Premium realtime update:', benefits)
+      
+      // Visa notifikation om familjen får premium (från inget premium till premium)
+      if (previousPremiumState !== null && 
+          !previousPremiumState.hasBenefits && 
+          benefits.hasBenefits && 
+          benefits.source === 'family') {
+        setTimeout(() => {
+          alert('🎉 Familjen har nu Family Premium!\n\n✨ Ny medlem med Family Premium har gått med!\n\nDu har nu tillgång till alla premium-funktioner:\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ AI-receptgenerator\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+        }, 500)
+      }
+      
+      previousPremiumState = benefits
+    }).then(unsub => {
+      unsubscribeFamilyPremium = unsub
+      console.log('✅ Family Premium listener started')
+    }).catch(err => {
+      console.warn('⚠️ Could not setup family premium listener:', err)
+    })
+    
+    // Synka varje 5 minuter (backup)
     const interval = setInterval(syncFamilyPremiumCache, 5 * 60 * 1000)
     
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      if (unsubscribeFamilyPremium) {
+        console.log('👋 Stopping family premium listener')
+        unsubscribeFamilyPremium()
+      }
+    }
   }, [familySyncTrigger])
   
   // Setup custom expiry rules sync callback
@@ -1822,24 +1862,8 @@ export default function App() {
     setShowNotificationPrompt(false)
   }
 
-  // Visa loading-skärm tills Firebase auth är klar
-  if (!isAuthReady) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'var(--bg)',
-        color: 'var(--text)'
-      }}>
-        <h1 style={{marginBottom: '20px'}} className="notranslate">Svinnstop</h1>
-        <div style={{fontSize: '40px', marginBottom: '20px'}}>🔐</div>
-        <p>Loggar in...</p>
-      </div>
-    )
-  }
+  // REMOVED: Visa appen direkt istället för att vänta på auth
+  // Auth körs i bakgrunden och uppdaterar state när den är klar
 
   return (
     <>
@@ -2665,10 +2689,107 @@ export default function App() {
                 <h2>Profil & Inställningar</h2>
                 <p className="card-subtitle">Hantera ditt konto och appinställningar</p>
               </div>
-              
-              {/* Snabblänkar till huvudfunktioner */}
+
+              {/* Mitt Konto - sektion */}
+              <div style={{
+                padding: '16px',
+                marginBottom: '16px',
+                backgroundColor: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px'
+              }}>
+                <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: '600' }}>Mitt Konto</h3>
+                {auth?.currentUser && !auth.currentUser.isAnonymous ? (
+                  <>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      marginBottom: '12px',
+                      padding: '12px',
+                      backgroundColor: 'var(--bg-primary)',
+                      borderRadius: '8px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>👤</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
+                          {auth.currentUser.email}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          Inloggad med email
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => {
+                          setAuthModalMode('reset')
+                          setShowAuthModal(true)
+                        }}
+                        style={{ flex: 1, fontSize: '14px' }}
+                      >
+                        Byt lösenord
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={async () => {
+                          if (window.confirm('Är du säker på att du vill logga ut?')) {
+                            try {
+                              await signOut(auth)
+                              console.log('✅ Logged out')
+                              alert('Du har loggats ut. Dina lokala data finns kvar och du kan logga in igen när som helst.')
+                              window.location.reload()
+                            } catch (error) {
+                              console.error('❌ Logout error:', error)
+                              alert('Kunde inte logga ut. Försök igen.')
+                            }
+                          }
+                        }}
+                        style={{ flex: 1, fontSize: '14px' }}
+                      >
+                        Logga ut
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                      Du använder ett anonymt konto. Skapa ett konto för att kunna logga in på flera enheter och få kvitton via email.
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          console.log('👉 Skapa konto clicked')
+                          setAuthModalMode('signup')
+                          setShowAuthModal(true)
+                          console.log('showAuthModal set to true, mode: signup')
+                        }}
+                        style={{ flex: 1 }}
+                      >
+                        Skapa konto
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => {
+                          console.log('👉 Logga in clicked')
+                          setAuthModalMode('login')
+                          setShowAuthModal(true)
+                          console.log('showAuthModal set to true, mode: login')
+                        }}
+                        style={{ flex: 1 }}
+                      >
+                        Logga in
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Snabblinkar till huvudfunktioner */}
               <div className="profile-menu">
-                {!hasAnyPremium() && (
+                {!hasAnyPremium() ? (
                   <button
                     className="profile-menu-item premium-highlight"
                     onClick={() => setShowUpgradeModal(true)}
@@ -2680,6 +2801,30 @@ export default function App() {
                     </div>
                     <span className="menu-arrow">›</span>
                   </button>
+                ) : (
+                  // Visa Family Premium upgrade ENDAST för användare med Individual Premium (inte family benefits)
+                  (() => {
+                    const premiumStatus = premiumService.getPremiumStatus()
+                    // Kolla om användaren har Individual Premium (inte family premium eller family benefits)
+                    const hasIndividualPremium = premiumStatus.active && premiumStatus.premiumType === 'individual'
+                    
+                    if (hasIndividualPremium) {
+                      return (
+                        <button
+                          className="profile-menu-item premium-highlight"
+                          onClick={() => setShowUpgradeModal(true)}
+                        >
+                          <span className="menu-icon">👨‍👩‍👧‍👦</span>
+                          <div className="menu-content">
+                            <span className="menu-title">Uppgradera till Family Premium</span>
+                            <span className="menu-description">Dela premium med familjen för +20 kr/mån</span>
+                          </div>
+                          <span className="menu-arrow">›</span>
+                        </button>
+                      )
+                    }
+                    return null
+                  })()
                 )}
                 
                 <button
@@ -2971,6 +3116,12 @@ export default function App() {
         setShowUpgradeModal(false)
         setActiveTab('referral')
       }}
+    />
+    
+    <AuthModal
+      isOpen={showAuthModal}
+      onClose={() => setShowAuthModal(false)}
+      mode={authModalMode}
     />
     
     {showAIRecipeGenerator && (
