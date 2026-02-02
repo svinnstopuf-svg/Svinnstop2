@@ -431,7 +431,7 @@ export function getDaysLeftOfPremium() {
 }
 
 // Check if user or their family has premium (Netflix model)
-export function hasFamilyPremiumBenefits() {
+export async function hasFamilyPremiumBenefits() {
   // First check own premium
   if (isPremiumActive()) {
     const status = getPremiumStatus()
@@ -442,8 +442,98 @@ export function hasFamilyPremiumBenefits() {
     }
   }
   
-  // TODO: Check if any family member has Family premium
-  // This will be implemented when we integrate with FamilySharing
+  // Check if user is in a family and if family owner has Family Premium
+  try {
+    // Import getFamilyData dynamically to avoid circular dependency
+    const { getFamilyData } = await import('./familyService')
+    const familyData = getFamilyData()
+    
+    if (!familyData.familyId) {
+      // Not in a family
+      return {
+        hasBenefits: false,
+        source: null,
+        type: null
+      }
+    }
+    
+    // Check Firebase for family members' premium status
+    const familyRef = ref(database, `families/${familyData.familyId}/members`)
+    const snap = await get(familyRef)
+    
+    if (snap.exists()) {
+      const members = snap.val()
+      
+      // Check each member for Family Premium
+      for (const memberId in members) {
+        const member = members[memberId]
+        
+        // Get member's premium status from Firebase
+        // Note: We need a userId to check premium, but members only have memberId
+        // This is a limitation - we'd need to store userId in member data
+        // For now, we'll check if family has a premium flag
+      }
+    }
+    
+    // Check if family itself has premium flag
+    const familyPremiumRef = ref(database, `families/${familyData.familyId}/premium`)
+    const familyPremiumSnap = await get(familyPremiumRef)
+    
+    if (familyPremiumSnap.exists()) {
+      const familyPremium = familyPremiumSnap.val()
+      
+      if (familyPremium.active && familyPremium.premiumType === 'family') {
+        return {
+          hasBenefits: true,
+          source: 'family',
+          type: 'family'
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to check family premium:', error)
+  }
+  
+  return {
+    hasBenefits: false,
+    source: null,
+    type: null
+  }
+}
+
+// Synchronous version for quick UI checks
+export function hasFamilyPremiumBenefitsSync() {
+  // First check own premium
+  if (isPremiumActive()) {
+    const status = getPremiumStatus()
+    return {
+      hasBenefits: true,
+      source: 'own',
+      type: status.premiumType || 'individual'
+    }
+  }
+  
+  // Check localStorage cache for family premium
+  try {
+    const familyPremiumCache = localStorage.getItem('svinnstop_family_premium_cache')
+    if (familyPremiumCache) {
+      const cache = JSON.parse(familyPremiumCache)
+      const now = Date.now()
+      
+      // Cache valid for 5 minutes
+      if (cache.timestamp && (now - cache.timestamp) < 5 * 60 * 1000) {
+        if (cache.active) {
+          return {
+            hasBenefits: true,
+            source: 'family',
+            type: 'family'
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to read family premium cache:', error)
+  }
   
   return {
     hasBenefits: false,
@@ -467,5 +557,6 @@ export const premiumService = {
   syncPremiumFromFirebase,
   checkPremiumExpiry,
   getDaysLeftOfPremium,
-  hasFamilyPremiumBenefits
+  hasFamilyPremiumBenefits,
+  hasFamilyPremiumBenefitsSync
 }

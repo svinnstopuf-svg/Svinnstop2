@@ -312,11 +312,13 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30);
 
+        const finalPremiumType = premiumType === "family_upgrade" ? "family" : premiumType;
+
         await premiumRef.set({
           active: true,
           lifetimePremium: false,
           premiumUntil: expiryDate.toISOString(),
-          premiumType: premiumType === "family_upgrade" ? "family" : premiumType,
+          premiumType: finalPremiumType,
           source: "stripe",
           stripeCustomerId: customerId,
           subscriptionId: subscriptionId,
@@ -324,6 +326,36 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         });
 
         console.log("✅ Premium activated for user:", userId);
+
+        // If user bought Family Premium, set premium on their family
+        if (finalPremiumType === "family") {
+          try {
+            // Find user's family
+            const familiesRef = admin.database().ref("families");
+            const familySnapshot = await familiesRef.orderByChild(`members/${userId}`).once("value");
+
+            if (familySnapshot.exists()) {
+              // User is in a family - set family premium
+              const families = familySnapshot.val();
+              const familyId = Object.keys(families)[0];
+
+              const familyPremiumRef = admin.database().ref(`families/${familyId}/premium`);
+              await familyPremiumRef.set({
+                active: true,
+                premiumType: "family",
+                premiumUntil: expiryDate.toISOString(),
+                source: "stripe",
+                ownerId: userId,
+                lastUpdated: new Date().toISOString(),
+              });
+
+              console.log("✅ Family premium activated for family:", familyId);
+            }
+          } catch (familyError) {
+            console.error("❌ Failed to set family premium:", familyError);
+            // Don't fail the whole webhook - user still has individual premium
+          }
+        }
         break;
       }
 

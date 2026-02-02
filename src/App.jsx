@@ -208,6 +208,13 @@ function syncReferralPremiumToMain() {
   }
 }
 
+// Helper function: Check if user has premium (own OR family)
+function hasAnyPremium() {
+  // Quick synchronous check using cached data
+  const benefits = premiumService.hasFamilyPremiumBenefitsSync()
+  return benefits.hasBenefits
+}
+
 export default function App() {
   
   const [items, setItems] = useState([])
@@ -503,6 +510,46 @@ export default function App() {
     const recipes = getSavedAIRecipes()
     setSavedAIRecipes(recipes)
   }, [])
+  
+  // Synka family premium status till localStorage cache
+  useEffect(() => {
+    const syncFamilyPremiumCache = async () => {
+      const familyData = getFamilyData()
+      
+      if (!familyData.familyId) {
+        // Inte i en familj - rensa cache
+        localStorage.removeItem('svinnstop_family_premium_cache')
+        return
+      }
+      
+      try {
+        // Anropa den asynkrona funktionen
+        const benefits = await premiumService.hasFamilyPremiumBenefits()
+        
+        // Uppdatera cache
+        const cache = {
+          active: benefits.hasBenefits && benefits.source === 'family',
+          timestamp: Date.now()
+        }
+        
+        localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify(cache))
+        
+        if (benefits.hasBenefits && benefits.source === 'family') {
+          console.log('👨‍👩‍👧‍👦 Family premium active - benefits granted')
+        }
+      } catch (error) {
+        console.error('❌ Failed to sync family premium cache:', error)
+      }
+    }
+    
+    // Synka nu
+    syncFamilyPremiumCache()
+    
+    // Synka varje 5 minuter
+    const interval = setInterval(syncFamilyPremiumCache, 5 * 60 * 1000)
+    
+    return () => clearInterval(interval)
+  }, [familySyncTrigger])
   
   // Setup custom expiry rules sync callback
   useEffect(() => {
@@ -934,7 +981,7 @@ export default function App() {
     console.log('Validation passed, continuing...')
     
     // CHECK: 10-item limit for free users
-    const isPremium = premiumService.isPremiumActive()
+    const isPremium = hasAnyPremium()
     const existingItemCheck = items.find(item => 
       item.name.toLowerCase() === form.name.trim().toLowerCase()
     )
@@ -2263,11 +2310,11 @@ export default function App() {
           <div className="tab-panel">
             <section className="card">
               <div className="section-header">
-                <h2>Recept {!premiumService.isPremiumActive() && '🔒'}</h2>
+                <h2>Recept {!hasAnyPremium() && '🔒'}</h2>
                 <p className="section-subtitle">Hitta inspiration för din matlagning</p>
               </div>
               
-              {!premiumService.isPremiumActive() ? (
+              {!hasAnyPremium() ? (
                 <div className="premium-required-message">
                   <div className="premium-required-content">
                     <div className="premium-icon">✨</div>
@@ -2621,7 +2668,7 @@ export default function App() {
               
               {/* Snabblänkar till huvudfunktioner */}
               <div className="profile-menu">
-                {!premiumService.isPremiumActive() && (
+                {!hasAnyPremium() && (
                   <button
                     className="profile-menu-item premium-highlight"
                     onClick={() => setShowUpgradeModal(true)}
@@ -2652,7 +2699,7 @@ export default function App() {
                 <button 
                   className="profile-menu-item"
                   onClick={() => {
-                    const isPremium = premiumService.isPremiumActive()
+                    const isPremium = hasAnyPremium()
                     if (!isPremium) {
                       setShowUpgradeModal(true)
                       return
@@ -2667,7 +2714,7 @@ export default function App() {
                   <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
                   <div className="menu-content">
                     <span className="menu-title">{notificationsEnabled ? 'Inaktivera notiser' : 'Aktivera notiser'}</span>
-                    <span className="menu-description">{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'} {!premiumService.isPremiumActive() && '🔒'}</span>
+                    <span className="menu-description">{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'} {!hasAnyPremium() && '🔒'}</span>
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
@@ -2675,7 +2722,7 @@ export default function App() {
                 <button 
                   className="profile-menu-item"
                   onClick={() => {
-                    const isPremium = premiumService.isPremiumActive()
+                    const isPremium = hasAnyPremium()
                     if (!isPremium) {
                       setShowUpgradeModal(true)
                       return
@@ -2685,7 +2732,7 @@ export default function App() {
                 >
                   <span className="menu-icon">💰</span>
                   <div className="menu-content">
-                    <span className="menu-title">Mina besparingar {!premiumService.isPremiumActive() && '🔒'}</span>
+                    <span className="menu-title">Mina besparingar {!hasAnyPremium() && '🔒'}</span>
                     <span className="menu-description">Se hur mycket du har sparat</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -2694,7 +2741,7 @@ export default function App() {
                 <button 
                   className="profile-menu-item"
                   onClick={() => {
-                    const isPremium = premiumService.isPremiumActive()
+                    const isPremium = hasAnyPremium()
                     if (!isPremium) {
                       setShowUpgradeModal(true)
                       return
@@ -2704,7 +2751,7 @@ export default function App() {
                 >
                   <span className="menu-icon">🏆</span>
                   <div className="menu-content">
-                    <span className="menu-title">Utmärkelser {!premiumService.isPremiumActive() && '🔒'}</span>
+                    <span className="menu-title">Utmärkelser {!hasAnyPremium() && '🔒'}</span>
                     <span className="menu-description">Dina prestationer</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -2713,7 +2760,7 @@ export default function App() {
                 <button 
                   className="profile-menu-item"
                   onClick={() => {
-                    const isPremium = premiumService.isPremiumActive()
+                    const isPremium = hasAnyPremium()
                     if (!isPremium) {
                       setShowUpgradeModal(true)
                       return
@@ -2723,7 +2770,7 @@ export default function App() {
                 >
                   <span className="menu-icon">🏆</span>
                   <div className="menu-content">
-                    <span className="menu-title">Topplista {!premiumService.isPremiumActive() && '🔒'}</span>
+                    <span className="menu-title">Topplista {!hasAnyPremium() && '🔒'}</span>
                     <span className="menu-description">Tävla med vänner</span>
                   </div>
                   <span className="menu-arrow">›</span>
