@@ -1,0 +1,106 @@
+{
+  "rules": {
+    "families": {
+      "$familyId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "codes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "familyCode": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "users": {
+      "$userId": {
+        "profile": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "stats": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "referralData": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "rewards": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "premium": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "inventory": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "shoppingList": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "achievements": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "settings": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "familyData": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "savings": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "friends": {
+          "$friendId": {
+            ".read": "$userId === auth.uid",
+            ".write": "$userId === auth.uid"
+          }
+        },
+        "referralBuy": {
+          ".read": "$userId === auth.uid",
+          ".write": "$userId === auth.uid"
+        },
+        "referralCodes": {
+          "$code": {
+            ".read": "$userId === auth.uid",
+            ".write": "$userId === auth.uid"
+          }
+        }
+      }
+    },
+    "usernames": {
+      "$username": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "handles": {
+      "$handle": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "leaderboard": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "usernameIndex": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}

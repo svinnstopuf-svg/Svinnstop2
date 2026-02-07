@@ -100,6 +100,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   // Synka currentMode med mode prop när modalen öppnas
   useEffect(() => {
@@ -126,6 +127,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
     setConfirmPassword('')
     setError('')
     setResetSent(false)
+    setAcceptedTerms(false)
     onClose()
   }
 
@@ -164,6 +166,10 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
     setError('')
 
     // Validering
+    if (!acceptedTerms) {
+      setError('Du måste godkänna användarvillkoren för att skapa ett konto')
+      return
+    }
     if (password.length < 6) {
       setError('Lösenordet måste vara minst 6 tecken')
       return
@@ -501,6 +507,75 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
                   }}
                   disabled={loading}
                 />
+              </div>
+
+              {/* Checkbox för att godkänna villkor */}
+              <div style={{
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px'
+              }}>
+                <input
+                  type="checkbox"
+                  id="accept-terms"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  style={{
+                    marginTop: '4px',
+                    cursor: 'pointer',
+                    width: '18px',
+                    height: '18px'
+                  }}
+                />
+                <label 
+                  htmlFor="accept-terms"
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    lineHeight: '1.5'
+                  }}
+                >
+                  Jag godkänner{' '}
+                  <a 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      // Stäng modal först
+                      onClose()
+                      // Navigera till FAQ efter en kort delay
+                      setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('openFAQ', { detail: { section: 'terms' } }))
+                      }, 100)
+                    }}
+                    style={{
+                      color: 'var(--primary-color)',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    användarvillkoren
+                  </a>
+                  {' '}och{' '}
+                  <a 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      // Stäng modal först
+                      onClose()
+                      // Navigera till FAQ efter en kort delay
+                      setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('openFAQ', { detail: { section: 'privacy' } }))
+                      }, 100)
+                    }}
+                    style={{
+                      color: 'var(--primary-color)',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    integritetspolicyn
+                  </a>
+                </label>
               </div>
 
               {error && (

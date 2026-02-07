@@ -12,6 +12,7 @@ import ReferralProgram from './ReferralProgram'
 import AchievementsPage from './AchievementsPage'
 import FamilySharing from './FamilySharing'
 import Leaderboard from './Leaderboard'
+import FAQ from './FAQ'
 import ConfirmDialog from './ConfirmDialog'
 import UpgradeModal from './UpgradeModal'
 import PremiumFeature from './PremiumFeature'
@@ -35,6 +36,7 @@ import { leaderboardService } from './leaderboardService'
 import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
 import { syncUserItemsToFirebase, syncCustomExpiryRulesToFirebase, listenToCustomExpiryRulesChanges } from './shoppingListSync'
+import { performInitialUserSync, syncInventoryToUser, syncAchievementsToUser, syncSavingsToUser, listenToUserInventoryChanges, mergeWithTimestamp } from './userDataSync'
 import { exportCustomExpiryRules, importCustomExpiryRules } from './userItemsService'
 import * as analytics from './analyticsService'
 import './mobile.css'
@@ -265,7 +267,7 @@ export default function App() {
   const [selectedSavedRecipe, setSelectedSavedRecipe] = useState(null) // Valt sparat recept att visa
   const [showAuthModal, setShowAuthModal] = useState(false) // Email/password authentication modal
   const [authModalMode, setAuthModalMode] = useState('login') // 'login' eller 'signup'
-  
+  const [pendingFAQSection, setPendingFAQSection] = useState(null)
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -441,7 +443,7 @@ export default function App() {
       console.log('🎁 First time referral code detected, navigating to referral tab')
       setActiveTab('referral')
       localStorage.setItem('svinnstop_referral_visited', 'true')
-    } else if (savedTab && ['shopping', 'inventory', 'recipes', 'profile', 'family', 'achievements', 'savings', 'referral', 'leaderboard'].includes(savedTab)) {
+    } else if (savedTab && ['shopping', 'inventory', 'recipes', 'profile', 'family', 'achievements', 'savings', 'referral', 'leaderboard', 'faq'].includes(savedTab)) {
       // Ladda senaste aktiva tab (fungerar även vid refresh)
       console.log('✅ Restoring saved tab:', savedTab)
       setActiveTab(savedTab)
@@ -472,6 +474,188 @@ export default function App() {
       .then(user => {
         if (user) {
           console.log('🔐 Svinnstop authentication ready')
+          
+          // NYTT: Sync all user data from cloud if not anonymous
+          if (!user.isAnonymous) {
+            console.log('👤 User is logged in with email - syncing data from cloud...')
+            performInitialUserSync()
+              .then(cloudData => {
+                if (cloudData) {
+                  // Merge inventory
+                  if (cloudData.inventory) {
+                    const localItems = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+                    const merged = mergeWithTimestamp(localItems, cloudData.inventory)
+                    
+                    if (merged.source === 'cloud') {
+                      console.log('🌍 Using cloud inventory (' + merged.data.length + ' items)')
+                      setItems(merged.data)
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged.data))
+                      localStorage.setItem('svinnstop_last_modified', cloudData.inventory.lastModified.toString())
+                    } else {
+                      console.log('💾 Using local inventory (' + merged.data.length + ' items) and uploading to cloud')
+                      // Upload local data to cloud
+                      syncInventoryToUser(merged.data)
+                      localStorage.setItem('svinnstop_last_modified', Date.now().toString())
+                    }
+                  } else {
+                    // No cloud data, upload local data
+                    const localItems = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+                    if (localItems.length > 0) {
+                      console.log('⬆️ Uploading local inventory to cloud (' + localItems.length + ' items)')
+                      syncInventoryToUser(localItems)
+                      localStorage.setItem('svinnstop_last_modified', Date.now().toString())
+                    }
+                  }
+                  
+                  // Kolla family status INNAN vi uppdaterar localStorage
+                  const hadNoFamilyBefore = !getFamilyData().familyId
+                  
+                  // Merge achievements
+                  if (cloudData.achievements) {
+                    console.log('🎯 Using cloud achievements')
+                    localStorage.setItem('svinnstop_achievements', JSON.stringify(cloudData.achievements))
+                  } else {
+                    // No cloud data, upload local achievements
+                    const localAchievements = localStorage.getItem('svinnstop_achievements')
+                    if (localAchievements) {
+                      console.log('⬆️ Uploading local achievements to cloud')
+                      const parsed = JSON.parse(localAchievements)
+                      syncAchievementsToUser(parsed)
+                    }
+                  }
+                  
+                  // Merge shopping list
+                  if (cloudData.shoppingList) {
+                    console.log('🛋️ Using cloud shopping list')
+                    localStorage.setItem('svinnstop_shopping_list', JSON.stringify(cloudData.shoppingList.items || cloudData.shoppingList))
+                  }
+                  
+                  // Merge family data
+                  let needsReloadForFamily = false
+                  if (cloudData.familyData && cloudData.familyData.familyId) {
+                    console.log('👨‍👩‍👧‍👦 Using cloud family data')
+                    const familyDataToSave = {
+                      familyId: cloudData.familyData.familyId,
+                      familyCode: cloudData.familyData.familyCode,
+                      familyName: cloudData.familyData.familyName,
+                      myRole: cloudData.familyData.myRole,
+                      members: cloudData.familyData.members || [],
+                      syncEnabled: true,
+                      createdAt: cloudData.familyData.createdAt
+                    }
+                    localStorage.setItem('svinnstop_family_data', JSON.stringify(familyDataToSave))
+                    
+                    // Om vi inte hade family förut men har nu, måste vi reloada
+                    if (hadNoFamilyBefore) {
+                      needsReloadForFamily = true
+                    }
+                  }
+                  
+                  // Merge savings/stats
+                  if (cloudData.stats) {
+                    console.log('📊 Using cloud stats')
+                    localStorage.setItem('svinnstop_stats', JSON.stringify(cloudData.stats))
+                  }
+                  
+                  // Merge savings (besparingar)
+                  if (cloudData.savings) {
+                    console.log('💰 Using cloud savings')
+                    localStorage.setItem('svinnstop_savings_data', JSON.stringify(cloudData.savings))
+                  } else {
+                    // No cloud data, upload local savings
+                    const localSavings = localStorage.getItem('svinnstop_savings_data')
+                    if (localSavings) {
+                      try {
+                        console.log('⬆️ Uploading local savings to cloud')
+                        const parsed = JSON.parse(localSavings)
+                        syncSavingsToUser(parsed)
+                      } catch (e) {
+                        console.warn('⚠️ Could not parse local savings')
+                      }
+                    }
+                  }
+                  
+                  // Merge referral data
+                  if (cloudData.referral && cloudData.referral.myCode) {
+                    console.log('🎁 Using cloud referral data')
+                    // Merge med befintlig localStorage data (behåll referrals/rewards från Firebase)
+                    const localReferral = localStorage.getItem('svinnstop_referral_data')
+                    let referralDataToSave = cloudData.referral
+                    
+                    if (localReferral) {
+                      try {
+                        const parsed = JSON.parse(localReferral)
+                        // Behåll referrals och rewards från localStorage om de är nyare
+                        referralDataToSave = {
+                          ...cloudData.referral,
+                          referrals: parsed.referrals || [],
+                          rewards: parsed.rewards || []
+                        }
+                      } catch (e) {}
+                    }
+                    
+                    localStorage.setItem('svinnstop_referral_data', JSON.stringify(referralDataToSave))
+                  }
+                  
+                  // Merge profile/leaderboard data
+                  if (cloudData.profile && cloudData.profile.displayName) {
+                    console.log('🏆 Using cloud profile/leaderboard data')
+                    const user = auth.currentUser
+                    if (user) {
+                      const leaderboardKey = `svinnstop_leaderboard_${user.uid}`
+                      const localLeaderboard = localStorage.getItem(leaderboardKey)
+                      let leaderboardData = null
+                      
+                      if (localLeaderboard) {
+                        try {
+                          leaderboardData = JSON.parse(localLeaderboard)
+                        } catch (e) {
+                          leaderboardData = null
+                        }
+                      }
+                      
+                      // Skapa eller uppdatera leaderboard data med cloud profile
+                      const updatedLeaderboard = {
+                        myStats: {
+                          username: cloudData.profile.displayName,
+                          handle: cloudData.profile.handle,
+                          userId: cloudData.profile.userId || user.uid,
+                          itemsSaved: leaderboardData?.myStats?.itemsSaved || 0,
+                          moneySaved: leaderboardData?.myStats?.moneySaved || 0,
+                          streak: leaderboardData?.myStats?.streak || 0,
+                          joinedAt: cloudData.profile.createdAt || new Date().toISOString()
+                        },
+                        competitions: leaderboardData?.competitions || [],
+                        friends: leaderboardData?.friends || [],
+                        lastUpdated: new Date().toISOString()
+                      }
+                      
+                      localStorage.setItem(leaderboardKey, JSON.stringify(updatedLeaderboard))
+                    }
+                  }
+                  
+                  // SECURITY: Merge premium data from Firebase (källan till sanning)
+                  if (cloudData.premium) {
+                    console.log('🔒 Using cloud premium data')
+                    // LocalStorage används ENDAST som cache
+                    localStorage.setItem('svinnstop_premium_data', JSON.stringify(cloudData.premium))
+                  }
+                  
+                  console.log('✅ User data sync complete')
+                  
+                  // Reload om family data ändrades för att aktivera family sync
+                  if (needsReloadForFamily) {
+                    console.log('🔄 Family membership detected - reloading to activate sync...')
+                    setTimeout(() => {
+                      window.location.reload()
+                    }, 500)
+                  }
+                } else {
+                  console.log('⚠️ No cloud data found - will upload local data on next change')
+                }
+              })
+              .catch(err => console.warn('⚠️ Could not sync user data from cloud:', err))
+          }
           
           // Sync premium from Firebase (server-side truth)
           premiumService.syncPremiumFromFirebase()
@@ -505,6 +689,36 @@ export default function App() {
       })
   }, [])
   
+  // Lyssna på user inventory-ändringar från Firebase (realtid)
+  useEffect(() => {
+    const user = auth.currentUser
+    if (!user || user.isAnonymous) {
+      return
+    }
+    
+    console.log('👂 Starting user inventory listener')
+    const unsubscribe = listenToUserInventoryChanges((data) => {
+      const { items: cloudItems, lastModified: cloudTimestamp } = data
+      
+      // Jämför med lokal timestamp
+      const localTimestamp = parseInt(localStorage.getItem('svinnstop_last_modified') || '0')
+      
+      if (cloudTimestamp > localTimestamp) {
+        console.log('🌍 User inventory updated from another device - applying changes')
+        setItems(cloudItems)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudItems))
+        localStorage.setItem('svinnstop_last_modified', cloudTimestamp.toString())
+      }
+    })
+    
+    return () => {
+      if (unsubscribe) {
+        console.log('👋 Stopping user inventory listener')
+        unsubscribe()
+      }
+    }
+  }, [isAuthReady]) // Kör efter auth är redo
+  
   // Ladda sparade AI-recept från localStorage
   useEffect(() => {
     const recipes = getSavedAIRecipes()
@@ -523,6 +737,34 @@ export default function App() {
     window.addEventListener('reopenAuthModal', handleReopenAuthModal)
     return () => window.removeEventListener('reopenAuthModal', handleReopenAuthModal)
   }, [])
+  
+  // Lyssna på openFAQ event (från signup-formulär)
+  useEffect(() => {
+    const handleOpenFAQ = (event) => {
+      console.log('💬 Opening FAQ:', event.detail)
+      const { section } = event.detail
+      
+      // Spara vilken sektion som ska öppnas
+      setPendingFAQSection(section)
+      
+      // Navigera till FAQ
+      setActiveTab('faq')
+    }
+    
+    window.addEventListener('openFAQ', handleOpenFAQ)
+    return () => window.removeEventListener('openFAQ', handleOpenFAQ)
+  }, [])
+  
+  // Skicka pending FAQ-sektion till FAQ-komponenten när den öppnas
+  useEffect(() => {
+    if (activeTab === 'faq' && pendingFAQSection) {
+      // Skicka event till FAQ-komponenten
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('openFAQ', { detail: { section: pendingFAQSection } }))
+        setPendingFAQSection(null) // Rensa
+      }, 100)
+    }
+  }, [activeTab, pendingFAQSection])
   
   // Synka family premium status till localStorage cache OCH starta listener
   useEffect(() => {
@@ -737,6 +979,7 @@ export default function App() {
         
         // Spara ALLTID till localStorage (både solo och familj)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+        localStorage.setItem('svinnstop_last_modified', Date.now().toString())
         
         // Track max active items for achievements (ALLTID - personlig data)
         const achievementData = achievementService.getAchievementData()
@@ -746,9 +989,16 @@ export default function App() {
           })
         }
         
+        // NYTT: Synka till user cloud om inloggad (inte anonym)
+        const user = auth.currentUser
+        if (user && !user.isAnonymous) {
+          console.log('🔄 Syncing inventory to user cloud (' + items.length + ' items)')
+          syncInventoryToUser(items)
+        }
+        
         // Synkronisera till Firebase om i familj
         if (family.familyId && family.syncEnabled) {
-          console.log('🔄 Synkar lokal ändring till Firebase')
+          console.log('🔄 Synkar lokal ändring till Firebase family')
           syncInventoryToFirebase(items)
         }
       } catch (error) {
@@ -1862,8 +2112,113 @@ export default function App() {
     setShowNotificationPrompt(false)
   }
 
-  // REMOVED: Visa appen direkt istället för att vänta på auth
-  // Auth körs i bakgrunden och uppdaterar state när den är klar
+  // SECURITY: Visa login screen om användaren inte är inloggad
+  // Ingen anonym auth - användare MÅSTE logga in
+  // Men tillåt tillgång till FAQ/villkor/integritetspolicy
+  if (isAuthReady && !auth.currentUser) {
+    // Om användaren vill se FAQ, visa det utan inloggning
+    if (activeTab === 'faq') {
+      return (
+        <div className="container">
+          <div style={{
+            padding: '20px',
+            maxWidth: '800px',
+            margin: '0 auto'
+          }}>
+            <button 
+              className="btn-secondary"
+              onClick={() => setActiveTab('welcome')}
+              style={{marginBottom: '16px'}}
+            >
+              ← Tillbaka till start
+            </button>
+            <FAQ />
+          </div>
+        </div>
+      )
+    }
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '20px',
+        textAlign: 'center'
+      }}>
+        <h1 style={{ fontSize: '48px', marginBottom: '16px' }}><span className="notranslate">Svinnstop</span></h1>
+        <p style={{ fontSize: '18px', marginBottom: '32px', color: 'var(--text-secondary)' }}>
+          Minska matsvinnet. Spara pengar.
+        </p>
+        <p style={{ marginBottom: '24px' }}>Logga in eller skapa ett konto för att börja</p>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setAuthModalMode('signup')
+              setShowAuthModal(true)
+            }}
+            style={{ padding: '12px 24px' }}
+          >
+            Skapa konto
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setAuthModalMode('login')
+              setShowAuthModal(true)
+            }}
+            style={{ padding: '12px 24px' }}
+          >
+            Logga in
+          </button>
+        </div>
+        
+        {/* Länkar till villkor och integritetspolicy */}
+        <div style={{ marginTop: '32px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+          <a 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              setPendingFAQSection('terms')
+              setActiveTab('faq')
+            }}
+            style={{
+              color: 'var(--primary-color)',
+              textDecoration: 'none',
+              marginRight: '16px'
+            }}
+          >
+            Användarvillkor
+          </a>
+          <a 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              setPendingFAQSection('privacy')
+              setActiveTab('faq')
+            }}
+            style={{
+              color: 'var(--primary-color)',
+              textDecoration: 'none'
+            }}
+          >
+            Integritetspolicy
+          </a>
+        </div>
+        
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          mode={authModalMode}
+        />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -2945,6 +3300,18 @@ export default function App() {
                   <span className="menu-arrow">›</span>
                 </button>
                 
+                <button 
+                  className="profile-menu-item"
+                  onClick={() => setActiveTab('faq')}
+                >
+                  <span className="menu-icon">❓</span>
+                  <div className="menu-content">
+                    <span className="menu-title">Hjälp & Information</span>
+                    <span className="menu-description">Vanliga frågor och villkor</span>
+                  </div>
+                  <span className="menu-arrow">›</span>
+                </button>
+                
                 {/* TEMPORARILY HIDDEN - Email feature
                 <button 
                   className="profile-menu-item"
@@ -3022,6 +3389,24 @@ export default function App() {
               </div>
               
               <ReferralProgram />
+            </section>
+          </div>
+        )}
+        
+        {activeTab === 'faq' && (
+          <div className="tab-panel">
+            <section className="card">
+              <div className="card-header">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setActiveTab('profile')}
+                  style={{marginBottom: '16px'}}
+                >
+                  ← Tillbaka till Profil
+                </button>
+              </div>
+              
+              <FAQ />
             </section>
           </div>
         )}

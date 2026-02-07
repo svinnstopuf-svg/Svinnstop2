@@ -3,12 +3,10 @@ import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
 import { 
   getAuth, 
-  signInAnonymously, 
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  linkWithCredential,
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
@@ -50,7 +48,8 @@ try {
   console.warn('⚠️ App will run in local-only mode without family sharing sync')
 }
 
-// Initialize anonymous authentication
+// Initialize authentication - NO anonymous sign-in
+// Users MUST sign in with email/password or Google
 export async function initAuth() {
   if (!auth) {
     console.warn('⚠️ Firebase auth not available')
@@ -59,24 +58,15 @@ export async function initAuth() {
 
   try {
     return new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
           console.log('✅ Svinnstop: User authenticated', user.uid)
           unsubscribe()
           resolve(user)
         } else {
-          // Sign in anonymously
-          try {
-            const userCredential = await signInAnonymously(auth)
-            console.log('✅ Svinnstop: Anonymous sign-in successful', userCredential.user.uid)
-            unsubscribe()
-            resolve(userCredential.user)
-          } catch (error) {
-            console.error('❌ Svinnstop: Anonymous sign-in failed', error)
-            console.warn('⚠️ Svinnstop will continue without authentication')
-            unsubscribe()
-            resolve(null)
-          }
+          console.log('⚠️ Svinnstop: No user signed in - login required')
+          unsubscribe()
+          resolve(null)
         }
       })
     })

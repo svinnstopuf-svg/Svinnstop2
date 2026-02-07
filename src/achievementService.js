@@ -1,6 +1,9 @@
 // Achievements & Badges System - Tier 3.8
 // Gamification layer med progression, badges och belöningar
 
+import { auth } from './firebaseConfig'
+import { syncAchievementsToUser } from './userDataSync'
+
 const STORAGE_KEY = 'svinnstop_achievements'
 
 // Badge tiers
@@ -361,6 +364,13 @@ export function getAchievementData() {
 function saveAchievementData(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    
+    // NYTT: Synka till user cloud om inloggad
+    const user = auth.currentUser
+    if (user && !user.isAnonymous) {
+      syncAchievementsToUser(data)
+        .catch(err => console.warn('⚠️ Could not sync achievements to cloud:', err))
+    }
   } catch (error) {
     console.error('❌ Could not save achievement data:', error)
   }

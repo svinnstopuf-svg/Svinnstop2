@@ -5,7 +5,9 @@ import { SV_UNITS, getSuggestedUnitKey } from './App'
 import { increaseQuantity, decreaseQuantity, smartConvertUnit } from './unitConverter'
 import { shoppingListService } from './shoppingListService'
 import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges, syncUserItemsToFirebase, listenToUserItemsChanges } from './shoppingListSync'
+import { syncShoppingListToUser } from './userDataSync'
 import { getFamilyData } from './familyService'
+import { auth } from './firebaseConfig'
 import { userItemsService, searchUserItems } from './userItemsService'
 import { sortShoppingItems } from './sortingUtils'
 
@@ -33,25 +35,40 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   useEffect(() => {
     const family = getFamilyData()
     
-    // Ladda ALLTID från localStorage först (för snabb UX)
-    const saved = localStorage.getItem('svinnstop_shopping_list')
-    if (saved) {
-      try {
-        setShoppingItems(JSON.parse(saved))
-        console.log('💾 Laddade inköpslista från localStorage')
-      } catch (e) {
-        console.error('Failed to load shopping list:', e)
+    // Om INTE i familj: Ladda från localStorage direkt
+    if (!family.familyId || !family.syncEnabled) {
+      const saved = localStorage.getItem('svinnstop_shopping_list')
+      if (saved) {
+        try {
+          setShoppingItems(JSON.parse(saved))
+          console.log('💾 Laddade inköpslista från localStorage (solo-läge)')
+        } catch (e) {
+          console.error('Failed to load shopping list:', e)
+        }
       }
+      setIsInitialLoad(false)
+    } else {
+      // Om i familj: VÄNTA på Firebase data - ladda INTE localStorage
+      console.log('👨‍👩‍👧‍👦 I familj - väntar på Firebase data istället för localStorage')
+      // Sätt timeout för att ladda localStorage om Firebase inte svarar inom 3 sekunder
+      const timeoutId = setTimeout(() => {
+        const saved = localStorage.getItem('svinnstop_shopping_list')
+        if (saved && isInitialLoad) {
+          try {
+            setShoppingItems(JSON.parse(saved))
+            console.log('⏱️ Firebase timeout - laddade från localStorage som fallback')
+            setIsInitialLoad(false)
+          } catch (e) {
+            console.error('Failed to load shopping list:', e)
+          }
+        }
+      }, 3000)
+      
+      return () => clearTimeout(timeoutId)
     }
     
     // Ladda sparade listor
     setSavedLists(shoppingListService.getSavedShoppingLists())
-    
-    // Om INTE i familj, släpp isInitialLoad direkt
-    if (!family.familyId || !family.syncEnabled) {
-      setIsInitialLoad(false)
-    }
-    // Annars vänta på Firebase data (isInitialLoad hålls true)
   }, [])
 
   // Spara inköpslista till localStorage och synka med Firebase
@@ -73,9 +90,18 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
     // Spara ALLTID till localStorage (både solo och familj)
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(shoppingItems))
     
-    // Synka till Firebase om familj är aktiv
+    // ALLTID synka till user cloud om inloggad (inte anonym)
+    // Detta gör att shopping list finns tillgänglig på alla enheter
+    const user = auth.currentUser
+    if (user && !user.isAnonymous) {
+      console.log('🔄 Syncing shopping list to user cloud (' + shoppingItems.length + ' items)')
+      syncShoppingListToUser(shoppingItems)
+    }
+    
+    // DESSUTOM synka till Firebase family om i familj
+    // (så familjen ser samma lista)
     if (family.familyId && family.syncEnabled) {
-      console.log('🔄 Synkar inköpslista till Firebase')
+      console.log('🔄 Synkar inköpslista till Firebase family')
       syncShoppingListToFirebase(shoppingItems)
     }
   }, [shoppingItems, isInitialLoad, shoppingFromFirebase])

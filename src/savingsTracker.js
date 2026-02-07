@@ -119,6 +119,11 @@ function saveSavingsData(data) {
   try {
     data.lastUpdated = new Date().toISOString()
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    
+    // NYTT: Synka till Firebase
+    import('./userDataSync')
+      .then(module => module.syncSavingsToUser(data))
+      .catch(err => console.warn('⚠️ Could not sync savings to Firebase:', err))
   } catch (error) {
     console.error('Kunde inte spara spardata:', error)
   }

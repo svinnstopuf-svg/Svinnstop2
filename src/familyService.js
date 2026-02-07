@@ -3,6 +3,7 @@
 
 import { database, auth } from './firebaseConfig'
 import { ref, set, get, onValue, update, push, child } from 'firebase/database'
+import { syncFamilyDataToUser } from './userDataSync'
 
 const STORAGE_KEY = 'svinnstop_family_data'
 
@@ -52,6 +53,13 @@ export function getFamilyData() {
 function saveFamilyData(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    
+    // NYTT: Synka till user cloud om inloggad
+    const user = auth.currentUser
+    if (user && !user.isAnonymous) {
+      syncFamilyDataToUser(data)
+        .catch(err => console.warn('⚠️ Could not sync family data to cloud:', err))
+    }
   } catch (error) {
     console.error('Kunde inte spara family data:', error)
   }

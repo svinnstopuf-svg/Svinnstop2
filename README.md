@@ -2,27 +2,63 @@
 
 **Svinnstop** är en modern webbapp för att minska matsvinn genom smart spårning av utgångsdatum och AI-genererade receptförslag. Appen hjälper dig att hålla koll på dina matvaror, få påminnelser när de närmar sig utgångsdatum, och föreslår recept baserat på vad du har hemma.
 
-🌐 **Live Demo:** [svinnstop.web.app](https://svinnstop.web.app)
+🌐 **Live App:** [svinnstop.web.app](https://svinnstop.web.app)
+
+## 🆕 Nytt i senaste versionen
+
+- 🔄 **Fullständig cross-device sync** - Alla ändringar synkas realtid mellan alla dina enheter
+- 👥 **Familjegrupper** - Dela kylskåp och inköpslista med familjen
+- 🔒 **Säker autentisering** - Email/Google login (anonym auth borttaget)
+- ⚖️ **GDPR-compliant** - Fullständiga användarvillkor och integritetspolicy
+- 💾 **Smart datamigration** - Lokal data migreras automatiskt till molnet vid första inloggning
+- 🎯 **Achievement system** - Lås upp utmärkelser för räddad mat
+- 🏆 **Topplista** - Tävla med vänner om minst matsvinn
+- 💰 **Besparingsstatistik** - Se hur mycket pengar du sparat
+- 🎁 **Referralprogram** - Få gratis Premium genom att bjuda in vänner
 
 ## ✨ Funktioner
 
-### Grundläggande
-- 📝 **Spåra matvaror** - Lägg till varor med namn, antal, inköpsdatum och utgångsdatum
-- ⏰ **Smart sortering** - Varor sorteras automatiskt efter snarast utgångsdatum
-- 🔍 **Filtrering** - Filtrera på alla varor, snart utgående (≤3 dagar), eller utgångna
-- 💾 **Lokal lagring** - All data sparas säkert i webbläsaren (localStorage)
-- 📱 **PWA-stöd** - Installera som app på mobil och desktop
+### 👤 Användarkonton & Synkning
+- 🔐 **Email/Google login** - Säker autentisering med Firebase
+- 🔄 **Realtidssynkning** - Alla ändringar synkas omedelbart mellan enheter
+- 👥 **Familjegrupper** - Dela kylskåp och inköpslista med upp till 6 familjemedlemmar
+- 💾 **Smart migration** - Lokal data flyttas automatiskt till molnet vid första login
+- 🔒 **GDPR-compliant** - Fullständiga användarvillkor och integritetspolicy tillgängliga innan signup
 
-### Avancerade funktioner
-- 🤖 **AI-receptgenerering** - Generera anpassade recept baserat på dina ingredienser (OpenAI)
-- 🍳 **Receptförslag** - Automatiska receptförslag från inbyggd databas
-- 🔔 **Push-notifikationer** - Få påminnelser när varor närmar sig utgångsdatum
-- 🛒 **Inköpslista** - Planera inköp och spara favoritrecept
-- 🏆 **Leaderboard** - Tävla med andra om minst matsvinn
-- 📊 **Statistik** - Se hur mycket pengar och mat du sparat
-- 💳 **Premium-funktioner** - Stripe-integration för premiumtjänster
-- 🌍 **Flerspråksstöd** - Google Translate-integration (svenska prioriterat)
-- 📱 **AdSense-integration** - Monetisering via Google AdSense
+### 🍽️ Kylskåpshantering
+- 📝 **Spåra matvaror** - Lägg till varor med namn, antal och utgångsdatum
+- 🤖 **AI-förslag** - Automatiska förslag för utgångsdatum baserat på varutyp
+- 🎨 **Färgkodning** - Grön (över 3 dagar), Gul (1-3 dagar), Röd (utgånget)
+- ⏰ **Smart sortering** - Varor sorteras automatiskt efter snarast utgångsdatum
+- 🔍 **Filtrering & sökning** - Filtrera på status och sök efter varor
+- ↩️ **Ångra-funktion** - Ångra borttagningar med en knapptryckning
+
+### 🛒 Inköpslista & Recept
+- ✅ **Smart inköpslista** - Planera inköp och bocka av när klart
+- 🍳 **Receptförslag** - Automatiska receptförslag baserat på ditt kylskåp
+- 🤖 **AI-receptgenerering** - Generera anpassade recept med OpenAI GPT-4
+- 📚 **150+ svenska recept** - Inbyggd databas med klassiska och moderna recept
+- 💾 **Spara recept** - Spara dina favorit AI-recept för senare
+
+### 🎮 Gamification & Community
+- 🏆 **Topplista** - Tävla med vänner om minst matsvinn
+- 🎯 **21 Achievements** - Lås upp utmärkelser (Nybörjare → Svinnstoppare → Legend)
+- 📈 **Daily streak** - Håll igång din streak genom att logga in varje dag
+- 💰 **Besparingsstatistik** - Se exakt hur mycket mat och pengar du sparat
+- 🎁 **Referralprogram** - Få gratis Premium (1 vän = 1 vecka, 50 vänner = livstid!)
+
+### 💎 Premium-funktioner
+- ♾️ **Obegränsat antal varor** (gratis = max 15)
+- 🤖 **AI-receptgenerator** med GPT-4
+- 🔔 **Push-notifikationer** för utgående varor
+- 🚫 **Ingen reklam**
+- 📊 **Utökad statistik** och insights
+- 👨‍👩‍👧‍👦 **Family Premium** - Dela premium med upp till 6 familjemedlemmar (49 kr/mån)
+
+### 🛠️ Övriga funktioner
+- 📱 **PWA-stöd** - Installera som app på mobil och desktop
+- 🌙 **Mörkt tema** - Modern och ögonvänlig design
+- ❓ **FAQ & Support** - Hjälpcenter med vanliga frågor
 
 ## 🚀 Kom igång
 
@@ -59,8 +95,12 @@ VITE_OPENAI_API_KEY=sk-proj-YOUR_KEY_HERE
 
 4. **Konfigurera Firebase**
 - Skapa ett projekt på [Firebase Console](https://console.firebase.google.com/)
-- Aktivera Authentication (Anonymous + Email/Password)
-- Aktivera Realtime Database
+- Aktivera Authentication:
+  - Email/Password provider
+  - Google provider
+  - **OBS:** Anonym auth är INTE aktiverad (säkerhetsskäl)
+- Aktivera Realtime Database med regler från `database.rules.json`
+- Aktivera Hosting
 - Uppdatera `src/firebaseConfig.js` med dina Firebase-credentials
 
 Se [FIREBASE_SETUP.md](FIREBASE_SETUP.md) för detaljerad guide.
@@ -92,23 +132,40 @@ firebase deploy --only hosting
 ```
 Svinnstop2/
 ├── src/
-│   ├── App.jsx                    # Huvudkomponent
-│   ├── main.jsx                   # Entry point
-│   ├── firebaseConfig.js          # Firebase-konfiguration
-│   ├── aiRecipeService.js         # OpenAI-integration
-│   ├── recipeAPI.js               # Receptdatabas
-│   ├── notificationService.js     # Push-notifikationer
-│   ├── premiumService.js          # Stripe-integration
-│   ├── analyticsService.js        # Användarstatistik
-│   ├── ShoppingList.jsx           # Inköpslista
-│   ├── Leaderboard.jsx            # Topplistor
+│   ├── App.jsx                      # Huvudkomponent
+│   ├── main.jsx                     # Entry point
+│   ├── firebaseConfig.js            # Firebase-konfiguration
+│   ├── userDataSync.js              # Användardata realtidssynk
+│   ├── inventorySync.js             # Familj-kylskåpssynk
+│   ├── shoppingListSync.js          # Familj-inköpslistesynk
+│   ├── familyService.js             # Familjegrupper
+│   ├── achievementService.js        # Utmärkelser & achievements
+│   ├── savingsTracker.js            # Besparingsstatistik
+│   ├── referralService.js           # Referralprogram
+│   ├── leaderboardService.js        # Topplista
+│   ├── aiRecipeService.js           # OpenAI-integration
+│   ├── recipeAPI.js                 # Receptdatabas (150+ recept)
+│   ├── notificationService.js       # Push-notifikationer
+│   ├── premiumService.js            # Stripe-integration
+│   ├── analyticsService.js          # Google Analytics
+│   ├── components/
+│   │   ├── AuthModal.jsx            # Login/Signup
+│   │   └── GoogleSignInButton.jsx   # Google OAuth
+│   ├── ShoppingList.jsx             # Inköpslista
+│   ├── FamilySharing.jsx            # Familjegrupper UI
+│   ├── Leaderboard.jsx              # Topplistor
+│   ├── AchievementsPage.jsx         # Utmärkelser UI
+│   ├── FAQ.jsx                      # Hjälpcenter + Villkor
+│   ├── ReferralProgram.jsx          # Bjud in vänner
 │   └── ...
 ├── public/
-│   ├── sw.js                      # Service Worker
-│   └── manifest.json              # PWA manifest
-├── functions/                     # Firebase Cloud Functions
-├── firebase.json                  # Firebase-konfiguration
-├── vite.config.js                 # Vite-konfiguration
+│   ├── sw.js                        # Service Worker (PWA)
+│   └── manifest.json                # PWA manifest
+├── functions/                       # Firebase Cloud Functions
+│   └── index.js                     # Stripe webhooks
+├── database.rules.json              # Firebase Database-regler
+├── firebase.json                    # Firebase-konfiguration
+├── vite.config.js                   # Vite-konfiguration
 └── package.json
 ```
 

@@ -56,52 +56,65 @@ export function isPremiumActive() {
   return status.active
 }
 
-// Server-side premium validation (asynkron - för säkerhet)
+// SECURITY: ALLTID validera premium från Firebase
+// LocalStorage används ENDAST som cache för snabbare UI
 export async function isPremiumActiveSecure() {
-  // 1. Snabb check från localStorage
-  const localStatus = getPremiumStatus()
-  
-  // 2. Verifiera mot Firebase (server-side truth)
   const user = auth.currentUser
-  if (user) {
-    try {
-      const premiumRef = ref(database, `users/${user.uid}/premium`)
-      const snap = await get(premiumRef)
-      
-      if (snap.exists()) {
-        const serverStatus = snap.val()
-        
-        // Server-side datum-check
-        if (serverStatus.premiumUntil && !serverStatus.lifetimePremium) {
-          const expiryTime = new Date(serverStatus.premiumUntil).getTime()
-          const now = Date.now()
-          
-          const isActive = now < expiryTime
-          
-          // Synka tillbaka till localStorage
-          if (isActive !== localStatus.active) {
-            const updatedStatus = {
-              ...localStatus,
-              ...serverStatus,
-              active: isActive
-            }
-            savePremiumStatus(updatedStatus)
-            console.log(`🔒 SECURITY: Premium status synced from server (${isActive ? 'active' : 'expired'})`)
-          }
-          
-          return isActive
-        }
-        
-        // Lifetime eller ingen utgång
-        return serverStatus.active || serverStatus.lifetimePremium || false
-      }
-    } catch (error) {
-      console.error('❌ Failed to check premium from server:', error)
-    }
+  if (!user) {
+    console.log('⚠️ Premium check: User not logged in')
+    return false
   }
   
-  // Fallback till localStorage (offline-mode)
-  return localStatus.active
+  try {
+    const premiumRef = ref(database, `users/${user.uid}/premium`)
+    const snap = await get(premiumRef)
+    
+    if (!snap.exists()) {
+      console.log('ℹ️ Premium check: No premium data in Firebase')
+      // Spara negativt resultat till cache
+      savePremiumStatus({
+        active: false,
+        lifetimePremium: false,
+        premiumUntil: null,
+        source: null,
+        stripeCustomerId: null,
+        subscriptionId: null
+      })
+      return false
+    }
+    
+    const serverStatus = snap.val()
+    
+    // Lifetime premium har alltid access
+    if (serverStatus.lifetimePremium) {
+      savePremiumStatus({ ...serverStatus, active: true })
+      console.log('✅ Premium check: Lifetime premium active')
+      return true
+    }
+    
+    // Datum-check för tidsbegränsad premium
+    if (serverStatus.premiumUntil) {
+      const expiryTime = new Date(serverStatus.premiumUntil).getTime()
+      const now = Date.now()
+      const isActive = now < expiryTime
+      
+      // Synka till localStorage cache
+      savePremiumStatus({ ...serverStatus, active: isActive })
+      
+      console.log(`🔒 Premium check: ${isActive ? 'Active' : 'Expired'} (expires: ${new Date(expiryTime).toLocaleDateString()})`)
+      return isActive
+    }
+    
+    // Ingen utgång och ingen lifetime = inte aktivt
+    console.log('⚠️ Premium check: No valid premium configuration')
+    savePremiumStatus({ ...serverStatus, active: false })
+    return false
+    
+  } catch (error) {
+    console.error('❌ Premium check: Failed to validate from Firebase', error)
+    // SECURITY: Vid fel, använd INTE localStorage - returnera false
+    return false
+  }
 }
 
 // Aktivera premium för X dagar (från referrals)
