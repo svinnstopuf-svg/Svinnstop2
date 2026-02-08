@@ -1,0 +1,219 @@
+/* Achievement Celebration Overlay */
+.achievement-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.achievement-overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Confetti Animation */
+.confetti {
+  position: absolute;
+  top: -20px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: confetti-fall linear forwards;
+  pointer-events: none;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Achievement Modal */
+.achievement-modal {
+  background: linear-gradient(135deg, var(--glass) 0%, var(--card) 100%);
+  border: 2px solid var(--accent);
+  border-radius: 24px;
+  padding: 40px 32px;
+  max-width: 450px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 100px rgba(102, 126, 234, 0.3);
+  transform: scale(0.8) translateY(50px);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.achievement-modal.show {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Animated glow effect */
+.achievement-modal::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(102, 126, 234, 0.2),
+    transparent,
+    rgba(139, 92, 246, 0.2),
+    transparent
+  );
+  animation: rotate-glow 3s linear infinite;
+}
+
+@keyframes rotate-glow {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.achievement-modal > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Large icon */
+.achievement-icon-large {
+  font-size: 80px;
+  margin-bottom: 16px;
+  animation: bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0) rotate(-180deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Badge tier */
+.achievement-badge {
+  display: inline-block;
+  margin-bottom: 16px;
+  animation: fade-in 0.6s ease 0.2s backwards;
+}
+
+.badge-tier {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  border: 1px solid currentColor;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Titles */
+.achievement-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: var(--accent);
+  text-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+  animation: fade-in 0.6s ease 0.3s backwards;
+}
+
+.achievement-name {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  animation: fade-in 0.6s ease 0.4s backwards;
+}
+
+.achievement-description {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+  animation: fade-in 0.6s ease 0.5s backwards;
+}
+
+/* Close button */
+.achievement-close-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-solid));
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: fade-in 0.6s ease 0.6s backwards;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.achievement-close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.achievement-close-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .achievement-modal {
+    padding: 32px 24px;
+    max-width: 90%;
+  }
+
+  .achievement-icon-large {
+    font-size: 64px;
+  }
+
+  .achievement-title {
+    font-size: 20px;
+  }
+
+  .achievement-name {
+    font-size: 24px;
+  }
+
+  .achievement-description {
+    font-size: 14px;
+  }
+}

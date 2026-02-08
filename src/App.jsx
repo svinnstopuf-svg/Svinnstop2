@@ -19,6 +19,7 @@ import PremiumFeature from './PremiumFeature'
 import AuthModal from './components/AuthModal'
 import AdBanner from './AdBanner'
 import AIRecipeGenerator from './AIRecipeGenerator'
+import AchievementCelebration from './AchievementCelebration'
 import { getSavedAIRecipes, deleteAIRecipe } from './aiRecipeService'
 import * as adService from './adService'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
@@ -2662,6 +2663,23 @@ export default function App() {
                         </div>
                         {!bulkEditMode && (
                           <div className="item-actions">
+                          {/* Quick-action: Markera som använd för utgående/utgångna varor */}
+                          {d <= 3 && (
+                            <button 
+                              className="save-btn" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const result = savingsTracker.trackItemSaved(i)
+                                onRemove(i.id, e)
+                                setTimeout(() => {
+                                  alert(`✅ Grattis! Du räddade "${i.name}"!\n\n💰 Besparing: ${result.savedAmount} kr\n🍽️ Totalt räddade: ${result.itemsSaved} varor\n💵 Total besparing: ${result.totalSaved} kr`)
+                                }, 100)
+                              }}
+                              title="Markera som använd - rädda från svinn!"
+                            >
+                              ✅
+                            </button>
+                          )}
                           <button 
                             className="remove-btn" 
                             onClick={(e) => onRemove(i.id, e)}

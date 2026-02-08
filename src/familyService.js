@@ -206,6 +206,15 @@ export async function joinFamily(familyCode, memberName) {
   const { familyId, familyName } = codeSnap.val()
   console.log('✅ Firebase: Joining family', familyId, familyName)
 
+  // FIX: Kontrollera att familjen inte redan har 5 medlemmar (Family Premium max)
+  const familyMembersSnap = await get(ref(database, `families/${familyId}/members`))
+  if (familyMembersSnap.exists()) {
+    const existingMembers = Object.values(familyMembersSnap.val())
+    if (existingMembers.length >= 5) {
+      return { success: false, error: 'Familjegruppen är full. Max 5 medlemmar är tillåtna med Family Premium.' }
+    }
+  }
+
   const memberId = `member_${Date.now()}`
   const now = new Date().toISOString()
   const userId = auth.currentUser?.uid || null

@@ -21,7 +21,7 @@
 ### 👤 Användarkonton & Synkning
 - 🔐 **Email/Google login** - Säker autentisering med Firebase
 - 🔄 **Realtidssynkning** - Alla ändringar synkas omedelbart mellan enheter
-- 👥 **Familjegrupper** - Dela kylskåp och inköpslista med upp till 6 familjemedlemmar
+- 👥 **Familjegrupper** - Dela kylskåp och inköpslista med upp till 5 personer totalt
 - 💾 **Smart migration** - Lokal data flyttas automatiskt till molnet vid första login
 - 🔒 **GDPR-compliant** - Fullständiga användarvillkor och integritetspolicy tillgängliga innan signup
 
@@ -53,7 +53,7 @@
 - 🔔 **Push-notifikationer** för utgående varor
 - 🚫 **Ingen reklam**
 - 📊 **Utökad statistik** och insights
-- 👨‍👩‍👧‍👦 **Family Premium** - Dela premium med upp till 6 familjemedlemmar (49 kr/mån)
+- 👨‍👩‍👧‍👦 **Family Premium** - Dela premium med upp till 5 personer totalt (49 kr/mån)
 
 ### 🛠️ Övriga funktioner
 - 📱 **PWA-stöd** - Installera som app på mobil och desktop
