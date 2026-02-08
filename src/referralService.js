@@ -86,9 +86,26 @@ export function getReferralData() {
     console.error('Kunde inte läsa referral data:', error)
   }
   
-  // Default structure - skapa och spara direkt
+  // SECURITY FIX: Om vi är mitt i en cloud-sync, vänta inte - returnera tom data
+  // Detta förhindrar att ny kod skapas innan cloud-data har laddats
+  const isSyncing = sessionStorage.getItem('svinnstop_syncing') === 'true'
+  if (isSyncing) {
+    console.log('⏳ Waiting for cloud sync to complete before creating referral code...')
+    return {
+      myCode: '...',  // Placeholder
+      referredBy: null,
+      referrals: [],
+      rewards: [],
+      premiumUntil: null,
+      lifetimePremium: false,
+      createdAt: new Date().toISOString()
+    }
+  }
+  
+  // Default structure - skapa och spara direkt (endast om INTE inloggad med Firebase)
+  const user = auth.currentUser
   const defaultData = {
-    myCode: generateReferralCode(),
+    myCode: generateReferralCode(user?.uid),
     referredBy: null, // Kod från personen som bjöd in mig
     referrals: [], // Personer jag har bjudit in
     rewards: [], // Belöningar jag har tjänat

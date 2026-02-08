@@ -10,8 +10,11 @@ import { getFamilyData } from './familyService'
 import { auth } from './firebaseConfig'
 import { userItemsService, searchUserItems } from './userItemsService'
 import { sortShoppingItems } from './sortingUtils'
+import { ShoppingBag, RefreshCw, CheckCircle, Save, FolderOpen, X, ShoppingCart, Package, AlertCircle, Lightbulb } from 'lucide-react'
+import { useToast } from './components/ToastContainer'
 
-export default function ShoppingList({ onAddToInventory, onDirectAddToInventory, guideActive, guideStep, onGuideAdvance }) {
+export default function ShoppingList({ onDirectAddToInventory, isPremium, currentInventoryCount, onShowUpgradeModal, guideActive, guideStep, onGuideAdvance }) {
+  const toast = useToast()
   const [shoppingItems, setShoppingItems] = useState([])
   const [newItem, setNewItem] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -341,22 +344,32 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   const clearCompleted = () => {
     // Först: lägg till alla KLARA matvaror i inventariet (endast en gång)
     if (onDirectAddToInventory) {
-      shoppingItems
-        .filter(item => item.completed && item.isFood)
-        .forEach(item => {
-          const suggestion = getExpiryDateSuggestion(item.name)
-          const inventoryItem = {
-            id: Date.now() + Math.random(),
-            name: item.name,
-            quantity: item.quantity || 1,
-            unit: item.unit || suggestion.defaultUnit,
-            expiresAt: suggestion.date,
-            // Använd kategori från inköpslistan om den finns, annars suggestion
-            category: item.category || suggestion.category,
-            emoji: item.emoji || suggestion.emoji
-          }
-          onDirectAddToInventory(inventoryItem)
-        })
+      const completedFoodItems = shoppingItems.filter(item => item.completed && item.isFood)
+      
+      // SECURITY: Kolla 10-varors-gräns om användaren inte har premium
+      if (!isPremium && currentInventoryCount + completedFoodItems.length > 10) {
+        const wouldBeTotal = currentInventoryCount + completedFoodItems.length
+        toast.warning(`🚨 Du kan inte flytta ${completedFoodItems.length} varor till kylskåpet! Du har redan ${currentInventoryCount} varor och detta skulle bli ${wouldBeTotal} varor totalt. Gränsen är 10 varor utan Premium.`)
+        if (onShowUpgradeModal) {
+          setTimeout(() => onShowUpgradeModal(), 1500)
+        }
+        return
+      }
+      
+      completedFoodItems.forEach(item => {
+        const suggestion = getExpiryDateSuggestion(item.name)
+        const inventoryItem = {
+          id: Date.now() + Math.random(),
+          name: item.name,
+          quantity: item.quantity || 1,
+          unit: item.unit || suggestion.defaultUnit,
+          expiresAt: suggestion.date,
+          // Använd kategori från inköpslistan om den finns, annars suggestion
+          category: item.category || suggestion.category,
+          emoji: item.emoji || suggestion.emoji
+        }
+        onDirectAddToInventory(inventoryItem)
+      })
     }
 
     // Sedan: ta bort alla klara varor från inköpslistan
@@ -372,12 +385,12 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   // Spara nuvarande lista som mall
   const handleSaveList = () => {
     if (!saveListName.trim()) {
-      alert('⚠️ Ange ett namn för listan')
+      toast.warning('Ange ett namn för listan')
       return
     }
     
     if (shoppingItems.length === 0) {
-      alert('⚠️ Listan är tom. Lägg till varor först.')
+      toast.warning('Listan är tom. Lägg till varor först.')
       return
     }
     
@@ -394,9 +407,9 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
         syncSavedListsToFirebase(shoppingListService.getSavedShoppingLists())
       }
       
-      alert(`✅ Lista "${result.list.name}" ${result.isUpdate ? 'uppdaterad' : 'sparad'}!`)
+      toast.success(`Lista "${result.list.name}" ${result.isUpdate ? 'uppdaterad' : 'sparad'}!`)
     } else {
-      alert(`❌ ${result.error}`)
+      toast.error(result.error)
     }
   }
 
@@ -404,7 +417,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   const handleLoadList = (listId) => {
     const list = shoppingListService.getSavedListById(listId)
     if (!list) {
-      alert('❌ Lista hittades inte')
+      toast.error('Lista hittades inte')
       return
     }
     
@@ -445,7 +458,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
         syncSavedListsToFirebase(shoppingListService.getSavedShoppingLists())
       }
     } else {
-      alert(`❌ ${result.error}`)
+      toast.error(result.error)
     }
   }
 
@@ -489,7 +502,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
     }
     
     if (parsed > maxValue) {
-      alert(`⚠️ Max ${maxValue} ${item.unit} tillåtet. Försök med ett lägre värde.`)
+      toast.warning(`Max ${maxValue} ${item.unit} tillåtet. Försök med ett lägre värde.`)
       setEditingQuantity(null)
       setTempQuantity('')
       return
@@ -518,7 +531,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
   return (
     <section className="card shopping-list">
       <div className="section-header">
-        <h2>🛍️ Inköpslista {isSyncing && <span style={{fontSize: '12px', color: 'var(--accent)'}}>↻ Synkar...</span>}</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ShoppingBag size={24} /> Inköpslista {isSyncing && <span style={{fontSize: '12px', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px'}}><RefreshCw size={14} /> Synkar...</span>}</h2>
         <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
           {totalCount > 0 && (
             <>
@@ -530,6 +543,10 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
                   onClick={clearCompleted}
                   className="clear-completed-btn"
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    justifyContent: 'center',
                     padding: '8px 16px',
                     fontSize: '14px',
                     fontWeight: 600,
@@ -546,16 +563,16 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
                   onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
                   onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                 >
-                  ✅ Rensa klara ({completedCount})
+                  <CheckCircle size={18} /> Rensa klara ({completedCount})
                 </button>
               )}
               <button
                 onClick={() => setShowSaveDialog(true)}
                 className="btn-glass"
-                style={{padding: '6px 12px', fontSize: '13px'}}
+                style={{padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px'}}
                 title="Spara aktuell lista som mall"
               >
-                💾 Spara lista
+                <Save size={16} /> Spara lista
               </button>
             </>
           )}
@@ -563,10 +580,10 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
             <button
               onClick={() => setShowSavedLists(!showSavedLists)}
               className="btn-glass"
-              style={{padding: '6px 12px', fontSize: '13px'}}
+              style={{padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px'}}
               title="Ladda sparad lista"
             >
-              📁 Mina listor ({savedLists.length})
+              <FolderOpen size={16} /> Mina listor ({savedLists.length})
             </button>
           )}
         </div>
@@ -594,7 +611,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
               boxShadow: itemMode === 'food' ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
             }}
           >
-            🛒 Matvara
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><ShoppingCart size={18} /> Matvara</span>
           </button>
           <button
             type="button"
@@ -613,7 +630,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
               boxShadow: itemMode === 'other' ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
             }}
           >
-            🧴 Annat
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><Package size={18} /> Annat</span>
           </button>
         </div>
 
@@ -642,7 +659,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
                     style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--muted)', padding: '0 4px'}}
                     title="Stäng förslag"
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </div>
                 {suggestions.map((item, index) => (
@@ -754,7 +771,7 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       {/* Dialog för att spara lista */}
       {showSaveDialog && (
         <div style={{marginBottom: '16px', padding: '16px', background: 'var(--card-bg)', border: '2px solid var(--accent)', borderRadius: '12px'}}>
-          <h3 style={{margin: '0 0 12px 0', fontSize: '16px'}}>💾 Spara inköpslista</h3>
+          <h3 style={{margin: '0 0 12px 0', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}><Save size={20} /> Spara inköpslista</h3>
           <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
             <input
               type="text"
@@ -764,11 +781,11 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
               style={{flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)'}}
               autoFocus
             />
-            <button onClick={handleSaveList} className="btn-glass" style={{padding: '10px 16px'}}>
-              ✅ Spara
+            <button onClick={handleSaveList} className="btn-glass" style={{padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <CheckCircle size={16} /> Spara
             </button>
-            <button onClick={() => { setShowSaveDialog(false); setSaveListName('') }} className="btn-glass" style={{padding: '10px 16px'}}>
-              ❌ Avbryt
+            <button onClick={() => { setShowSaveDialog(false); setSaveListName('') }} className="btn-glass" style={{padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '6px'}}>
+              <X size={16} /> Avbryt
             </button>
           </div>
           <p style={{margin: '8px 0 0 0', fontSize: '12px', color: 'var(--muted)'}}>Tips: Om namnet redan finns kommer listan att uppdateras.</p>
@@ -779,8 +796,8 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       {showSavedLists && savedLists.length > 0 && (
         <div style={{marginBottom: '16px', padding: '16px', background: 'var(--card-bg)', border: '2px solid var(--border)', borderRadius: '12px'}}>
           <h3 style={{margin: '0 0 12px 0', fontSize: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            📁 Mina sparade listor
-            <button onClick={() => setShowSavedLists(false)} style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--muted)'}}>✕</button>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={20} /> Mina sparade listor</span>
+            <button onClick={() => setShowSavedLists(false)} style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--muted)'}}><X size={18} /></button>
           </h3>
           <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
             {savedLists.map(list => (
@@ -796,9 +813,9 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
                   <button 
                     onClick={() => handleLoadList(list.id)}
                     className="btn-glass"
-                    style={{padding: '8px 12px', fontSize: '13px'}}
+                    style={{padding: '8px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px'}}
                   >
-                    ✅ Använd
+                    <CheckCircle size={14} /> Använd
                   </button>
                   <button 
                     onClick={() => handleDeleteSavedList(list.id, list.name)}
@@ -921,15 +938,15 @@ export default function ShoppingList({ onAddToInventory, onDirectAddToInventory,
       
       {/* Hjälptext */}
       <div className="shopping-help">
-        <p>💡 <strong>Så funkar det:</strong></p>
+        <p style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Lightbulb size={18} /> <strong>Så funkar det:</strong></p>
         <ul style={{margin: '8px 0', paddingLeft: '20px'}}>
-          <li><strong>🍽️ Matvaror:</strong> När du bockar av → Markeras som klara. <em>Först när du klickar på "🗑️ Rensa klara"</em> läggs de i "Mina varor" med smart utgångsdatum.</li>
-          <li><strong>🧯 Andra varor:</strong> När du bockar av → Stannar i listan tills du klickar på "🗑️ Rensa klara"</li>
-          <li><strong>🔍 Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
-          <li><strong>👆 Ändra mängd:</strong> Klicka på kvantiteten (t.ex. "5 kg") för att redigera den direkt!</li>
-          <li><strong>💾 Spara listor:</strong> Skapar du samma inköpslista varje vecka? Spara den som mall och ladda nästa gång!</li>
-          <li><strong>⚖️ Smart mått:</strong> Siffror konverteras automatiskt (t.ex. 1000g → 1kg) för bättre användbarhet</li>
-          <li><strong>🔄 Synkronisering:</strong> Är du med i en familjegrupp? Inköpslistor synkas automatiskt mellan alla medlemmar!</li>
+          <li><strong>Matvaror:</strong> När du bockar av → Markeras som klara. <em>Först när du klickar på "Rensa klara"</em> läggs de i "Mina varor" med smart utgångsdatum.</li>
+          <li><strong>Andra varor:</strong> När du bockar av → Stannar i listan tills du klickar på "Rensa klara"</li>
+          <li><strong>Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
+          <li><strong>Ändra mängd:</strong> Klicka på kvantiteten (t.ex. "5 kg") för att redigera den direkt!</li>
+          <li><strong>Spara listor:</strong> Skapar du samma inköpslista varje vecka? Spara den som mall och ladda nästa gång!</li>
+          <li><strong>Smart mått:</strong> Siffror konverteras automatiskt (t.ex. 1000g → 1kg) för bättre användarbarhet</li>
+          <li><strong>Synkronisering:</strong> Är du med i en familjegrupp? Inköpslistor synkas automatiskt mellan alla medlemmar!</li>
         </ul>
       </div>
     </section>

@@ -92,7 +92,39 @@ export function getSavingsData() {
   try {
     const data = localStorage.getItem(STORAGE_KEY)
     if (data) {
-      return JSON.parse(data)
+      const parsed = JSON.parse(data)
+      
+      // MIGRATION: Ensure currentMonth has correct structure
+      let needsMigration = false
+      
+      if (!parsed.currentMonth || typeof parsed.currentMonth.month !== 'number') {
+        console.warn('⚠️ Migrating old savings data format - currentMonth')
+        parsed.currentMonth = {
+          saved: parsed.currentMonth?.saved || 0,
+          items: parsed.currentMonth?.items || 0,
+          month: new Date().getMonth(),
+          year: new Date().getFullYear()
+        }
+        needsMigration = true
+      }
+      
+      // Ensure history is an array
+      if (!Array.isArray(parsed.history)) {
+        parsed.history = []
+        needsMigration = true
+      }
+      
+      // Save migrated data back to localStorage
+      if (needsMigration) {
+        console.log('💾 Saving migrated savings data')
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+        } catch (e) {
+          console.error('Failed to save migrated data:', e)
+        }
+      }
+      
+      return parsed
     }
   } catch (error) {
     console.error('Kunde inte läsa spardata:', error)

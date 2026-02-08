@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
+import { ShoppingCart, Home, ChefHat, User, Undo2, Sparkles, UserCircle2, Sun, Moon, Bell, BellOff, TrendingUp, Trophy, Users, Gift, HelpCircle, Bot, X, AlertTriangle, Clock, Flame, UtensilsCrossed, BarChart3, Search, Zap, Package, ShoppingBag, Lock } from 'lucide-react';
 import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
@@ -6,7 +7,7 @@ import ShoppingList from './ShoppingList'
 import GuideWelcome from './GuideWelcome'
 import GuideBadge from './GuideBadge'
 import NotificationPrompt from './NotificationPrompt'
-import SavingsBanner from './SavingsBanner'
+import AdvancedStats from './AdvancedStats'
 import WeeklyEmailSignup from './WeeklyEmailSignup'
 import ReferralProgram from './ReferralProgram'
 import AchievementsPage from './AchievementsPage'
@@ -20,6 +21,9 @@ import AuthModal from './components/AuthModal'
 import AdBanner from './AdBanner'
 import AIRecipeGenerator from './AIRecipeGenerator'
 import AchievementCelebration from './AchievementCelebration'
+import OfflineBanner from './components/OfflineBanner'
+import Spinner from './components/Spinner'
+import { useToast } from './components/ToastContainer'
 import { getSavedAIRecipes, deleteAIRecipe } from './aiRecipeService'
 import * as adService from './adService'
 import { calculateSmartExpiryDate, getSmartProductCategory, learnFromUserAdjustment } from './smartExpiryAI'
@@ -220,6 +224,7 @@ function hasAnyPremium() {
 }
 
 export default function App() {
+  const toast = useToast()
   
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ 
@@ -269,6 +274,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false) // Email/password authentication modal
   const [authModalMode, setAuthModalMode] = useState('login') // 'login' eller 'signup'
   const [pendingFAQSection, setPendingFAQSection] = useState(null)
+  const [activeAchievement, setActiveAchievement] = useState(null) // Achievement celebration
   // State för anpassad bekräftelsedialog
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -416,7 +422,7 @@ export default function App() {
       window.history.replaceState({}, document.title, '/')
       
       setTimeout(() => {
-        alert('🎉 Välkommen till Premium!\n\nDin prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ AI-receptgenerator\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+        toast.success('🎉 Välkommen till Premium! Din prenumeration är nu aktiv och du har full tillgång till alla premium-funktioner.')
         
         // FIX: Vänta på Firebase sync innan reload (förhindrar vit skärm)
         setTimeout(() => {
@@ -425,7 +431,7 @@ export default function App() {
       }, 500)
     } else if (paymentStatus === 'cancelled') {
       setTimeout(() => {
-        alert('😔 Betalningen avbröts\n\nInget har debiterats från ditt konto. Du kan försöka igen när som helst!')
+        toast.warning('Betalningen avbröts. Inget har debiterats från ditt konto.')
         window.history.replaceState({}, document.title, '/')
       }, 500)
     }
@@ -479,9 +485,34 @@ export default function App() {
           // NYTT: Sync all user data from cloud if not anonymous
           if (!user.isAnonymous) {
             console.log('👤 User is logged in with email - syncing data from cloud...')
+            
+            // SECURITY FIX: Kolla om en ANNAN användare loggade in
+            const lastUserId = localStorage.getItem('svinnstop_last_user_id')
+            
+            if (lastUserId && lastUserId !== user.uid) {
+              console.log('🚨 DIFFERENT USER DETECTED - Clearing localStorage!')
+              console.log(`Previous user: ${lastUserId}, New user: ${user.uid}`)
+              
+              // Rensa ALL localStorage förutom theme
+              const savedTheme = localStorage.getItem('svinnstop_theme')
+              localStorage.clear()
+              if (savedTheme) {
+                localStorage.setItem('svinnstop_theme', savedTheme)
+              }
+              
+              console.log('✅ localStorage cleared - will load fresh data from cloud')
+            }
+            
+            // Spara aktuell användare
+            localStorage.setItem('svinnstop_last_user_id', user.uid)
+            
+            // SECURITY FIX: Markera att vi är i synkläge
+            sessionStorage.setItem('svinnstop_syncing', 'true')
+            
             performInitialUserSync()
-              .then(cloudData => {
+              .then(async (cloudData) => {
                 if (cloudData) {
+                  console.log('🔄 Cloud data loaded - applying to localStorage...')
                   // Merge inventory
                   if (cloudData.inventory) {
                     const localItems = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
@@ -576,26 +607,51 @@ export default function App() {
                     }
                   }
                   
-                  // Merge referral data
+                  // Merge referral data - VIKTIGT: Cloud är källan till sanning
                   if (cloudData.referral && cloudData.referral.myCode) {
-                    console.log('🎁 Using cloud referral data')
-                    // Merge med befintlig localStorage data (behåll referrals/rewards från Firebase)
+                    console.log('🎁 Using cloud referral data (source of truth)')
+                    // Använd cloud-data DIREKT, skriv över lokal data helt
+                    localStorage.setItem('svinnstop_referral_data', JSON.stringify(cloudData.referral))
+                  } else {
+                    // Om ingen cloud referral-data finns, kolla lokal data först
+                    console.log('🎁 No cloud referral data found')
                     const localReferral = localStorage.getItem('svinnstop_referral_data')
-                    let referralDataToSave = cloudData.referral
+                    let referralCodeToUse = null
                     
                     if (localReferral) {
                       try {
                         const parsed = JSON.parse(localReferral)
-                        // Behåll referrals och rewards från localStorage om de är nyare
-                        referralDataToSave = {
-                          ...cloudData.referral,
-                          referrals: parsed.referrals || [],
-                          rewards: parsed.rewards || []
+                        if (parsed.myCode && parsed.myCode !== '...') {
+                          // Använd befintlig lokal kod
+                          referralCodeToUse = parsed
+                          console.log('💾 Using existing local referral code:', parsed.myCode)
                         }
-                      } catch (e) {}
+                      } catch (e) {
+                        console.warn('⚠️ Could not parse local referral data')
+                      }
                     }
                     
-                    localStorage.setItem('svinnstop_referral_data', JSON.stringify(referralDataToSave))
+                    // Om ingen kod finns, skapa en ny
+                    if (!referralCodeToUse) {
+                      // Import generateReferralCode från referralService
+                      const referralModule = await import('./referralService')
+                      const user = auth.currentUser
+                      referralCodeToUse = {
+                        myCode: referralModule.generateReferralCode(user?.uid),
+                        referredBy: null,
+                        referrals: [],
+                        rewards: [],
+                        premiumUntil: null,
+                        lifetimePremium: false,
+                        createdAt: new Date().toISOString()
+                      }
+                      console.log('✨ Created new referral code:', referralCodeToUse.myCode)
+                    }
+                    
+                    // Synka till cloud och spara lokalt
+                    const userDataSyncModule = await import('./userDataSync')
+                    await userDataSyncModule.syncReferralDataToUser(referralCodeToUse)
+                    localStorage.setItem('svinnstop_referral_data', JSON.stringify(referralCodeToUse))
                   }
                   
                   // Merge profile/leaderboard data
@@ -637,12 +693,21 @@ export default function App() {
                   
                   // SECURITY: Merge premium data from Firebase (källan till sanning)
                   if (cloudData.premium) {
-                    console.log('🔒 Using cloud premium data')
-                    // LocalStorage används ENDAST som cache
+                    console.log('🔒 Using cloud premium data (source of truth)')
+                    // LocalStorage används ENDAST som cache - skriv över helt
                     localStorage.setItem('svinnstop_premium_data', JSON.stringify(cloudData.premium))
+                  } else {
+                    // Ingen premium i cloud = rensa lokal premium
+                    console.log('🔓 No cloud premium - clearing local premium')
+                    localStorage.removeItem('svinnstop_premium_data')
+                    localStorage.removeItem('svinnstop_premium')
+                    localStorage.removeItem('svinnstop_premium_expiry')
                   }
                   
                   console.log('✅ User data sync complete')
+                  
+                  // SECURITY FIX: Markera att sync är klar
+                  sessionStorage.removeItem('svinnstop_syncing')
                   
                   // Reload om family data ändrades för att aktivera family sync
                   if (needsReloadForFamily) {
@@ -653,9 +718,15 @@ export default function App() {
                   }
                 } else {
                   console.log('⚠️ No cloud data found - will upload local data on next change')
+                  // SECURITY FIX: Markera att sync är klar även om ingen cloud data
+                  sessionStorage.removeItem('svinnstop_syncing')
                 }
               })
-              .catch(err => console.warn('⚠️ Could not sync user data from cloud:', err))
+              .catch(err => {
+                console.warn('⚠️ Could not sync user data from cloud:', err)
+                // SECURITY FIX: Rensa syncing-flagga även vid fel
+                sessionStorage.removeItem('svinnstop_syncing')
+              })
           }
           
           // Sync premium from Firebase (server-side truth)
@@ -756,7 +827,7 @@ export default function App() {
     return () => window.removeEventListener('openFAQ', handleOpenFAQ)
   }, [])
   
-  // Skicka pending FAQ-sektion till FAQ-komponenten när den öppnas
+  // Skicka pending FAQ-sektion
   useEffect(() => {
     if (activeTab === 'faq' && pendingFAQSection) {
       // Skicka event till FAQ-komponenten
@@ -766,6 +837,18 @@ export default function App() {
       }, 100)
     }
   }, [activeTab, pendingFAQSection])
+  
+  // Lyssna på achievement unlocked events
+  useEffect(() => {
+    const handleAchievementUnlocked = (event) => {
+      const achievement = event.detail
+      console.log('🎉 Showing achievement celebration:', achievement.title)
+      setActiveAchievement(achievement)
+    }
+    
+    window.addEventListener('achievementUnlocked', handleAchievementUnlocked)
+    return () => window.removeEventListener('achievementUnlocked', handleAchievementUnlocked)
+  }, [])
   
   // Synka family premium status till localStorage cache OCH starta listener
   useEffect(() => {
@@ -810,7 +893,7 @@ export default function App() {
           benefits.hasBenefits && 
           benefits.source === 'family') {
         setTimeout(() => {
-          alert('🎉 Familjen har nu Family Premium!\n\n✨ Ny medlem med Family Premium har gått med!\n\nDu har nu tillgång till alla premium-funktioner:\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ AI-receptgenerator\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+          toast.success('🎉 Familjen har nu Family Premium! Du har nu tillgång till alla premium-funktioner.')
         }, 500)
       }
       
@@ -1279,7 +1362,7 @@ export default function App() {
     
     if (!isPremium && items.length >= 10 && !existingItemCheck) {
       // Show upgrade modal and inform user
-      alert('🔒 Du har nått gränsen på 10 varor!\n\nUppgradera till Premium för:\n• Obegränsat antal varor\n• Receptförslag\n• Ingen reklam\n• och mer!')
+      toast.warning('Du har nått gränsen på 10 varor! Uppgradera till Premium för obegränsat antal varor.')
       setShowUpgradeModal(true)
       console.log('🚫 Free user reached 10-item limit')
       return
@@ -1524,7 +1607,7 @@ export default function App() {
       
     } catch (error) {
       console.error('Error in onRemove:', error)
-      alert('❌ Ett fel uppstod: ' + error.message)
+      toast.error('Ett fel uppstod: ' + error.message)
     }
   }
 
@@ -1872,13 +1955,13 @@ export default function App() {
         // Spara inställning
         localStorage.setItem('svinnstop_notifications_enabled', 'true')
         
-        alert('✅ Notifikationer aktiverade! Du kommer nu få påminnelser om utgående varor.')
+        toast.success('Notifikationer aktiverade! Du kommer nu få påminnelser om utgående varor.')
       } else {
-        alert('❌ Kunde inte aktivera notifikationer. Kontrollera att du tillåter notifikationer i webbläsaren.')
+        toast.error('Kunde inte aktivera notifikationer. Kontrollera att du tillåter notifikationer i webbläsaren.')
       }
     } catch (error) {
       console.error('Error enabling notifications:', error)
-      alert('❌ Ett fel uppstod: ' + error.message)
+      toast.error('Ett fel uppstod: ' + error.message)
     }
   }
   
@@ -1892,10 +1975,10 @@ export default function App() {
       // Spara inställning
       localStorage.setItem('svinnstop_notifications_enabled', 'false')
       
-      alert('❌ Notifikationer inaktiverade. Du kommer inte längre få påminnelser.')
+      toast.info('Notifikationer inaktiverade. Du kommer inte längre få påminnelser.')
     } catch (error) {
       console.error('Error disabling notifications:', error)
-      alert('❌ Ett fel uppstod: ' + error.message)
+      toast.error('Ett fel uppstod: ' + error.message)
     }
   }
   
@@ -1987,7 +2070,7 @@ export default function App() {
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(currentShoppingList))
     
     // Visa bekräftelse
-    alert(`✅ Lade till ${ingredients.length} matvaror i inköpslistan!`)
+    toast.success(`Lade till ${ingredients.length} matvaror i inköpslistan!`)
   }
   
 
@@ -2116,11 +2199,18 @@ export default function App() {
   // SECURITY: Visa login screen om användaren inte är inloggad
   // Ingen anonym auth - användare MÅSTE logga in
   // Men tillåt tillgång till FAQ/villkor/integritetspolicy
+  // Scrolla till toppen när FAQ öppnas
+  useEffect(() => {
+    if (activeTab === 'faq') {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [activeTab])
+  
   if (isAuthReady && !auth.currentUser) {
     // Om användaren vill se FAQ, visa det utan inloggning
     if (activeTab === 'faq') {
       return (
-        <div className="container">
+        <div className="container" style={{ paddingTop: 0 }}>
           <div style={{
             padding: '20px',
             maxWidth: '800px',
@@ -2129,7 +2219,7 @@ export default function App() {
             <button 
               className="btn-secondary"
               onClick={() => setActiveTab('welcome')}
-              style={{marginBottom: '16px'}}
+              style={{marginBottom: '16px', marginTop: '20px'}}
             >
               ← Tillbaka till start
             </button>
@@ -2146,70 +2236,207 @@ export default function App() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         backgroundColor: 'var(--bg-primary)',
         padding: '20px',
-        textAlign: 'center'
+        paddingTop: '60px',
+        textAlign: 'center',
+        overflowY: 'auto'
       }}>
-        <h1 style={{ fontSize: '48px', marginBottom: '16px' }}><span className="notranslate">Svinnstop</span></h1>
-        <p style={{ fontSize: '18px', marginBottom: '32px', color: 'var(--text-secondary)' }}>
-          Minska matsvinnet. Spara pengar.
-        </p>
-        <p style={{ marginBottom: '24px' }}>Logga in eller skapa ett konto för att börja</p>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setAuthModalMode('signup')
-              setShowAuthModal(true)
-            }}
-            style={{ padding: '12px 24px' }}
-          >
-            Skapa konto
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setAuthModalMode('login')
-              setShowAuthModal(true)
-            }}
-            style={{ padding: '12px 24px' }}
-          >
-            Logga in
-          </button>
-        </div>
-        
-        {/* Länkar till villkor och integritetspolicy */}
-        <div style={{ marginTop: '32px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-          <a 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              setPendingFAQSection('terms')
-              setActiveTab('faq')
-            }}
-            style={{
-              color: 'var(--primary-color)',
-              textDecoration: 'none',
-              marginRight: '16px'
-            }}
-          >
-            Användarvillkor
-          </a>
-          <a 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              setPendingFAQSection('privacy')
-              setActiveTab('faq')
-            }}
-            style={{
-              color: 'var(--primary-color)',
-              textDecoration: 'none'
-            }}
-          >
-            Integritetspolicy
-          </a>
+        <div style={{
+          maxWidth: '900px',
+          width: '100%',
+          padding: '40px 20px'
+        }}>
+          {/* Hero Section */}
+          <div style={{ marginBottom: '48px' }}>
+            <h1 style={{ 
+              fontSize: '56px', 
+              marginBottom: '16px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: '800'
+            }}>
+              <span className="notranslate">Svinnstop</span>
+            </h1>
+            <p style={{ 
+              fontSize: '24px', 
+              marginBottom: '16px', 
+              color: 'var(--text-primary)',
+              fontWeight: '600'
+            }}>
+              Minska matsvinnet. Spara pengar.
+            </p>
+            <p style={{ 
+              fontSize: '16px',
+              color: 'var(--text-secondary)',
+              maxWidth: '600px',
+              margin: '0 auto 40px'
+            }}>
+              Håll koll på dina matvaror, få receptförslag och spåra besparingar. Tillsammans minskar vi matsvinnet.
+            </p>
+            
+            {/* CTA Buttons */}
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '48px' }}>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setAuthModalMode('signup')
+                  setShowAuthModal(true)
+                }}
+                style={{ 
+                  padding: '16px 32px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                Kom igång gratis
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setAuthModalMode('login')
+                  setShowAuthModal(true)
+                }}
+                style={{ padding: '16px 32px', fontSize: '16px', fontWeight: '600' }}
+              >
+                Logga in
+              </button>
+            </div>
+          </div>
+          
+          {/* Features Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '24px',
+            marginBottom: '48px'
+          }}>
+            <div style={{
+              padding: '24px',
+              backgroundColor: 'var(--card-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              textAlign: 'left'
+            }}>
+              <Home size={32} style={{ color: '#10b981', marginBottom: '12px' }} />
+              <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600' }}>Kylskåpskoll</h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                Håll koll på alla dina matvaror och utgångsdatum på ett ställe
+              </p>
+            </div>
+            
+            <div style={{
+              padding: '24px',
+              backgroundColor: 'var(--card-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              textAlign: 'left'
+            }}>
+              <ChefHat size={32} style={{ color: '#10b981', marginBottom: '12px' }} />
+              <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600' }}>AI-Recept</h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                Få skräddarsydda receptförslag baserat på dina ingredienser
+              </p>
+            </div>
+            
+            <div style={{
+              padding: '24px',
+              backgroundColor: 'var(--card-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              textAlign: 'left'
+            }}>
+              <TrendingUp size={32} style={{ color: '#10b981', marginBottom: '12px' }} />
+              <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600' }}>Spåra Besparingar</h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                Se hur mycket pengar och miljö du sparar genom att minska svinn
+              </p>
+            </div>
+            
+            <div style={{
+              padding: '24px',
+              backgroundColor: 'var(--card-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              textAlign: 'left'
+            }}>
+              <Users size={32} style={{ color: '#10b981', marginBottom: '12px' }} />
+              <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600' }}>Familjesynk</h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                Dela kylskåp och inköpslistor med hela familjen i realtid
+              </p>
+            </div>
+          </div>
+          
+          {/* Stats/Social Proof */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '64px',
+            marginBottom: '48px',
+            flexWrap: 'wrap'
+          }}>
+            <div>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#10b981' }}>0 kr</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Helt gratis att börja</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#10b981' }}>500+ kr</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Sparad per månad</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#10b981' }}>30%</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Minskat matsvinn</div>
+            </div>
+          </div>
+          
+          {/* Footer Links */}
+          <div style={{ 
+            marginTop: '32px', 
+            paddingTop: '32px',
+            borderTop: '1px solid var(--border-color)',
+            fontSize: '14px', 
+            color: 'var(--text-secondary)' 
+          }}>
+            <a 
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                setPendingFAQSection('terms')
+                setActiveTab('faq')
+              }}
+              style={{
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                marginRight: '16px',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.color = 'var(--primary-color)'}
+              onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}
+            >
+              Användarvillkor
+            </a>
+            <a 
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                setPendingFAQSection('privacy')
+                setActiveTab('faq')
+              }}
+              style={{
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.color = 'var(--primary-color)'}
+              onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}
+            >
+              Integritetspolicy
+            </a>
+          </div>
         </div>
         
         <AuthModal
@@ -2223,6 +2450,9 @@ export default function App() {
 
   return (
     <>
+      {/* Offline Banner */}
+      <OfflineBanner />
+      
       {/* Välkomstdialog */}
       {showGuideWelcome && (
         <GuideWelcome
@@ -2261,14 +2491,22 @@ export default function App() {
         />
       )}
       
-      <button 
+      {/* Achievement Celebration */}
+      {activeAchievement && (
+        <AchievementCelebration
+          achievement={activeAchievement}
+          onClose={() => setActiveAchievement(null)}
+        />
+      )}
+      
+      <button
         className="undo-btn" 
         onClick={undoLastAction}
         disabled={!canUndo}
         title="Ångra senaste borttagning"
         aria-label="Ångra senaste borttagning"
       >
-        ↶️ Ångra
+        <Undo2 size={18} /> Ångra
       </button>
       
     <div className="container">
@@ -2286,14 +2524,14 @@ export default function App() {
           className={`tab-button ${activeTab === 'shopping' ? 'active' : ''}`}
           onClick={() => setActiveTab('shopping')}
         >
-          <span className="tab-icon">📋</span>
+          <span className="tab-icon"><ShoppingCart size={20} /></span>
           <span className="tab-label">Inköpslista</span>
         </button>
         <button 
           className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
           onClick={() => setActiveTab('inventory')}
         >
-          <span className="tab-icon">🏠</span>
+          <span className="tab-icon"><Home size={20} /></span>
           <span className="tab-label">Kylskåp</span>
           {items.length > 0 && <span className="tab-badge">{items.length}</span>}
         </button>
@@ -2301,7 +2539,7 @@ export default function App() {
           className={`tab-button ${activeTab === 'recipes' ? 'active' : ''}`}
           onClick={() => setActiveTab('recipes')}
         >
-          <span className="tab-icon">🍳</span>
+          <span className="tab-icon"><ChefHat size={20} /></span>
           <span className="tab-label">Recept</span>
           {suggestions.length > 0 && <span className="tab-badge">{suggestions.length}</span>}
         </button>
@@ -2309,7 +2547,7 @@ export default function App() {
           className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => setActiveTab('profile')}
         >
-          <span className="tab-icon">👤</span>
+          <span className="tab-icon"><User size={20} /></span>
           <span className="tab-label">Profil</span>
         </button>
       </nav>
@@ -2322,6 +2560,9 @@ export default function App() {
           <div className="tab-panel">
             <ShoppingList 
               onDirectAddToInventory={handleDirectAddToInventory}
+              isPremium={hasAnyPremium()}
+              currentInventoryCount={items.length}
+              onShowUpgradeModal={() => setShowUpgradeModal(true)}
               guideActive={guideActive}
               guideStep={guideStep}
               onGuideAdvance={() => setGuideStep(6)}
@@ -2466,8 +2707,9 @@ export default function App() {
                               console.log(`🤖 AI-förslag: ${form.name} = ${suggestion.date}${suggestion.hasCustomRule ? ' (custom regel)' : ''}`)
                             }}
                             title="Använd AI-förslag som utgångspunkt"
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
                           >
-                            🤖 AI-förslag
+                            <Bot size={16} /> AI-förslag
                           </button>
                         </div>
                       )}
@@ -2488,10 +2730,13 @@ export default function App() {
                       {form.name && form.expiresAt && form.quantity > 0 ? (
                         `Lägger till: ${form.quantity} ${selectedInventoryUnit} ${form.name} som går ut ${form.expiresAt}`
                       ) : (
-                        !form.name ? '⚠️ Namn saknas' :
-                        !form.expiresAt ? '⚠️ Utgångsdatum saknas' :
-                        form.quantity <= 0 ? '⚠️ Antal måste vara större än 0' :
-                        ''
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <AlertTriangle size={14} />
+                          {!form.name ? 'Namn saknas' :
+                          !form.expiresAt ? 'Utgångsdatum saknas' :
+                          form.quantity <= 0 ? 'Antal måste vara större än 0' :
+                          ''}
+                        </span>
                       )}
                     </small>
                   </div>
@@ -2517,8 +2762,9 @@ export default function App() {
                       onClick={toggleBulkEditMode}
                       className={`bulk-edit-toggle ${bulkEditMode ? 'active' : ''}`}
                       title={bulkEditMode ? 'Avsluta redigering' : 'Ändra utgångsdatum för flera varor'}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      {bulkEditMode ? '✕ Avsluta' : 'Redigera varor'}
+                      {bulkEditMode ? <><X size={16} /> Avsluta</> : 'Redigera varor'}
                     </button>
                   )}
                 </div>
@@ -2539,7 +2785,7 @@ export default function App() {
                         onClick={() => setSearchQuery('')}
                         title="Rensa sökning"
                       >
-                        ✕
+                        <X size={16} />
                       </button>
                     )}
                   </div>
@@ -2663,23 +2909,6 @@ export default function App() {
                         </div>
                         {!bulkEditMode && (
                           <div className="item-actions">
-                          {/* Quick-action: Markera som använd för utgående/utgångna varor */}
-                          {d <= 3 && (
-                            <button 
-                              className="save-btn" 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                const result = savingsTracker.trackItemSaved(i)
-                                onRemove(i.id, e)
-                                setTimeout(() => {
-                                  alert(`✅ Grattis! Du räddade "${i.name}"!\n\n💰 Besparing: ${result.savedAmount} kr\n🍽️ Totalt räddade: ${result.itemsSaved} varor\n💵 Total besparing: ${result.totalSaved} kr`)
-                                }, 100)
-                              }}
-                              title="Markera som använd - rädda från svinn!"
-                            >
-                              ✅
-                            </button>
-                          )}
                           <button 
                             className="remove-btn" 
                             onClick={(e) => onRemove(i.id, e)}
@@ -2707,14 +2936,14 @@ export default function App() {
           <div className="tab-panel">
             <section className="card">
               <div className="section-header">
-                <h2>Recept {!hasAnyPremium() && '🔒'}</h2>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Recept {!hasAnyPremium() && <Lock size={18} />}</h2>
                 <p className="section-subtitle">Hitta inspiration för din matlagning</p>
               </div>
               
               {!hasAnyPremium() ? (
                 <div className="premium-required-message">
                   <div className="premium-required-content">
-                    <div className="premium-icon">✨</div>
+                    <div className="premium-icon"><ChefHat size={48} /></div>
                     <h3>Receptförslag kräver Premium</h3>
                     <p>Få smarta receptförslag baserat på vad du har i kylskåpet</p>
                     <button 
@@ -2783,9 +3012,10 @@ export default function App() {
                 <div className="recipe-tab-content">
                   {suggestions.length === 0 ? (
                     <div className="empty-recipes">
-                      <p>{items.length === 0 
-                        ? '📦 Lägg till varor i ditt kylskåp för att få personliga receptförslag!' 
-                        : '🔍 Inga recept hittades med dina nuvarande varor. Försök lägga till fler basvaror som ägg, mjölk eller pasta!'}
+                      <p style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                        {items.length === 0 
+                        ? <><Package size={20} /> Lägg till varor i ditt kylskåp för att få personliga receptförslag!</> 
+                        : <><Search size={20} /> Inga recept hittades med dina nuvarande varor. Försök lägga till fler basvaror som ägg, mjölk eller pasta!</>}
                       </p>
                     </div>
                   ) : (
@@ -2795,11 +3025,11 @@ export default function App() {
                           <div className="recipe-header">
                             <h3 className="notranslate">{r.name}</h3>
                             <div className="recipe-meta">
-                              <span className="servings">👥 {r.servings} portioner</span>
-                              <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
-                              <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
+                              <span className="servings" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={14} /> {r.servings} portioner</span>
+                              <span className="time" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {svTimeLabel(r.cookingTime)}</span>
+                              <span className={`difficulty ${svDifficultyClass(r.difficulty)}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={14} /> {svDifficultyLabel(r.difficulty)}</span>
                               {r.hasExpiringIngredients && (
-                                <span className="urgency-badge">⚠️ Snart utgånget ({r.expiringIngredientsCount})</span>
+                                <span className="urgency-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={14} /> Snart utgånget ({r.expiringIngredientsCount})</span>
                               )}
                             </div>
                           </div>
@@ -2816,10 +3046,10 @@ export default function App() {
                                   <span className="ingredient-available">
                                     <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
                                     {ingredient.isExpiring && (
-                                      <span className="expiry-warning">⚠️ Går ut om {ingredient.daysLeft} dag{ingredient.daysLeft !== 1 ? 'ar' : ''}</span>
+                                      <span className="expiry-warning" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={12} /> Går ut om {ingredient.daysLeft} dag{ingredient.daysLeft !== 1 ? 'ar' : ''}</span>
                                     )}
                                     {ingredient.isExpired && (
-                                      <span className="expired-warning">🚨 Utgången</span>
+                                      <span className="expired-warning" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={12} /> Utgången</span>
                                     )}
                                   </span>
                                 </li>
@@ -2854,8 +3084,9 @@ export default function App() {
                     <button 
                       className={`category-filter-btn notranslate ${recipeCategory === 'alla' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('alla')}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      🍽️ Alla
+                      <UtensilsCrossed size={16} /> Alla
                     </button>
                     <button 
                       className={`category-filter-btn notranslate ${recipeCategory === 'thai' ? 'active' : ''}`}
@@ -2896,8 +3127,9 @@ export default function App() {
                     <button 
                       className={`category-filter-btn notranslate ${recipeCategory === 'snabbt' ? 'active' : ''}`}
                       onClick={() => setRecipeCategory('snabbt')}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      ⚡ Snabbt
+                      <Zap size={16} /> Snabbt
                     </button>
                     <button 
                       className={`category-filter-btn notranslate ${recipeCategory === 'dessert' ? 'active' : ''}`}
@@ -2908,9 +3140,7 @@ export default function App() {
                   </div>
                   
                   {loadingRecipes ? (
-                    <div className="loading-recipes">
-                      <p>🍳 Laddar populära recept från internet...</p>
-                    </div>
+                    <Spinner size={32} text="Laddar populära recept från internet..." />
                   ) : recommendedRecipes.length === 0 ? (
                     <div className="empty-recipes">
                       <p>😔 Inga recept hittades i kategorin "{
@@ -2932,9 +3162,9 @@ export default function App() {
                         <div className="recipe-header">
                           <h3 className="notranslate">{r.name}</h3>
                           <div className="recipe-meta">
-                            <span className="servings">👥 {r.servings} portioner</span>
-                            <span className="time">⏱️ {svTimeLabel(r.cookingTime)}</span>
-                            <span className={`difficulty ${svDifficultyClass(r.difficulty)}`}>📶 {svDifficultyLabel(r.difficulty)}</span>
+                            <span className="servings" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={14} /> {r.servings} portioner</span>
+                            <span className="time" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {svTimeLabel(r.cookingTime)}</span>
+                            <span className={`difficulty ${svDifficultyClass(r.difficulty)}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={14} /> {svDifficultyLabel(r.difficulty)}</span>
                           </div>
                         </div>
                         
@@ -2954,8 +3184,9 @@ export default function App() {
                             className="add-to-shopping-btn"
                             onClick={() => addMatvarorToShoppingList(r.ingredients)}
                             title="Lägg till alla matvaror i inköpslistan"
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
                           >
-                            🛍️ Lägg till i inköpslista
+                            <ShoppingBag size={16} /> Lägg till i inköpslista
                           </button>
                         </div>
                         
@@ -2983,7 +3214,7 @@ export default function App() {
                 <div className="recipe-tab-content">
                   {savedAIRecipes.length === 0 ? (
                     <div className="empty-recipes">
-                      <p>🤖 Inga sparade AI-recept ännu!</p>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}><Bot size={20} /> Inga sparade AI-recept ännu!</p>
                       <p style={{fontSize: '14px', marginTop: '8px', color: 'var(--muted)'}}>Generera recept i AI-Recept-fliken för att spara dem här.</p>
                     </div>
                   ) : (
@@ -3018,17 +3249,18 @@ export default function App() {
                           </div>
                           
                           <div className="recipe-meta">
-                            <span className="servings">👥 {r.servings} portioner</span>
-                            <span className="time">⏱️ Förberedelse: {r.prepTime}</span>
-                            <span className="time">🔥 Tillagning: {r.cookTime}</span>
-                            <span className="difficulty">📊 {r.difficulty}</span>
+                            <span className="servings" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={14} /> {r.servings} portioner</span>
+                            <span className="time" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> Förberedelse: {r.prepTime}</span>
+                            <span className="time" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Flame size={14} /> Tillagning: {r.cookTime}</span>
+                            <span className="difficulty" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={14} /> {r.difficulty}</span>
                           </div>
                           
                           <p className="recipe-description">{r.description}</p>
                           
                           {r.warning && (
-                            <div className="ai-recipe-warning">
-                              <strong>⚠️ Obs:</strong> {r.warning}
+                            <div className="ai-recipe-warning" style={{ display: 'flex', gap: '8px' }}>
+                              <AlertTriangle size={18} strokeWidth={2} />
+                              <div><strong>Obs:</strong> {r.warning}</div>
                             </div>
                           )}
                           
@@ -3083,7 +3315,7 @@ export default function App() {
                       backgroundColor: 'var(--bg-primary)',
                       borderRadius: '8px'
                     }}>
-                      <span style={{ fontSize: '20px' }}>👤</span>
+                      <UserCircle2 size={24} strokeWidth={2} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
                           {auth.currentUser.email}
@@ -3111,11 +3343,11 @@ export default function App() {
                             try {
                               await signOut(auth)
                               console.log('✅ Logged out')
-                              alert('Du har loggats ut. Dina lokala data finns kvar och du kan logga in igen när som helst.')
+                              toast.success('Du har loggats ut. Dina lokala data finns kvar och du kan logga in igen när som helst.')
                               window.location.reload()
                             } catch (error) {
                               console.error('❌ Logout error:', error)
-                              alert('Kunde inte logga ut. Försök igen.')
+                              toast.error('Kunde inte logga ut. Försök igen.')
                             }
                           }
                         }}
@@ -3167,7 +3399,7 @@ export default function App() {
                     className="profile-menu-item premium-highlight"
                     onClick={() => setShowUpgradeModal(true)}
                   >
-                    <span className="menu-icon">✨</span>
+                    <span className="menu-icon"><Sparkles size={20} /></span>
                     <div className="menu-content">
                       <span className="menu-title">Uppgradera till Premium</span>
                       <span className="menu-description">Få tillgång till alla funktioner</span>
@@ -3187,7 +3419,7 @@ export default function App() {
                           className="profile-menu-item premium-highlight"
                           onClick={() => setShowUpgradeModal(true)}
                         >
-                          <span className="menu-icon">👨‍👩‍👧‍👦</span>
+                          <span className="menu-icon"><Users size={20} /></span>
                           <div className="menu-content">
                             <span className="menu-title">Uppgradera till Family Premium</span>
                             <span className="menu-description">Dela premium med familjen för +20 kr/mån</span>
@@ -3199,14 +3431,13 @@ export default function App() {
                     return null
                   })()
                 )}
-                
-                <button
+                <button 
                   className="profile-menu-item"
                   onClick={() => {
                     toggleTheme();
                   }}
                 >
-                  <span className="menu-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+                  <span className="menu-icon">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</span>
                   <div className="menu-content">
                     <span className="menu-title">{theme === 'dark' ? 'Ljust läge' : 'Mörkt läge'}</span>
                     <span className="menu-description">Byt utseende på appen</span>
@@ -3229,10 +3460,10 @@ export default function App() {
                     }
                   }}
                 >
-                  <span className="menu-icon">{notificationsEnabled ? '🔕' : '🔔'}</span>
+                  <span className="menu-icon">{notificationsEnabled ? <BellOff size={20} /> : <Bell size={20} />}</span>
                   <div className="menu-content">
                     <span className="menu-title">{notificationsEnabled ? 'Inaktivera notiser' : 'Aktivera notiser'}</span>
-                    <span className="menu-description">{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'} {!hasAnyPremium() && '🔒'}</span>
+                    <span className="menu-description" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>{notificationsEnabled ? 'Stäng av påminnelser' : 'Få påminnelser om utgående varor'} {!hasAnyPremium() && <Lock size={12} />}</span>
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
@@ -3248,10 +3479,10 @@ export default function App() {
                     setActiveTab('savings')
                   }}
                 >
-                  <span className="menu-icon">💰</span>
+                  <span className="menu-icon"><TrendingUp size={20} /></span>
                   <div className="menu-content">
-                    <span className="menu-title">Mina besparingar {!hasAnyPremium() && '🔒'}</span>
-                    <span className="menu-description">Se hur mycket du har sparat</span>
+                    <span className="menu-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Avancerad Statistik {!hasAnyPremium() && <Lock size={14} />}</span>
+                    <span className="menu-description">Besparingar, miljöpåverkan & framsteg</span>
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
@@ -3267,9 +3498,9 @@ export default function App() {
                     setActiveTab('achievements')
                   }}
                 >
-                  <span className="menu-icon">🏆</span>
+                  <span className="menu-icon"><Trophy size={20} /></span>
                   <div className="menu-content">
-                    <span className="menu-title">Utmärkelser {!hasAnyPremium() && '🔒'}</span>
+                    <span className="menu-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Utmärkelser {!hasAnyPremium() && <Lock size={14} />}</span>
                     <span className="menu-description">Dina prestationer</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -3286,9 +3517,9 @@ export default function App() {
                     setActiveTab('leaderboard')
                   }}
                 >
-                  <span className="menu-icon">🏆</span>
+                  <span className="menu-icon"><Trophy size={20} /></span>
                   <div className="menu-content">
-                    <span className="menu-title">Topplista {!hasAnyPremium() && '🔒'}</span>
+                    <span className="menu-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Topplista {!hasAnyPremium() && <Lock size={14} />}</span>
                     <span className="menu-description">Tävla med vänner</span>
                   </div>
                   <span className="menu-arrow">›</span>
@@ -3298,7 +3529,7 @@ export default function App() {
                   className="profile-menu-item"
                   onClick={() => setActiveTab('family')}
                 >
-                  <span className="menu-icon">👥</span>
+                  <span className="menu-icon"><Users size={20} /></span>
                   <div className="menu-content">
                     <span className="menu-title">Familjegrupp</span>
                     <span className="menu-description">Dela med familjen</span>
@@ -3310,7 +3541,7 @@ export default function App() {
                   className="profile-menu-item"
                   onClick={() => setActiveTab('referral')}
                 >
-                  <span className="menu-icon">🎁</span>
+                  <span className="menu-icon"><Gift size={20} /></span>
                   <div className="menu-content">
                     <span className="menu-title">Bjud in vänner</span>
                     <span className="menu-description">Tjäna Premium gratis</span>
@@ -3322,7 +3553,7 @@ export default function App() {
                   className="profile-menu-item"
                   onClick={() => setActiveTab('faq')}
                 >
-                  <span className="menu-icon">❓</span>
+                  <span className="menu-icon"><HelpCircle size={20} /></span>
                   <div className="menu-content">
                     <span className="menu-title">Hjälp & Information</span>
                     <span className="menu-description">Vanliga frågor och villkor</span>
@@ -3351,21 +3582,19 @@ export default function App() {
         {/* Separata flikar för profilfunktioner (nås från profil-menyn) */}
         {activeTab === 'savings' && (
           <div className="tab-panel">
-            <section className="card">
-              <div className="card-header">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => setActiveTab('profile')}
-                  style={{marginBottom: '16px'}}
-                >
-                  ← Tillbaka till Profil
-                </button>
-                <h2>Mina besparingar</h2>
-                <p className="card-subtitle">Se hur mycket du har sparat genom att rädda mat från att slängas</p>
-              </div>
-              
-              <SavingsBanner />
-            </section>
+            <div className="card-header" style={{padding: '16px 16px 0'}}>
+              <button 
+                className="btn-secondary"
+                onClick={() => setActiveTab('profile')}
+                style={{marginBottom: '16px'}}
+              >
+                ← Tillbaka till Profil
+              </button>
+              <h2>Avancerad Statistik</h2>
+              <p className="card-subtitle">Detaljerad översikt av dina besparingar, miljöpåverkan och framsteg</p>
+            </div>
+            
+            <AdvancedStats onUpgradeClick={() => setShowUpgradeModal(true)} />
           </div>
         )}
         
@@ -3562,8 +3791,9 @@ export default function App() {
             <p className="recipe-description">{selectedSavedRecipe.description}</p>
 
             {selectedSavedRecipe.warning && (
-              <div className="warning-box">
-                <strong>⚠️ Obs:</strong> {selectedSavedRecipe.warning}
+              <div className="warning-box" style={{ display: 'flex', gap: '8px' }}>
+                <AlertTriangle size={18} strokeWidth={2} />
+                <div><strong>Obs:</strong> {selectedSavedRecipe.warning}</div>
               </div>
             )}
 

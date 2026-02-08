@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { familyService, ROLES } from './familyService'
 import { refreshFamilyPremiumCache } from './familyPremiumSync'
+import { Users, Home, UserPlus, CheckCircle, AlertCircle, XCircle, RefreshCw, Copy, Crown, Shield, User, Trash2, Info, Package } from 'lucide-react'
+import { useToast } from './components/ToastContainer'
 import './familySharing.css'
 
 export default function FamilySharing({ items, onFamilyChange }) {
+  const toast = useToast()
   const [familyData, setFamilyData] = useState(null)
   const [view, setView] = useState('overview') // 'overview', 'create', 'join'
   const [formData, setFormData] = useState({
@@ -20,8 +23,18 @@ export default function FamilySharing({ items, onFamilyChange }) {
     // Starta realtime synk om i familj
     const data = familyService.getFamilyData()
     if (data.familyId && data.syncEnabled) {
+      let previousMemberCount = data.members.length
+      
       const unsubscribe = familyService.startMemberSync((members) => {
         setFamilyData(prev => ({ ...prev, members }))
+        
+        // Visa notifikation om någon lämnade
+        if (members.length < previousMemberCount) {
+          toast.info(`👋 En medlem har lämnat familjegruppen`)
+        } else if (members.length > previousMemberCount) {
+          toast.success(`🎉 En ny medlem har gått med i familjegruppen!`)
+        }
+        previousMemberCount = members.length
       })
       return unsubscribe
     }
@@ -96,7 +109,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
           // Visa meddelande om familjen har Family Premium
           if (benefits && benefits.hasBenefits && benefits.source === 'family') {
             setTimeout(() => {
-              alert('🎉 Välkommen till familjen!\n\n✨ Familjen har Family Premium!\n\nDu har nu tillgång till alla premium-funktioner:\n\n✅ Obegränsat antal varor\n✅ Receptförslag\n✅ AI-receptgenerator\n✅ Push-notifikationer\n✅ Ingen reklam\n✅ Besparingsstatistik')
+              toast.success('🎉 Välkommen till familjen! Familjen har Family Premium och du har nu tillgång till alla premium-funktioner!')
             }, 500)
           }
         })
@@ -252,7 +265,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
       {!isInFamily && view === 'overview' && (
         <div className="family-overview-empty">
           <div className="empty-state">
-            <div className="empty-icon">👨‍👩‍👧‍👦</div>
+            <div className="empty-icon"><Users size={64} strokeWidth={1.5} /></div>
             <h3>Dela med familjen</h3>
             <p>Skapa eller gå med i en familjegrupp för att dela matvarulistan med hela hushållet.</p>
           </div>
@@ -261,24 +274,26 @@ export default function FamilySharing({ items, onFamilyChange }) {
             <button 
               className="btn-primary"
               onClick={() => setView('create')}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
             >
-              🏠 Skapa familjegrupp
+              <Home size={20} /> Skapa familjegrupp
             </button>
             <button 
               className="btn-secondary"
               onClick={() => setView('join')}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
             >
-              👋 Gå med i grupp
+              <UserPlus size={20} /> Gå med i grupp
             </button>
           </div>
 
           <div className="benefits-list">
             <h4>Fördelar med Family Sharing:</h4>
             <ul>
-              <li>✅ Synkad matvarulista för hela familjen</li>
-              <li>✅ Alla kan lägga till och ta bort varor</li>
-              <li>✅ Se vad som finns hemma när du handlar</li>
-              <li>✅ Färre dubbelköp och mindre svinn</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={18} strokeWidth={2} /> Synkad matvarulista för hela familjen</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={18} strokeWidth={2} /> Alla kan lägga till och ta bort varor</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={18} strokeWidth={2} /> Se vad som finns hemma när du handlar</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={18} strokeWidth={2} /> Färre dubbelköp och mindre svinn</li>
             </ul>
           </div>
         </div>
@@ -294,7 +309,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
             ← Tillbaka
           </button>
 
-          <h3>🏠 Skapa familjegrupp</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Home size={24} /> Skapa familjegrupp</h3>
           <p className="form-description">Skapa en grupp och bjud in familjemedlemmar</p>
 
           <form onSubmit={handleCreateFamily} className="family-form">
@@ -339,8 +354,12 @@ export default function FamilySharing({ items, onFamilyChange }) {
             ← Tillbaka
           </button>
 
-          <h3>👋 Gå med i familjegrupp</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><UserPlus size={24} /> Gå med i familjegrupp</h3>
           <p className="form-description">Ange koden du fick från familjemedlem</p>
+          <div className="form-info-box">
+            <span className="info-icon"><Info size={18} /></span>
+            <span>Max 5 medlemmar per familjegrupp</span>
+          </div>
 
           <form onSubmit={handleJoinFamily} className="family-form">
             <div className="form-group">
@@ -382,7 +401,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
           {/* Header */}
           <div className="family-header">
             <div className="family-info">
-              <h2>🏠 {familyData.familyName}</h2>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Home size={24} /> {familyData.familyName}</h2>
               <div className="family-code">
                 <span>Kod: <strong>{familyData.familyCode}</strong></span>
                 <button 
@@ -390,15 +409,15 @@ export default function FamilySharing({ items, onFamilyChange }) {
                   onClick={handleCopyCode}
                   title="Kopiera kod"
                 >
-                  📋
+                  <Copy size={18} />
                 </button>
               </div>
             </div>
 
-            <div className="role-badge">
-              {familyData.myRole === ROLES.OWNER && '👑 Ägare'}
-              {familyData.myRole === ROLES.ADMIN && '🛡️ Admin'}
-              {familyData.myRole === ROLES.MEMBER && '👤 Medlem'}
+            <div className="role-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {familyData.myRole === ROLES.OWNER && <><Crown size={16} /> Ägare</>}
+              {familyData.myRole === ROLES.ADMIN && <><Shield size={16} /> Admin</>}
+              {familyData.myRole === ROLES.MEMBER && <><User size={16} /> Medlem</>}
             </div>
           </div>
 
@@ -406,7 +425,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
           {stats && (
             <div className="family-stats">
               <div className="stat-box">
-                <div className="stat-icon">👥</div>
+                <div className="stat-icon"><Users size={24} strokeWidth={2} /></div>
                 <div className="stat-content">
                   <div className="stat-value">{stats.totalMembers}</div>
                   <div className="stat-label">Medlemmar</div>
@@ -414,7 +433,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
               </div>
 
               <div className="stat-box">
-                <div className="stat-icon">📦</div>
+                <div className="stat-icon"><Package size={24} strokeWidth={2} /></div>
                 <div className="stat-content">
                   <div className="stat-value">{stats.totalItems}</div>
                   <div className="stat-label">Varor</div>
@@ -422,7 +441,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
               </div>
 
               <div className="stat-box">
-                <div className="stat-icon">🔄</div>
+                <div className="stat-icon"><RefreshCw size={24} strokeWidth={2} /></div>
                 <div className="stat-content">
                   <div className="stat-value">{stats.syncEnabled ? 'På' : 'Av'}</div>
                   <div className="stat-label notranslate" translate="no">Synk</div>
@@ -434,7 +453,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
           {/* Sync Toggle */}
           <div className="sync-control">
             <div className="sync-info">
-              <h4>🔄 Auto-synk</h4>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><RefreshCw size={20} /> Auto-synk</h4>
               <p>Synka automatiskt med familjemedlemmar</p>
               {familyData.lastSyncAt && (
                 <small>Senast: {new Date(familyData.lastSyncAt).toLocaleString('sv-SE')}</small>
@@ -454,24 +473,34 @@ export default function FamilySharing({ items, onFamilyChange }) {
             <button 
               className="sync-now-btn"
               onClick={handleManualSync}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
             >
-              🔄 Synka nu
+              <RefreshCw size={18} /> Synka nu
             </button>
           )}
 
           {/* Members List */}
           <div className="members-section">
             <div className="section-header">
-              <h3>👥 Medlemmar ({familyData.members.length})</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={22} /> Medlemmar ({familyData.members.length}/5)</h3>
               {isOwner && (
                 <button 
                   className="share-code-btn"
                   onClick={handleShareCode}
+                  disabled={familyData.members.length >= 5}
+                  title={familyData.members.length >= 5 ? 'Familjen är full (max 5 medlemmar)' : 'Bjud in medlem'}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  ➕ Bjud in
+                  <UserPlus size={16} /> Bjud in
                 </button>
               )}
             </div>
+            {familyData.members.length >= 5 && (
+              <div className="form-info-box warning">
+                <span className="info-icon"><AlertCircle size={18} /></span>
+                <span>Familjen är full. Max 5 medlemmar tillåts.</span>
+              </div>
+            )}
 
             <div className="members-list">
               {familyData.members.map(member => (
@@ -495,9 +524,9 @@ export default function FamilySharing({ items, onFamilyChange }) {
                 >
                   <div className="member-info">
                     <div className="member-avatar">
-                      {member.role === ROLES.OWNER && '👑'}
-                      {member.role === ROLES.ADMIN && '🛡️'}
-                      {member.role === ROLES.MEMBER && '👤'}
+                      {member.role === ROLES.OWNER && <Crown size={20} />}
+                      {member.role === ROLES.ADMIN && <Shield size={20} />}
+                      {member.role === ROLES.MEMBER && <User size={20} />}
                     </div>
                     <div className="member-details">
                       <div className="member-name">
@@ -522,7 +551,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
                       }}
                       title="Ta bort medlem"
                     >
-                      🗑️
+                      <Trash2 size={18} />
                     </button>
                   )}
                 </div>

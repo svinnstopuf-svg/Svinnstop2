@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { isPremiumActive, getPremiumStatus, getDaysLeftOfPremium } from './premiumService'
 import { calculateFamilyUpgradePrice, getPremiumDescription } from './familyPremiumService'
+import { Check, CreditCard, Gift, DollarSign, Globe } from 'lucide-react'
 import StripeCheckout from './StripeCheckout'
 import './UpgradeModal.css'
 
@@ -90,14 +91,14 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             <div className="premium-features-active">
               <h3>Dina Premium-fördelar:</h3>
               <ul>
-                <li>✓ Obegränsat antal varor</li>
-                <li>✓ Ingen reklam</li>
-                <li>✓ Receptförslag från kylskåp</li>
-                <li>✓ Familjesynkronisering</li>
-                <li>✓ Achievements & badges</li>
-                <li>✓ Statistik & besparingar</li>
-                <li>✓ Leaderboard</li>
-                <li>✓ Push-notifikationer</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> AI-genererade recept från dina ingredienser</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Obegränsat antal varor i kylskåpet</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Familjesynkronisering (upp till 5 medlemmar)</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Ingen reklam</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Avancerad statistik & miljöpåverkan</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> 25+ Achievements & badges</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Topplista</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Push-notifikationer</li>
               </ul>
             </div>
             
@@ -188,50 +189,50 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
           <ul>
             <li>
               <div>
-                <strong>Obegränsat antal varor</strong>
-                <p>Perfekt för stora hushåll och familjer</p>
+                <strong>AI-genererade recept från dina ingredienser</strong>
+                <p>Få personliga receptförslag baserat på vad du har hemma - inget slöseri</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Obegränsat antal varor i kylskåpet</strong>
+                <p>Perfekt för stora hushåll och familjer - inga begränsningar</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Familjesynkronisering i realtid</strong>
+                <p>Dela kylskåp och inköpslista med upp till 5 familjemedlemmar</p>
               </div>
             </li>
             <li>
               <div>
                 <strong>Ingen reklam</strong>
-                <p>Ren och smidig upplevelse</p>
+                <p>100% reklamfri upplevelse</p>
               </div>
             </li>
             <li>
               <div>
-                <strong>Receptförslag från kylskåp</strong>
-                <p>Få inspiration och använd vad du har</p>
+                <strong>Avancerad statistik & miljöpåverkan</strong>
+                <p>Se dina besparingar i kronor, kg och CO₂-påverkan</p>
               </div>
             </li>
             <li>
               <div>
-                <strong>Familjesynkronisering</strong>
-                <p>Dela kylskåp och inköpslista i realtid</p>
+                <strong>25+ Achievements & exklusiva badges</strong>
+                <p>Lås upp unika utmärkelser och visa dina framsteg</p>
               </div>
             </li>
             <li>
               <div>
-                <strong>Achievements & Badges</strong>
-                <p>Lås upp 25+ unika utmärkelser</p>
-              </div>
-            </li>
-            <li>
-              <div>
-                <strong>Statistik & Besparingar</strong>
-                <p>Se hur mycket du sparar i kr & kg</p>
-              </div>
-            </li>
-            <li>
-              <div>
-                <strong>Leaderboard</strong>
-                <p>Tävla mot andra och jämför framsteg</p>
+                <strong>Topplista</strong>
+                <p>Tävla mot andra användare och jämför dina framsteg</p>
               </div>
             </li>
             <li>
               <div>
                 <strong>Push-notifikationer</strong>
-                <p>Påminnelser innan mat går ut</p>
+                <p>Smarta påminnelser innan mat går ut</p>
               </div>
             </li>
           </ul>
@@ -242,7 +243,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             className={`payment-method-btn ${paymentMethod === 'stripe' ? 'active' : ''}`}
             onClick={() => setPaymentMethod('stripe')}
           >
-            <span className="payment-icon">💳</span>
+            <span className="payment-icon"><CreditCard size={20} /></span>
             <span>Betala med kort</span>
           </button>
           
@@ -250,7 +251,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             className={`payment-method-btn ${paymentMethod === 'referral' ? 'active' : ''}`}
             onClick={() => setPaymentMethod('referral')}
           >
-            <span className="payment-icon">🎁</span>
+            <span className="payment-icon"><Gift size={20} /></span>
             <span>Bjud in vänner</span>
           </button>
         </div>
@@ -323,12 +324,12 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
           <h4>Din insats gör verklig skillnad</h4>
           <div className="impact-stats">
             <div className="impact-stat">
-              <div className="impact-icon">💰</div>
+              <div className="impact-icon"><DollarSign size={32} strokeWidth={2} /></div>
               <div className="impact-value">~847 kr</div>
               <div className="impact-label">Genomsnittlig besparing/mån</div>
             </div>
             <div className="impact-stat">
-              <div className="impact-icon">🌍</div>
+              <div className="impact-icon"><Globe size={32} strokeWidth={2} /></div>
               <div className="impact-value">~12 kg</div>
               <div className="impact-label">Mindre matsvinn/mån</div>
             </div>

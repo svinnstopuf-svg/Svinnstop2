@@ -4,17 +4,23 @@
 
 🌐 **Live App:** [svinnstop.web.app](https://svinnstop.web.app)
 
-## 🆕 Nytt i senaste versionen
+## 🆕 Nytt i senaste versionen (v2.1.0)
 
+### 🐛 Bugfixar
+- ✅ **Fixat "Rensa klara"-knappen** - Korrekt 10-varors-kontroll med tydligt felmeddelande
+- ✅ **Fixat AdvancedStats krasch** - Data-migration för gamla localStorage-format
+- ✅ **Fixat Achievement-krasch** - Säkerhets-kontroller för undefined data
+- ✅ **Fixat Premium-konto laddning** - App startar nu korrekt med premium-konton
+
+### ✨ Förbättringar
+- 🔔 **Realtidsnotifikationer** - Toast-meddelanden när medlemmar lämnar familj eller tas bort från topplista
+- 📝 **Bättre Premium-beskrivningar** - Mer lockande features-lista med fokus på AI-recept
+- 🏆 **"Global leaderboard" → "Topplista"** - Korrekt svensk terminologi
+- 💾 **Förbättrad datamigration** - Automatisk migration av gamla dataformat
 - 🔄 **Fullständig cross-device sync** - Alla ändringar synkas realtid mellan alla dina enheter
-- 👥 **Familjegrupper** - Dela kylskåp och inköpslista med familjen
+- 👥 **Familjegrupper** - Dela kylskåp och inköpslista med upp till 5 medlemmar
 - 🔒 **Säker autentisering** - Email/Google login (anonym auth borttaget)
 - ⚖️ **GDPR-compliant** - Fullständiga användarvillkor och integritetspolicy
-- 💾 **Smart datamigration** - Lokal data migreras automatiskt till molnet vid första inloggning
-- 🎯 **Achievement system** - Lås upp utmärkelser för räddad mat
-- 🏆 **Topplista** - Tävla med vänner om minst matsvinn
-- 💰 **Besparingsstatistik** - Se hur mycket pengar du sparat
-- 🎁 **Referralprogram** - Få gratis Premium genom att bjuda in vänner
 
 ## ✨ Funktioner
 
@@ -48,12 +54,15 @@
 - 🎁 **Referralprogram** - Få gratis Premium (1 vän = 1 vecka, 50 vänner = livstid!)
 
 ### 💎 Premium-funktioner
-- ♾️ **Obegränsat antal varor** (gratis = max 15)
-- 🤖 **AI-receptgenerator** med GPT-4
-- 🔔 **Push-notifikationer** för utgående varor
-- 🚫 **Ingen reklam**
-- 📊 **Utökad statistik** och insights
-- 👨‍👩‍👧‍👦 **Family Premium** - Dela premium med upp till 5 personer totalt (49 kr/mån)
+- 🤖 **AI-genererade recept från dina ingredienser** - Obegränsat antal AI-recept per dag
+- ♾️ **Obegränsat antal varor i kylskåpet** (gratis = max 10 varor)
+- 👨‍👩‍👧‍👦 **Familjesynkronisering i realtid** - Upp till 5 familjemedlemmar
+- 🚫 **Ingen reklam** - 100% reklamfri upplevelse
+- 📊 **Avancerad statistik & miljöpåverkan** - Se CO₂, besparingar och trender
+- 🎯 **25+ Achievements & exklusiva badges**
+- 🏆 **Topplista** - Tävla mot andra användare
+- 🔔 **Push-notifikationer** - Smarta påminnelser innan mat går ut
+- 💳 **Priser:** Individual 29 kr/mån | Family 49 kr/mån (upp till 5 personer)
 
 ### 🛠️ Övriga funktioner
 - 📱 **PWA-stöd** - Installera som app på mobil och desktop

@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { leaderboardService, TIMEFRAMES } from './leaderboardService'
 import { getSavingsData } from './savingsTracker'
 import { achievementService } from './achievementService'
+import { Trophy, Users, Medal, Save, DollarSign, Flame, User, Trash2, Award, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { useToast } from './components/ToastContainer'
 import './leaderboard.css'
 
 export default function Leaderboard() {
+  const toast = useToast()
   const [view, setView] = useState('leaderboard') // 'leaderboard', 'friends', 'create'
   const [leaderboardData, setLeaderboardData] = useState(null)
   const [leaderboard, setLeaderboard] = useState([])
@@ -36,10 +39,22 @@ export default function Leaderboard() {
     }
     
     // Lyssna på vänners stats i realtid
+    let previousFriendCount = leaderboardData?.friends.length || 0
+    
     const unsubscribe = leaderboardService.listenToFriendsStats((friends) => {
       setLeaderboardData(prev => ({ ...prev, friends }))
       const board = leaderboardService.getLeaderboard(timeframe)
       setLeaderboard(board)
+      
+      // Visa notifikation om vänner läggs till eller tas bort
+      if (previousFriendCount > 0) {
+        if (friends.length < previousFriendCount) {
+          toast.info(`👋 En vän har tagits bort från topplistan`)
+        } else if (friends.length > previousFriendCount) {
+          toast.success(`🎉 En ny vän har lagts till i topplistan!`)
+        }
+      }
+      previousFriendCount = friends.length
     })
     
     return () => {
@@ -89,18 +104,18 @@ export default function Leaderboard() {
     if (result.success) {
       setMessage({ 
         type: 'success', 
-        text: `✅ Välkommen ${result.username}! Din tag: ${result.handle}` 
+        text: `Välkommen ${result.username}! Din tag: ${result.handle}` 
       })
       loadData()
       setUsernameInput('')
     } else {
-      setMessage({ type: 'error', text: `❌ ${result.error}` })
+      setMessage({ type: 'error', text: result.error })
     }
   }
 
   async function handleAddFriend() {
     if (!friendUsername.trim()) {
-      setMessage({ type: 'error', text: '❌ Ange ett användarnamn' })
+      setMessage({ type: 'error', text: 'Ange ett användarnamn' })
       return
     }
 
@@ -109,12 +124,12 @@ export default function Leaderboard() {
     if (result.success) {
       setMessage({ 
         type: 'success', 
-        text: `✅ ${result.friend.username} har lagts till!` 
+        text: `${result.friend.username} har lagts till!` 
       })
       loadData()
       setFriendUsername('')
     } else {
-      setMessage({ type: 'error', text: `❌ ${result.error}` })
+      setMessage({ type: 'error', text: result.error })
     }
   }
 
@@ -125,10 +140,10 @@ export default function Leaderboard() {
       const result = leaderboardService.removeFriend(userId)
       
       if (result.success) {
-        setMessage({ type: 'success', text: '✅ Vän borttagen' })
+        setMessage({ type: 'success', text: 'Vän borttagen' })
         loadData()
       } else {
-        setMessage({ type: 'error', text: `❌ ${result.error}` })
+        setMessage({ type: 'error', text: result.error })
       }
     }
   }
@@ -137,7 +152,7 @@ export default function Leaderboard() {
     const result = leaderboardService.generateMockFriends(5)
     setMessage({ 
       type: 'success', 
-      text: `✅ ${result.count} demo-vänner skapade!` 
+      text: `${result.count} demo-vänner skapade!` 
     })
     loadData()
   }
@@ -153,11 +168,11 @@ export default function Leaderboard() {
   const hasUsername = leaderboardData && leaderboardData.myStats.username
   const myRank = leaderboardData ? leaderboardService.getMyRank(timeframe) : { rank: 0, totalUsers: 0 }
 
-  // Rank emoji
-  function getRankEmoji(rank) {
-    if (rank === 1) return '🥇'
-    if (rank === 2) return '🥈'
-    if (rank === 3) return '🥉'
+  // Rank icon
+  function getRankIcon(rank) {
+    if (rank === 1) return <Medal size={24} strokeWidth={2} style={{ color: '#FFD700' }} />
+    if (rank === 2) return <Medal size={24} strokeWidth={2} style={{ color: '#C0C0C0' }} />
+    if (rank === 3) return <Medal size={24} strokeWidth={2} style={{ color: '#CD7F32' }} />
     return `#${rank}`
   }
 
@@ -167,7 +182,7 @@ export default function Leaderboard() {
       <div className="leaderboard-container">
         <div className="username-setup">
           <div className="setup-card">
-            <h3>⏳ Laddar...</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Clock size={24} /> Laddar...</h3>
             <p>Väntar på autentisering</p>
           </div>
         </div>
@@ -187,7 +202,7 @@ export default function Leaderboard() {
       {!hasUsername && (
         <div className="username-setup">
           <div className="setup-card">
-            <h3>🎮 Välkommen till topplistan!</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Trophy size={24} /> Välkommen till topplistan!</h3>
             <p>Sätt ditt användarnamn för att börja tävla med vänner</p>
             <p style={{fontSize: '0.85rem', color: '#888'}}>Du får en unik tag (t.ex. Alex-1234) som används för att lägga till vänner</p>
             
@@ -215,14 +230,16 @@ export default function Leaderboard() {
             <button
               className={view === 'leaderboard' ? 'active' : ''}
               onClick={() => setView('leaderboard')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
             >
-              🏆 Topplista
+              <Trophy size={18} /> Topplista
             </button>
             <button
               className={view === 'friends' ? 'active' : ''}
               onClick={() => setView('friends')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
             >
-              👥 Vänner ({leaderboardData.friends.length})
+              <Users size={18} /> Vänner ({leaderboardData.friends.length})
             </button>
           </div>
 
@@ -231,7 +248,7 @@ export default function Leaderboard() {
             <div className="leaderboard-view">
               {/* My Rank Card */}
               <div className="my-rank-card">
-                <div className="rank-badge">{getRankEmoji(myRank.rank)}</div>
+                <div className="rank-badge">{getRankIcon(myRank.rank)}</div>
                 <div className="rank-info">
                   <div className="rank-label">Din placering</div>
                   <div className="rank-value">
@@ -270,17 +287,17 @@ export default function Leaderboard() {
                     className={`leaderboard-item ${user.isMe ? 'is-me' : ''} ${user.rank <= 3 ? 'top-three' : ''}`}
                   >
                     <div className="item-rank">
-                      {getRankEmoji(user.rank)}
+                      {getRankIcon(user.rank)}
                     </div>
                     <div className="item-info">
                       <div className="item-username">
                         {user.username || 'Okänd användare'}
                         {user.isMe && <span className="me-badge">Du</span>}
                       </div>
-                      <div className="item-stats">
-                        <span>💾 {user.itemsSaved} varor</span>
-                        <span>💰 {Math.round(user.moneySaved)} kr</span>
-                        <span>🔥 {user.streak} dagar</span>
+                      <div className="item-stats" style={{ display: 'flex', gap: '12px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Save size={14} /> {user.itemsSaved} varor</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><DollarSign size={14} /> {Math.round(user.moneySaved)} kr</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Flame size={14} /> {user.streak} dagar</span>
                       </div>
                     </div>
                   </div>
@@ -289,7 +306,7 @@ export default function Leaderboard() {
 
               {leaderboard.length === 1 && (
                 <div className="empty-leaderboard">
-                  <p>👥 Lägg till vänner för att se dem på topplistan!</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><Users size={18} /> Lägg till vänner för att se dem på topplistan!</p>
                   <button 
                     className="btn-secondary"
                     onClick={() => setView('friends')}
@@ -331,13 +348,13 @@ export default function Leaderboard() {
                   <h3>Dina vänner ({leaderboardData.friends.length})</h3>
                   {leaderboardData.friends.map(friend => (
                     <div key={friend.userId} className="friend-card">
-                      <div className="friend-avatar">👤</div>
+                      <div className="friend-avatar"><User size={24} /></div>
                       <div className="friend-info">
                         <div className="friend-username">{friend.username}</div>
-                        <div className="friend-stats">
-                          <span>💾 {friend.itemsSaved}</span>
-                          <span>💰 {Math.round(friend.moneySaved)} kr</span>
-                          <span>🔥 {friend.streak}d</span>
+                        <div className="friend-stats" style={{ display: 'flex', gap: '8px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Save size={12} /> {friend.itemsSaved}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><DollarSign size={12} /> {Math.round(friend.moneySaved)} kr</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Flame size={12} /> {friend.streak}d</span>
                         </div>
                       </div>
                       <button
@@ -345,14 +362,14 @@ export default function Leaderboard() {
                         onClick={() => handleRemoveFriend(friend.userId)}
                         title="Ta bort vän"
                       >
-                        🗑️
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="empty-friends">
-                  <div className="empty-icon">👥</div>
+                  <div className="empty-icon"><Users size={48} strokeWidth={1.5} /></div>
                   <p>Du har inga vänner ännu</p>
                   <p className="empty-subtitle">
                     Lägg till vänner för att tävla om vem som sparar mest!

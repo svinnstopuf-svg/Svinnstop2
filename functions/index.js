@@ -498,33 +498,41 @@ exports.generateAIRecipe = functions.https.onRequest(async (req, res) => {
     // Build ingredient instruction based on mode
     let ingredientInstruction = "";
     if (ingredientMode === "strict") {
-      ingredientInstruction = `### INGREDIENSREGLER (STRICT MODE)
-- Använd ENDAST de listade ingredienserna nedan
-- Du får ENDAST lägga till: vatten, salt
-- INGA andra ingredienser är tillåtna (inte ens peppar, olja eller lök)
+      ingredientInstruction = `### INGREDIENSREGLER (STRICT MODE - ABSOLUT STRIKT)
+- Använd ENDAST OCH EXAKT de listade ingredienserna nedan
+- Du får ENDAST lägg till: vatten, salt
+- INGA andra ingredienser är tillåtna (inte ens peppar, olja, smör, lök eller vitlök)
+- Använd ingrediensernas EXAKTA namn - blanda INTE ihop liknande ingredienser
+- Exempel: Om "vitlöksbröd" finns i listan, använd INTE "vitlök" istället
 - Om ingredienserna inte räcker för en måltid, skapa ett tillbehör/snacks och ` +
       `lägg till "warning": "Begränsade ingredienser - ` +
       `detta är ett enkelt tillbehör" i JSON-svaret`;
     } else if (ingredientMode === "staples") {
-      ingredientInstruction = `### INGREDIENSREGLER (STAPLES MODE)
+      ingredientInstruction = `### INGREDIENSREGLER (STAPLES MODE - ENDAST BASVAROR)
 - Använd ALLA listade ingredienser nedan som huvudingredienser
-- Du får lägga till vanliga basvaror: salt, peppar, olja, smör, vitlök, lök, mjöl, socker
-- INGA andra huvudingredienser (kött, grönsaker, mejeriprodukter) får läggas till
+- Du får ENDAST lägga till dessa basvaror: salt, peppar, svartpeppar, olivolja, ` +
+      `rapsolja, smör, vitlök, gul lök, röd lök, mjöl, vetemjöl, socker, vatten
+- INGA andra ingredienser (kött, grönsaker, mejeriprodukter utom smör) får läggas till
+- Använd ingrediensernas EXAKTA namn - blanda INTE ihop liknande ingredienser
+- Exempel: Om "vitlöksbröd" finns i listan, använd INTE "vitlök" istället
 - Om ingredienserna inte räcker för en måltid, skapa ett tillbehör/snacks och ` +
       `lägg till "warning": "Begränsade ingredienser - ` +
       `detta är ett enkelt tillbehör" i JSON-svaret`;
     } else if (ingredientMode === "creative") {
-      ingredientInstruction = `### INGREDIENSREGLER (CREATIVE MODE)
+      ingredientInstruction = `### INGREDIENSREGLER (CREATIVE MODE - KREATIV FRIHET)
 - Använd ALLA listade ingredienser nedan som bas
 - Du får föreslå MAX 3 extra ingredienser för att förbättra receptet
 - Markera extra ingredienser med "optional": true i ingredients-arrayen
+- Använd ingrediensernas EXAKTA namn - blanda INTE ihop liknande ingredienser
+- Exempel: Om "vitlöksbröd" finns i listan, använd INTE "vitlök" istället
 - Om ingredienserna inte räcker för en måltid, skapa ett tillbehör/snacks och ` +
       `lägg till "warning": "Begränsade ingredienser - ` +
       `detta är ett enkelt tillbehör" i JSON-svaret`;
     }
 
     const prompt = `### PERSONA
-Du är en professionell kock som skapar praktiska, genomförbara recept på svenska.
+Du är en Michelin-utbildad kock med expertis inom nordiskt kök och näringslara. 
+Du skapar professionella, genomförbara recept på svenska med exakt näringsinformation.
 
 ### INPUT
 Tillgängliga ingredienser:
@@ -535,40 +543,87 @@ ${preferences.time ? `Maximal tid: ${preferences.time} minuter` : ""}
 
 ${ingredientInstruction}
 
+### KVALITETSKRAV
+1. **Smakbalans**: Receptet måste ha perfekt balans mellan salt, syra, sötma och umami
+2. **Teknik**: Använd rätt tillagningsmetoder för varje ingrediens
+3. **Presentation**: Inkludera tips för professionell presentation
+4. **Precision**: Exakta mängder och tider - inga uppskattningar
+5. **Säkerhet**: Kontrollera att kötttemperaturer och tillagningstider är säkra
+
 ### OUTPUT-KRAV
-Skapa ett unikt recept och svara med följande JSON-struktur:
+Skapa ett restaurangkvalitet recept och svara med följande JSON-struktur:
 {
-  "name": "Receptnamn på svenska",
-  "description": "Kort lockande beskrivning (1-2 meningar)",
+  "name": "Kreativt och appetitretande receptnamn på svenska",
+  "description": "Professionell beskrivning som får munnen att vattnas (2-3 meningar)",
   "servings": 2,
-  "prepTime": "15 min",
-  "cookTime": "20 min",
+  "prepTime": "XX min" (exakt tid),
+  "cookTime": "XX min" (exakt tid),
   "difficulty": "Lätt|Medel|Avancerad",
   "ingredients": [
-    {"item": "ingrediens", "amount": "mängd", "optional": false}
+    {
+      "item": "ingrediens med specifik typ (t.ex. 'olivolja extra virgin')",
+      "amount": "exakt mängd med enhet",
+      "optional": false
+    }
   ],
   "instructions": [
-    "Steg 1 med tydliga instruktioner",
-    "Steg 2..."
+    "Detaljerat steg med exakta temperaturer, tider och tekniker",
+    "Nästa steg med professionella kökstekniker..."
   ],
   "nutrition": {
-    "calories": "[BERÄKNA baserat på ingredienser] kcal",
-    "protein": "[BERÄKNA] g",
-    "carbs": "[BERÄKNA] g",
-    "fat": "[BERÄKNA] g"
+    "calories": "XXX kcal" (BERÄKNA EXAKT - se nedan),
+    "protein": "XX g" (BERÄKNA EXAKT),
+    "carbs": "XX g" (BERÄKNA EXAKT),
+    "fat": "XX g" (BERÄKNA EXAKT)
   },
-  "tips": ["Praktiskt tips 1", "Praktiskt tips 2"],
+  "tips": [
+    "Professionellt kökstips för bästa resultat",
+    "Lagringstips och hållbarhet",
+    "Presentationstips för restaurangkänsla"
+  ],
   "warning": null
 }
 
-### NÄRINGSINFORMATION
-BERÄKNA näringsinformationen baserat på de faktiska ingredienserna och deras mängder.
-Använd uppskattade näringsvärden för varje ingrediens och summera för hela receptet.
-Dela sedan med antalet portioner för att få värden per portion.
-Se till att värdena är RIMLIGA och VARIERAR baserat på ingredienserna.
+### NÄRINGSINFORMATION - EXAKTA BERÄKNINGAR
+BERÄKNA näringsinformationen EXAKT för HELA receptet först, dela sedan med portioner:
+
+Använd dessa standardvärden per 100g:
+- Kött (kyckling): 165 kcal, 31g protein, 0g carbs, 3.6g fat
+- Kött (nöt): 250 kcal, 26g protein, 0g carbs, 15g fat
+- Fisk (lax): 208 kcal, 20g protein, 0g carbs, 13g fat
+- Fisk (torsk): 82 kcal, 18g protein, 0g carbs, 0.7g fat
+- Ägg (1 st, 50g): 72 kcal, 6g protein, 0.4g carbs, 5g fat
+- Pasta (torr): 350 kcal, 12g protein, 70g carbs, 1.5g fat
+- Ris (torr): 365 kcal, 7g protein, 80g carbs, 0.6g fat
+- Potatis: 77 kcal, 2g protein, 17g carbs, 0.1g fat
+- Tomat: 18 kcal, 0.9g protein, 3.9g carbs, 0.2g fat
+- Lök: 40 kcal, 1.1g protein, 9g carbs, 0.1g fat
+- Vitlök: 149 kcal, 6.4g protein, 33g carbs, 0.5g fat
+- Olivolja: 884 kcal, 0g protein, 0g carbs, 100g fat
+- Smör: 717 kcal, 0.9g protein, 0.1g carbs, 81g fat
+- Grädde (40%): 400 kcal, 2.2g protein, 3.2g carbs, 40g fat
+- Mjölk: 42 kcal, 3.4g protein, 5g carbs, 1g fat
+- Ost (hård): 402 kcal, 25g protein, 1.3g carbs, 33g fat
+- Bröd (fullkorn): 247 kcal, 13g protein, 41g carbs, 3.4g fat
+
+EXEMPEL-BERÄKNING (2 portioner pasta carbonara):
+- 200g pasta: 700 kcal, 24g protein, 140g carbs, 3g fat
+- 2 ägg: 144 kcal, 12g protein, 0.8g carbs, 10g fat
+- 50g bacon: 541 kcal, 37g protein, 1.4g carbs, 42g fat
+- 50g parmesan: 201 kcal, 12.5g protein, 0.7g carbs, 16.5g fat
+- 20g olivolja: 177 kcal, 0g protein, 0g carbs, 20g fat
+TOTALT: 1763 kcal, 85.5g protein, 142.9g carbs, 91.5g fat
+PER PORTION (/ 2): 882 kcal, 43g protein, 71g carbs, 46g fat
+
+VÄRDEN MÅSTE:
+- Vara EXAKTA tal (inte intervall)
+- Summera ALLA ingredienser
+- Delas med antal portioner
+- Vara LOGISKA (hög-fett = hög kalorier, etc)
+- VARIERA mellan olika recept (inte alltid samma värden)
 
 Om ingredienserna är otillräckliga för en hel måltid, ` +
-    `skapa ett tillbehör/snacks och sätt "warning" till en förklarande text.`;
+    `skapa ett gourmet-tillbehör/förrätt och sätt "warning" till en elegant förklarande text.`;
 
     // Call OpenAI API with JSON mode
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -582,8 +637,10 @@ Om ingredienserna är otillräckliga för en hel måltid, ` +
         messages: [
           {
             role: "system",
-            content: "Du är en professionell kock som skapar kreativa och " +
-              "genomförbara recept på svenska. Du svarar alltid med välstrukturerad JSON.",
+            content: "Du är en Michelin-utbildad kock med expertis inom näringslara. " +
+              "Du skapar restaurangkvalitet recept på svenska med exakta näringsberäkningar. " +
+              "Du svarar alltid med perfekt strukturerad JSON med EXAKTA numeriska värden " +
+              "(inga intervall eller uppskattningar). Varje recept är unikt och professionellt.",
           },
           {
             role: "user",
@@ -591,8 +648,8 @@ Om ingredienserna är otillräckliga för en hel måltid, ` +
           },
         ],
         response_format: {type: "json_object"},
-        temperature: 0.5,
-        max_tokens: 1500,
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 

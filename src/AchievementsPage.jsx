@@ -4,6 +4,7 @@ import {
   CATEGORIES, 
   BADGE_TIERS 
 } from './achievementService'
+import { Trophy, Lock, Save, DollarSign, Flame, Package, Users } from 'lucide-react'
 import './achievements.css'
 
 export default function AchievementsPage() {
@@ -41,7 +42,7 @@ export default function AchievementsPage() {
     <div className="achievements-page">
       {/* Header with overall stats */}
       <div className="achievements-header">
-        <h1>🏆 Utmärkelser & Badges</h1>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Trophy size={32} strokeWidth={2} /> Utmärkelser & Badges</h1>
         
         <div className="overall-stats">
           <div className="stat-card">
@@ -142,11 +143,11 @@ export default function AchievementsPage() {
           <h2>Dina Statistik</h2>
           <div className="stats-grid">
             <div className="stat-item">
-              <span className="stat-icon">💾</span>
+              <span className="stat-icon"><Save size={20} strokeWidth={2} /></span>
               <span className="stat-text">{stats.itemsSaved} varor räddade</span>
             </div>
             <div className="stat-item">
-              <span className="stat-icon">💰</span>
+              <span className="stat-icon"><DollarSign size={20} strokeWidth={2} /></span>
               <span className="stat-text">{stats.totalSaved} kr sparat</span>
             </div>
             {/* TEMPORARILY HIDDEN - Recipes cooked stat
@@ -156,15 +157,15 @@ export default function AchievementsPage() {
             </div>
             */}
             <div className="stat-item">
-              <span className="stat-icon">🔥</span>
+              <span className="stat-icon"><Flame size={20} strokeWidth={2} /></span>
               <span className="stat-text">{stats.currentStreak || 0} dagars streak</span>
             </div>
             <div className="stat-item">
-              <span className="stat-icon">📦</span>
+              <span className="stat-icon"><Package size={20} strokeWidth={2} /></span>
               <span className="stat-text">{stats.maxActiveItems || 0} max aktiva varor</span>
             </div>
             <div className="stat-item">
-              <span className="stat-icon">👥</span>
+              <span className="stat-icon"><Users size={20} strokeWidth={2} /></span>
               <span className="stat-text">{stats.referralsCount || 0} vänner inbjudna</span>
             </div>
           </div>
@@ -182,7 +183,7 @@ function AchievementCard({ achievement }) {
   return (
     <div className={`achievement-card ${isUnlocked ? 'unlocked' : 'locked'}`}>
       <div className="achievement-icon">
-        {isUnlocked ? achievement.icon : '🔒'}
+        {isUnlocked ? achievement.icon : <Lock size={32} strokeWidth={2} />}
       </div>
       
       <div className="achievement-content">

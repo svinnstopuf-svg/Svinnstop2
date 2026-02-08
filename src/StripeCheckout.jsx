@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { auth } from './firebaseConfig'
 import { calculateFamilyUpgradePrice } from './familyPremiumService'
+import { Sparkles, X, Check, AlertCircle } from 'lucide-react'
 
 // Initialize Stripe (test mode)
 const stripePromise = loadStripe('pk_test_51SeFaRD8sKgXsuDA0jAGuLhGTCo7DUpeFAVFMpwElYy51lBG5GIUsNhAimj4kSGLnfkBNTUKxwR9eYo3k3ILlM1E00btEuNKXz')
@@ -74,8 +75,8 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
     <div className="stripe-checkout-overlay">
       <div className="stripe-checkout-modal">
         <div className="checkout-header">
-          <h2>🎉 {selectedPlan.name}</h2>
-          <button onClick={onClose} className="close-btn">✕</button>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Sparkles size={24} /> {selectedPlan.name}</h2>
+          <button onClick={onClose} className="close-btn"><X size={24} /></button>
         </div>
 
         <div className="checkout-content">
@@ -92,21 +93,21 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
           <div className="features-list">
             <h4>Vad ingår:</h4>
             <ul>
-              <li>✅ Obegränsat antal varor</li>
-              <li>✅ Receptförslag baserat på ditt kylskåp</li>
-              <li>✅ Push-notifikationer om utgående varor</li>
-              <li>✅ Leaderboard och achievements</li>
-              <li>✅ Besparingsstatistik</li>
-              <li>✅ Ingen reklam</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Obegränsat antal varor</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Receptförslag baserat på ditt kylskåp</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Push-notifikationer om utgående varor</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Leaderboard och achievements</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Besparingsstatistik</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Ingen reklam</li>
               {(premiumType === 'family' || premiumType === 'family_upgrade') && (
-                <li>✅ Dela med upp till 5 familjemedlemmar</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Dela med upp till 5 familjemedlemmar</li>
               )}
             </ul>
           </div>
 
           {error && (
-            <div className="checkout-error">
-              ❌ {error}
+            <div className="checkout-error" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={18} /> {error}
             </div>
           )}
 

@@ -8,21 +8,22 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Svinnstop" />
     <meta name="theme-color" content="#4CAF50" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Svinnstop hjälper dig minska matsvinnet, spara pengar och skydda miljön. Spara dina matvaror, få receptförslag och håll koll på utgångsdatum. Gratis app för hela familjen." />
+    <meta name="keywords" content="matsvinn, spara pengar, matapp, kylskåp, utgångsdatum, recept, miljö, hållbarhet, matlista, inköpslista, Sverige, svensk matapp" />
+    <meta name="author" content="Svinnstop" />
+    <meta name="robots" content="index, follow" />
+    
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3crect width='100' height='100' fill='%234CAF50' rx='20'/%3e%3ctext x='50' y='70' font-family='system-ui' font-size='60' text-anchor='middle' fill='white'%3e🍽️%3c/text%3e%3c/svg%3e" />
-    <title>Svinnstop</title>
+    <title>Svinnstop - Minska matsvinnet & spara pengar</title>
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7605250472589930"
      crossorigin="anonymous"></script>
-    <!-- PRO-SVENSKA GOOGLE TRANSLATE SETUP -->
-    <meta name="google" content="translate" />
     <meta http-equiv="Content-Language" content="sv" />
-    <!-- FORCE CACHE BUSTING -->
-    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="pragma" content="no-cache" />
-    <meta http-equiv="expires" content="0" />
     <style>
-      /* COMPLETELY HIDE Google Translate UI elements */
+      /* COMPLETELY HIDE all Google Translate UI elements */
       .goog-te-gadget,
       .goog-te-banner-frame,
       .goog-te-banner,
@@ -32,8 +33,10 @@
       .goog-te-menu2,
       .goog-te-ftab,
       #goog-gt-tt,
-      #google_translate_element .goog-te-gadget,
-      body > .skiptranslate:first-child {
+      .goog-te-spinner-pos,
+      #google_translate_element,
+      .skiptranslate iframe,
+      body > .skiptranslate {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -42,123 +45,42 @@
         left: -9999px !important;
         width: 0 !important;
         height: 0 !important;
-        overflow: hidden !important;
+        pointer-events: none !important;
       }
       
-      /* Ensure app name is NEVER translated */
-      .app-title,
-      .app-name {
-        font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
-      }
-      
-      /* Remove any Google Translate styling that might interfere */
-      .translated-ltr,
-      .translated-rtl {
-        font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
-      }
-      
-      /* Override any unwanted Google Translate styles */
-      * {
-        font-family: 'System Font', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      /* Remove the top padding that Google Translate adds */
+      body {
+        top: 0 !important;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     
-    <!-- Google Translate Widget (hidden) -->
-    <div id="google_translate_element" style="display: none;"></div>
+    <!-- Hidden Google Translate element -->
+    <div id="google_translate_element" style="position: absolute; left: -9999px; visibility: hidden;"></div>
     
     <script>
-      // PRO-SVENSKA: Sätt upp Google Translate att alltid översätta till svenska
       function googleTranslateElementInit() {
         new google.translate.TranslateElement({
-          pageLanguage: 'auto', // Detektera automatiskt
-          includedLanguages: 'sv,en,de,da,no,fi', // Tillåt några språk men svenska som prioritet
+          pageLanguage: 'auto',
+          includedLanguages: 'sv,en',
           layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false,
-          gaTrack: false,
-          gaId: null
+          autoDisplay: false
         }, 'google_translate_element');
         
-        // Automatiskt översätt till svenska efter widget är laddad
         setTimeout(function() {
-          // Sätt cookien för att alltid ha svenska som målspråk
-          document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000'; // 1 år
-          
-          // Skydda appnamnet från översättning
-          protectAppName();
-          
-          // Tvinga översättning till svenska om sidan inte redan är på svenska
-          if (!document.cookie.includes('googtrans=/auto/sv') && 
-              !document.documentElement.lang.includes('sv')) {
-            // Trigga översättning till svenska
-            const event = new CustomEvent('translateToSwedish');
-            document.dispatchEvent(event);
-          }
-        }, 1000);
-      }
-      
-      // Skydda appnamnet från att översättas
-      function protectAppName() {
-        const appTitleElements = document.querySelectorAll('h1, .app-title, .app-name, title');
-        appTitleElements.forEach(function(element) {
-          if (element.textContent && element.textContent.includes('Svinnstop')) {
-            element.innerHTML = element.innerHTML.replace(/Svinnstop/g, '<span class="notranslate">Svinnstop</span>');
-          }
-        });
-        
-        // Ändra också page title
-        if (document.title !== 'Svinnstop') {
-          document.title = 'Svinnstop';
-        }
-      }
-      
-      // Kontinuerlig övervakning för att säkerställa att allt är på svenska
-      function ensureSwedish() {
-        // Kontrollera om Google Translate finns och fungerar
-        if (typeof google !== 'undefined' && google.translate) {
-          // Sätt alltid svenska som målspråk
           document.cookie = 'googtrans=/auto/sv; path=/; max-age=31536000';
-          
-          // Skydda appnamnet kontinuerligt
-          protectAppName();
-          
-          // Dold alla synliga Google Translate-element
-          const googleElements = document.querySelectorAll('.goog-te-gadget, .goog-te-banner-frame, .goog-te-banner, .skiptranslate');
-          googleElements.forEach(function(element) {
-            element.style.display = 'none';
-            element.style.visibility = 'hidden';
-          });
-          
-          // Om sidan inte är märkt som översatt till svenska, försök översätt
-          if (!document.body.classList.contains('translated-ltr') || 
-              !document.cookie.includes('/auto/sv')) {
-            try {
-              // Tvinga en ny översättning till svenska
-              const selectElem = document.querySelector('.goog-te-combo');
-              if (selectElem) {
-                selectElem.value = 'sv';
-                selectElem.dispatchEvent(new Event('change'));
-              }
-            } catch(e) {}
-          }
-        }
+        }, 500);
       }
       
-      // Kör svenska-kontroll var 2:a sekund
-      setInterval(ensureSwedish, 2000);
-      
-      // Ladda Google Translate direkt
-      window.onload = function() {
-        const script = document.createElement('script');
+      // Load Google Translate
+      (function() {
+        var script = document.createElement('script');
         script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
         script.async = true;
         document.head.appendChild(script);
-        
-        // Sätt även dokumentspråk till svenska
-        document.documentElement.lang = 'sv';
-      };
+      })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>

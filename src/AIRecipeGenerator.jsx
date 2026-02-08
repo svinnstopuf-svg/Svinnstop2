@@ -1,8 +1,11 @@
 import React, { useState } from 'react'
 import { generateAIRecipe, saveAIRecipe } from './aiRecipeService'
 import { premiumService } from './premiumService'
+import { useToast } from './components/ToastContainer'
+import Spinner from './components/Spinner'
 
 export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerated }) {
+  const toast = useToast()
   const [selectedIngredients, setSelectedIngredients] = useState([])
   const [preferences, setPreferences] = useState({
     cuisine: '',
@@ -29,12 +32,12 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
 
   const handleGenerate = async () => {
     if (!isPremium) {
-      setError('AI-receptgenerering kräver Premium. Uppgradera för att använda denna funktion!')
+      toast.warning('AI-receptgenerering kräver Premium. Uppgradera för att använda denna funktion!')
       return
     }
 
     if (selectedIngredients.length === 0) {
-      setError('Välj minst en ingrediens')
+      toast.warning('Välj minst en ingrediens för att generera recept')
       return
     }
 
@@ -46,25 +49,37 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
       
       if (result.success) {
         setGeneratedRecipe(result.recipe)
-        // Spara automatiskt
-        saveAIRecipe(result.recipe)
-        if (onRecipeGenerated) {
-          onRecipeGenerated(result.recipe)
-        }
+        toast.success('🍳 Recept genererat! Klicka på "Spara recept" för att spara det.')
       } else {
-        setError(result.error)
+        // Förbättrade felmeddelanden
+        const errorMsg = result.error.includes('Could not') || result.error.includes('Failed') 
+          ? 'Kunde inte nå AI-tjänsten. Kontrollera din internetanslutning och försök igen.'
+          : result.error
+        setError(errorMsg)
+        toast.error(errorMsg)
       }
     } catch (err) {
-      setError('Ett oväntat fel uppstod: ' + err.message)
+      const errorMsg = 'Kunde inte generera recept. Kontrollera din internetanslutning och försök igen.'
+      setError(errorMsg)
+      toast.error(errorMsg)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSaveAndClose = () => {
+  const handleSaveRecipe = () => {
     if (generatedRecipe) {
-      saveAIRecipe(generatedRecipe)
+      const result = saveAIRecipe(generatedRecipe)
+      if (result.success) {
+        toast.success('Recept sparat!')
+      } else {
+        toast.error('Kunde inte spara recept')
+      }
     }
+    onClose()
+  }
+  
+  const handleCloseWithoutSaving = () => {
     onClose()
   }
 
@@ -75,7 +90,7 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
         <div className="ai-recipe-modal">
           <div className="modal-header">
             <h2>{generatedRecipe.name}</h2>
-            <button onClick={handleSaveAndClose} className="close-btn">×</button>
+            <button onClick={handleCloseWithoutSaving} className="close-btn">×</button>
           </div>
 
           <div className="recipe-content">
@@ -138,9 +153,22 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
               </div>
             )}
 
-            <button onClick={handleSaveAndClose} className="btn-primary btn-large">
-              Spara recept
-            </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button 
+                onClick={handleCloseWithoutSaving} 
+                className="btn-secondary btn-large"
+                style={{ flex: 1 }}
+              >
+                Stäng utan att spara
+              </button>
+              <button 
+                onClick={handleSaveRecipe} 
+                className="btn-primary btn-large"
+                style={{ flex: 1 }}
+              >
+                Spara recept
+              </button>
+            </div>
           </div>
         </div>
 
@@ -330,6 +358,17 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
 
           <div className="section">
             <h3>1. Välj ingredienser från ditt kylskåp</h3>
+            {inventory.length === 0 ? (
+              <div style={{
+                padding: '24px',
+                textAlign: 'center',
+                background: 'var(--bg)',
+                borderRadius: '12px',
+                color: 'var(--muted)'
+              }}>
+                <p>Ditt kylskåp är tomt. Lägg till matvaror i kylskåpet för att generera recept!</p>
+              </div>
+            ) : (
             <div className="ingredient-grid">
               {inventory.map(item => (
                 <button
@@ -342,8 +381,9 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
                 </button>
               ))}
             </div>
+            )}
             {selectedIngredients.length > 0 && (
-              <p className="selection-count">{selectedIngredients.length} ingredienser valda</p>
+              <p className="selection-count">✅ {selectedIngredients.length} ingrediens{selectedIngredients.length > 1 ? 'er' : ''} vald{selectedIngredients.length > 1 ? 'a' : ''}</p>
             )}
           </div>
 
@@ -459,7 +499,12 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
               className="btn-primary"
               disabled={loading || selectedIngredients.length === 0}
             >
-              {loading ? 'Genererar recept...' : 'Generera recept'}
+              {loading ? (
+                <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+                  <Spinner size={16} />
+                  Genererar recept...
+                </span>
+              ) : 'Generera recept'}
             </button>
           </div>
         </div>

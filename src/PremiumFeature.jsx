@@ -1,5 +1,6 @@
 import React from 'react'
 import { isPremiumActive } from './premiumService'
+import { Sparkles, Check, ChefHat, Bell, TrendingUp, Trophy, BarChart3, Package } from 'lucide-react'
 import './PremiumFeature.css'
 
 /**
@@ -26,7 +27,7 @@ export default function PremiumFeature({
   // Annars visa paywall overlay
   const messages = {
     recipes: {
-      icon: '✨',
+      icon: <ChefHat size={48} />,
       title: 'Receptförslag kräver Premium',
       description: 'Få smarta receptförslag baserat på vad du har i kylskåpet. Slipp matsvinn och hitta inspiration',
       features: [
@@ -36,7 +37,7 @@ export default function PremiumFeature({
       ]
     },
     notifications: {
-      icon: '✨',
+      icon: <Bell size={48} />,
       title: 'Notifikationer kräver Premium',
       description: 'Få påminnelser innan mat går ut. Aldrig mer slängd mat',
       features: [
@@ -46,17 +47,17 @@ export default function PremiumFeature({
       ]
     },
     leaderboard: {
-      icon: '✨',
+      icon: <TrendingUp size={48} />,
       title: 'Leaderboard kräver Premium',
       description: 'Tävla mot andra användare och se hur mycket du sparar',
       features: [
-        'Globala topplistan',
+        'Tävla mot andra användare',
         'Jämför med vänner',
         'Veckoliga utmaningar'
       ]
     },
     achievements: {
-      icon: '✨',
+      icon: <Trophy size={48} />,
       title: 'Achievements kräver Premium',
       description: 'Lås upp badges och följ din progress',
       features: [
@@ -66,7 +67,7 @@ export default function PremiumFeature({
       ]
     },
     statistics: {
-      icon: '✨',
+      icon: <BarChart3 size={48} />,
       title: 'Statistik kräver Premium',
       description: 'Se hur mycket pengar och mat du har sparat',
       features: [
@@ -76,7 +77,7 @@ export default function PremiumFeature({
       ]
     },
     item_limit: {
-      icon: '✨',
+      icon: <Package size={48} />,
       title: 'Gränsen nådd (10/10 varor)',
       description: 'Uppgradera till Premium för obegränsat antal varor i ditt kylskåp',
       features: [
@@ -100,13 +101,13 @@ export default function PremiumFeature({
           <h3>Premium inkluderar:</h3>
           <ul>
             {message.features.map((feat, idx) => (
-              <li key={idx}>
-                <span className="checkmark">✓</span> {feat}
+              <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> {feat}
               </li>
             ))}
-            <li><span className="checkmark">✓</span> Obegränsat antal varor</li>
-            <li><span className="checkmark">✓</span> Ingen reklam</li>
-            <li><span className="checkmark">✓</span> Familjesynkronisering</li>
+            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> Obegränsat antal varor</li>
+            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> Ingen reklam</li>
+            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> Familjesynkronisering</li>
           </ul>
         </div>
         

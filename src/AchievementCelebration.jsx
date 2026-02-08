@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Trophy, Sparkles } from 'lucide-react'
 import './AchievementCelebration.css'
 
 export default function AchievementCelebration({ achievement, onClose }) {
@@ -67,12 +68,12 @@ export default function AchievementCelebration({ achievement, onClose }) {
           </span>
         </div>
 
-        <h2 className="achievement-title">🎉 Achievement Unlocked!</h2>
+        <h2 className="achievement-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}><Trophy size={28} strokeWidth={2} /> Achievement Unlocked!</h2>
         <h3 className="achievement-name">{achievement.title}</h3>
         <p className="achievement-description">{achievement.description}</p>
 
-        <button className="achievement-close-btn" onClick={handleClose}>
-          Awesome! ✨
+        <button className="achievement-close-btn" onClick={handleClose} style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+          Awesome! <Sparkles size={18} />
         </button>
       </div>
     </div>

@@ -334,7 +334,51 @@ export function getAchievementData() {
   try {
     const data = localStorage.getItem(STORAGE_KEY)
     if (data) {
-      return JSON.parse(data)
+      const parsed = JSON.parse(data)
+      
+      // MIGRATION: Ensure correct structure
+      let needsMigration = false
+      
+      if (!Array.isArray(parsed.unlocked)) {
+        console.warn('⚠️ Migrating achievement data - fixing unlocked array')
+        parsed.unlocked = []
+        needsMigration = true
+      }
+      
+      if (!parsed.stats || typeof parsed.stats !== 'object') {
+        console.warn('⚠️ Migrating achievement data - fixing stats object')
+        parsed.stats = {
+          itemsSaved: 0,
+          totalSaved: 0,
+          recipesCooked: 0,
+          maxActiveItems: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          referralsCount: 0,
+          perfectWeeks: 0,
+          earlyBirdLogins: 0,
+          nightOwlLogins: 0,
+          lastLoginDate: null
+        }
+        needsMigration = true
+      }
+      
+      if (!parsed.progress || typeof parsed.progress !== 'object') {
+        parsed.progress = {}
+        needsMigration = true
+      }
+      
+      // Save migrated data
+      if (needsMigration) {
+        console.log('💾 Saving migrated achievement data')
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+        } catch (e) {
+          console.error('Failed to save migrated achievement data:', e)
+        }
+      }
+      
+      return parsed
     }
   } catch (error) {
     console.error('❌ Could not load achievement data:', error)
@@ -412,6 +456,16 @@ function checkForNewAchievements(data) {
       newlyUnlocked.push(achievement)
     }
   })
+  
+  // Dispatch events for newly unlocked achievements
+  if (newlyUnlocked.length > 0) {
+    newlyUnlocked.forEach(achievement => {
+      console.log('🎉 Achievement unlocked:', achievement.title)
+      window.dispatchEvent(new CustomEvent('achievementUnlocked', {
+        detail: achievement
+      }))
+    })
+  }
   
   return newlyUnlocked
 }

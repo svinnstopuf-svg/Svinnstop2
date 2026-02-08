@@ -243,8 +243,7 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 }
 
 .edit-btn,
-.remove-btn,
-.save-btn {
+.remove-btn {
   width: 32px;
   height: 32px;
   border-radius: 16px;
@@ -266,12 +265,6 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   border: 1px solid var(--glass-border);
 }
 
-.save-btn {
-  background: var(--success);
-  color: white;
-  font-size: 16px;
-}
-
 .remove-btn {
   background: var(--danger);
   color: white;
@@ -283,12 +276,6 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
   box-shadow: var(--shadow-md);
 }
 
-.save-btn:hover {
-  background: var(--success-solid);
-  transform: translateY(-2px) scale(1.1);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
-}
-
 .remove-btn:hover {
   background: var(--danger-solid);
   transform: translateY(-2px) scale(1.1);
@@ -296,7 +283,6 @@ button.link { background: transparent; color: var(--muted); text-decoration: und
 }
 
 .edit-btn:active,
-.save-btn:active,
 .remove-btn:active {
   transform: translateY(0) scale(0.9);
 }
