@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
-import { ShoppingCart, Home, ChefHat, User, Undo2, Sparkles, UserCircle2, Sun, Moon, Bell, BellOff, TrendingUp, Trophy, Users, Gift, HelpCircle, Bot, X, AlertTriangle, Clock, Flame, UtensilsCrossed, BarChart3, Search, Zap, Package, ShoppingBag, Lock } from 'lucide-react';
+import { ShoppingCart, Home, ChefHat, User, Undo2, Sparkles, UserCircle2, Sun, Moon, Bell, BellOff, TrendingUp, Trophy, Users, Gift, HelpCircle, Bot, X, AlertTriangle, Clock, Flame, UtensilsCrossed, BarChart3, Search, Zap, Package, ShoppingBag, Lock, CreditCard } from 'lucide-react';
 import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
@@ -13,6 +13,7 @@ import ReferralProgram from './ReferralProgram'
 import AchievementsPage from './AchievementsPage'
 import FamilySharing from './FamilySharing'
 import Leaderboard from './Leaderboard'
+import ManageSubscriptionPage from './ManageSubscriptionPage'
 import FAQ from './FAQ'
 import ConfirmDialog from './ConfirmDialog'
 import UpgradeModal from './UpgradeModal'
@@ -3394,7 +3395,7 @@ export default function App() {
 
               {/* Snabblinkar till huvudfunktioner */}
               <div className="profile-menu">
-                {!hasAnyPremium() ? (
+                {!hasAnyPremium() && (
                   <button
                     className="profile-menu-item premium-highlight"
                     onClick={() => setShowUpgradeModal(true)}
@@ -3406,30 +3407,6 @@ export default function App() {
                     </div>
                     <span className="menu-arrow">›</span>
                   </button>
-                ) : (
-                  // Visa Family Premium upgrade ENDAST för användare med Individual Premium (inte family benefits)
-                  (() => {
-                    const premiumStatus = premiumService.getPremiumStatus()
-                    // Kolla om användaren har Individual Premium (inte family premium eller family benefits)
-                    const hasIndividualPremium = premiumStatus.active && premiumStatus.premiumType === 'individual'
-                    
-                    if (hasIndividualPremium) {
-                      return (
-                        <button
-                          className="profile-menu-item premium-highlight"
-                          onClick={() => setShowUpgradeModal(true)}
-                        >
-                          <span className="menu-icon"><Users size={20} /></span>
-                          <div className="menu-content">
-                            <span className="menu-title">Uppgradera till Family Premium</span>
-                            <span className="menu-description">Dela premium med familjen för +20 kr/mån</span>
-                          </div>
-                          <span className="menu-arrow">›</span>
-                        </button>
-                      )
-                    }
-                    return null
-                  })()
                 )}
                 <button 
                   className="profile-menu-item"
@@ -3548,6 +3525,27 @@ export default function App() {
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
+                
+                {/* Visa Hantera Prenumeration för Stripe-kunder */}
+                {(() => {
+                  const premiumStatus = premiumService.getPremiumStatus()
+                  if (premiumStatus.source === 'stripe' && premiumStatus.stripeCustomerId) {
+                    return (
+                      <button 
+                        className="profile-menu-item"
+                        onClick={() => setActiveTab('manage-subscription')}
+                      >
+                        <span className="menu-icon"><CreditCard size={20} /></span>
+                        <div className="menu-content">
+                          <span className="menu-title">Hantera Prenumeration</span>
+                          <span className="menu-description">Uppgradera, avsluta eller ändra betalmetod</span>
+                        </div>
+                        <span className="menu-arrow">›</span>
+                      </button>
+                    )
+                  }
+                  return null
+                })()}
                 
                 <button 
                   className="profile-menu-item"
@@ -3712,6 +3710,16 @@ export default function App() {
               <Leaderboard />
             </section>
           </div>
+        )}
+        
+        {activeTab === 'manage-subscription' && (
+          <ManageSubscriptionPage 
+            onBack={() => setActiveTab('profile')}
+            onShowUpgrade={() => {
+              setShowUpgradeModal(true)
+              setActiveTab('profile')
+            }}
+          />
         )}
       
       </div>

@@ -16,7 +16,9 @@ const stripeClient = stripe(getStripeKey());
 // Initialize Resend with API key from Firebase config
 const getResendKey = () => {
   const config = functions.config();
-  return (config.resend && config.resend.api_key) || process.env.RESEND_API_KEY;
+  const key = (config.resend && config.resend.api_key) || process.env.RESEND_API_KEY;
+  console.log("🔑 Resend API key detected:", key ? "YES (length: " + key.length + ")" : "NO - MISSING!");
+  return key;
 };
 const resend = new Resend(getResendKey());
 
@@ -43,7 +45,7 @@ exports.subscribeToWeeklyEmail = functions.https.onCall(async (data, context) =>
 
     try {
       const emailResult = await resend.emails.send({
-        from: "Svinnstop <noreply@svinnstop.app>",
+        from: "Svinnstop <onboarding@resend.dev>",
         to: email,
         subject: "🎉 Välkommen till Svinnstops veckosammanfattningar!",
         html: `
@@ -118,7 +120,7 @@ exports.sendWeeklyEmails = functions.pubsub
           // Detta kräver att användare är inloggade och har sin data i Firestore
           // För nu skickar vi ett generiskt email
           const emailPromise = resend.emails.send({
-            from: "Svinnstop <noreply@svinnstop.app>",
+            from: "Svinnstop <onboarding@resend.dev>",
             to: email,
             subject: "📅 Din veckosammanfattning från Svinnstop",
             html: `
@@ -174,7 +176,6 @@ exports.sendWeeklyEmails = functions.pubsub
 const STRIPE_PRICES = {
   individual: "price_1SeFd3D8sKgXsuDAlRaQjmna", // 29 SEK/mån
   family: "price_1SeFfLD8sKgXsuDAMNnARtuo", // 49 SEK/mån
-  family_upgrade: "price_1SeFgND8sKgXsuDATGb7Affr", // 20 SEK/mån
 };
 
 // Cloud Function: Skapa Stripe Checkout Session
@@ -220,22 +221,13 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
       }
     }
 
-    // Hämta användarens nuvarande premium status
-    const userRef = admin.database().ref(`users/${userId}/premium`);
-    const snapshot = await userRef.once("value");
-    const currentPremium = snapshot.val() || {};
-
-    // Välj rätt price ID baserat på premiumType och current status
+    // Välj rätt price ID baserat på premiumType
     let priceId;
     const mode = "subscription";
 
     if (premiumType === "family_upgrade" || premiumType === "family") {
-      // Om användaren redan har Individual Premium (referral eller Stripe)
-      if (currentPremium.premiumType === "individual" && currentPremium.active) {
-        priceId = STRIPE_PRICES.family_upgrade;
-      } else {
-        priceId = STRIPE_PRICES.family;
-      }
+      // Gamla prenumerationen avbryts i webhook efter lyckat köp
+      priceId = STRIPE_PRICES.family;
     } else if (premiumType === "individual") {
       priceId = STRIPE_PRICES.individual;
     } else {
@@ -304,6 +296,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         const premiumType = session.metadata.premiumType;
         const customerId = session.customer;
         const subscriptionId = session.subscription;
+        const customerEmail = session.customer_email || (session.customer_details && session.customer_details.email);
 
         console.log("✅ Payment successful for user:", userId);
 
@@ -313,6 +306,24 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         expiryDate.setDate(expiryDate.getDate() + 30);
 
         const finalPremiumType = premiumType === "family_upgrade" ? "family" : premiumType;
+
+        // Hämta gammal premium data för att kolla om vi behöver avbryta en gammal prenumeration
+        const oldPremiumSnap = await premiumRef.once("value");
+        const oldPremium = oldPremiumSnap.val() || {};
+
+        // Om användaren köper Family och hade Individual Premium via Stripe - avbryt gamla
+        if (finalPremiumType === "family" &&
+            oldPremium.premiumType === "individual" &&
+            oldPremium.subscriptionId &&
+            oldPremium.source === "stripe" &&
+            oldPremium.subscriptionId !== subscriptionId) {
+          try {
+            await stripeClient.subscriptions.cancel(oldPremium.subscriptionId);
+            console.log("✅ Cancelled old Individual subscription:", oldPremium.subscriptionId);
+          } catch (cancelErr) {
+            console.error("⚠️ Failed to cancel old subscription:", cancelErr);
+          }
+        }
 
         await premiumRef.set({
           active: true,
@@ -326,6 +337,81 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         });
 
         console.log("✅ Premium activated for user:", userId);
+
+        // Skicka bekräftelse-email med Resend
+        if (customerEmail) {
+          console.log("📧 Attempting to send confirmation email to:", customerEmail);
+          console.log("📧 Resend instance exists:", !!resend);
+          console.log("📧 Resend.emails exists:", !!(resend && resend.emails));
+
+          try {
+            const planName = finalPremiumType === "family" ? "Family Premium" : "Individual Premium";
+            const price = finalPremiumType === "family" ? "49" : "29";
+
+            console.log("📧 Preparing to send email with payload...");
+
+            const emailResult = await resend.emails.send({
+              from: "Svinnstop <onboarding@resend.dev>",
+              to: customerEmail,
+              subject: `🎉 Tack för ditt köp av ${planName}!`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #10b981;">🎉 Välkommen till Svinnstop Premium!</h1>
+                  <p>Tack för att du valde ${planName}!</p>
+                  
+                  <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h2 style="color: #1f2937; margin-top: 0;">Din prenumeration</h2>
+                    <p><strong>Plan:</strong> ${planName}</p>
+                    <p><strong>Pris:</strong> ${price} kr/månad</p>
+                    <p><strong>Nästa betalning:</strong> ${expiryDate.toLocaleDateString("sv-SE")}</p>
+                  </div>
+
+                  <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h2 style="color: #1f2937; margin-top: 0;">✨ Vad du får tillgång till:</h2>
+                    <ul>
+                      <li>AI-genererade recept från dina ingredienser</li>
+                      <li>Obegränsat antal varor i kylskåpet</li>
+                      ${finalPremiumType === "family" ? "<li>Familjesynkronisering (upp till 5 medlemmar)</li>" : ""}
+                      <li>Ingen reklam</li>
+                      <li>Avancerad statistik & miljöpåverkan</li>
+                      <li>25+ Achievements & badges</li>
+                      <li>Topplista</li>
+                      <li>Push-notifikationer</li>
+                    </ul>
+                  </div>
+
+                  <a href="https://svinnstop.web.app" 
+                     style="display: inline-block; background: #10b981; color: white; 
+                            padding: 12px 24px; text-decoration: none; border-radius: 6px; 
+                            margin: 20px 0;">
+                    Öppna Svinnstop
+                  </a>
+
+                  <p style="color: #666; font-size: 12px; margin-top: 40px;">
+                    <strong>Hantera din prenumeration:</strong><br>
+                    Du kan avsluta eller ändra din prenumeration när som helst via din profil i appen.
+                  </p>
+                  
+                  <p style="color: #666; font-size: 12px;">
+                    Frågor? Kontakta oss på support@svinnstop.app
+                  </p>
+                </div>
+              `,
+            });
+
+            console.log("✅ Confirmation email sent successfully!");
+            console.log("✅ Email ID:", emailResult.data ? emailResult.data.id : "N/A");
+            console.log("✅ Full response:", JSON.stringify(emailResult, null, 2));
+          } catch (emailError) {
+            console.error("❌ CRITICAL: Failed to send confirmation email");
+            console.error("❌ Error message:", emailError.message);
+            console.error("❌ Error stack:", emailError.stack);
+            console.error("❌ Error name:", emailError.name);
+            const errorProps = Object.getOwnPropertyNames(emailError);
+            console.error("❌ Full error object:", JSON.stringify(emailError, errorProps, 2));
+            // Don't fail the webhook if email fails
+          }
+        }
 
         // If user bought Family Premium, set premium on their family
         if (finalPremiumType === "family") {
@@ -385,6 +471,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
       case "invoice.paid": {
         const invoice = event.data.object;
         const customerId = invoice.customer;
+        const subscriptionId = invoice.subscription;
 
         // Hitta användare baserat på Stripe customer ID
         const usersRef = admin.database().ref("users");
@@ -393,20 +480,35 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         if (snapshot.exists()) {
           const userId = Object.keys(snapshot.val())[0];
           const premiumRef = admin.database().ref(`users/${userId}/premium`);
-          const currentPremium = (await premiumRef.once("value")).val() || {};
 
-          // Förnya premium med 30 dagar
-          const currentExpiry = currentPremium.premiumUntil ? new Date(currentPremium.premiumUntil) : new Date();
-          const newExpiry = currentExpiry > new Date() ? currentExpiry : new Date();
-          newExpiry.setDate(newExpiry.getDate() + 30);
+          // Hämta prenumerationens faktiska förfallodatum från Stripe
+          let premiumUntil;
+          if (subscriptionId) {
+            try {
+              const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+              // current_period_end är Unix timestamp i sekunder
+              premiumUntil = new Date(subscription.current_period_end * 1000).toISOString();
+              console.log("📅 Stripe subscription end date:", premiumUntil);
+            } catch (err) {
+              console.error("⚠️ Could not fetch subscription, using +30 days:", err);
+              const newExpiry = new Date();
+              newExpiry.setDate(newExpiry.getDate() + 30);
+              premiumUntil = newExpiry.toISOString();
+            }
+          } else {
+            // Fallback: lägg till 30 dagar
+            const newExpiry = new Date();
+            newExpiry.setDate(newExpiry.getDate() + 30);
+            premiumUntil = newExpiry.toISOString();
+          }
 
           await premiumRef.update({
             active: true,
-            premiumUntil: newExpiry.toISOString(),
+            premiumUntil: premiumUntil,
             lastUpdated: new Date().toISOString(),
           });
 
-          console.log("✅ Premium renewed for user:", userId);
+          console.log("✅ Premium renewed for user:", userId, "until", premiumUntil);
         }
         break;
       }
@@ -430,6 +532,9 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
               active: false,
               premiumUntil: null,
               subscriptionId: null,
+              stripeCustomerId: null,
+              premiumType: null,
+              source: null,
               lastUpdated: new Date().toISOString(),
             });
             console.log("✅ Stripe premium cancelled for user:", userId);
@@ -446,6 +551,56 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
   } catch (error) {
     console.error("❌ Error processing webhook:", error);
     res.status(500).send("Webhook processing failed");
+  }
+});
+
+// Cloud Function: Skapa Stripe Customer Portal Session (för att hantera prenumeration)
+exports.createPortalSession = functions.https.onRequest(async (req, res) => {
+  // Set CORS headers
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({error: "Method not allowed"});
+    return;
+  }
+
+  try {
+    const {userId} = req.body;
+
+    if (!userId) {
+      res.status(400).json({error: "Missing userId"});
+      return;
+    }
+
+    // Hämta användarens Stripe customer ID
+    const premiumRef = admin.database().ref(`users/${userId}/premium`);
+    const snapshot = await premiumRef.once("value");
+    const premiumData = snapshot.val();
+
+    if (!premiumData || !premiumData.stripeCustomerId) {
+      res.status(404).json({error: "No Stripe subscription found"});
+      return;
+    }
+
+    // Skapa Customer Portal session
+    const session = await stripeClient.billingPortal.sessions.create({
+      customer: premiumData.stripeCustomerId,
+      return_url: "https://svinnstop.web.app/?from=billing",
+    });
+
+    console.log("✅ Customer portal session created for user:", userId);
+    res.json({url: session.url});
+  } catch (error) {
+    console.error("❌ Error creating portal session:", error);
+    res.status(500).json({error: error.message});
   }
 });
 

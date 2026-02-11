@@ -3,6 +3,7 @@ import { isPremiumActive, getPremiumStatus, getDaysLeftOfPremium } from './premi
 import { calculateFamilyUpgradePrice, getPremiumDescription } from './familyPremiumService'
 import { Check, CreditCard, Gift, DollarSign, Globe } from 'lucide-react'
 import StripeCheckout from './StripeCheckout'
+import ManageSubscription from './ManageSubscription'
 import './UpgradeModal.css'
 
 /**
@@ -53,23 +54,21 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
                 Tack för ditt fantastiska stöd!
               </p>
             ) : (
-              <p className="premium-type">
+              <p className="premium-type" style={{ color: '#e5e7eb' }}>
                 {daysLeft} dagar kvar
                 {premiumStatus.source === 'referral' && ' (från referrals)'}
                 {premiumStatus.source === 'stripe' && ' (prenumeration)'}
               </p>
             )}
             
-            {/* Visa Family Upgrade om användaren har Individual Premium */}
+            {/* Visa Family Premium erbjudande om användaren har Individual Premium */}
             {premiumStatus.premiumType === 'individual' && !showStripeCheckout && (
               <div className="family-upgrade-offer">
                 <h3>Uppgradera till Family Premium?</h3>
-                <p>{familyPricing.description}</p>
+                <p>Dela premium med upp till 5 familjemedlemmar</p>
                 <div className="family-upgrade-price">
-                  <span className="price-amount">{familyPricing.price} kr/mån</span>
-                  {familyPricing.futurePrice && (
-                    <span className="future-price">Sedan {familyPricing.futurePrice} kr/mån när referral premium tar slut</span>
-                  )}
+                  <span className="price-amount">49 kr/mån</span>
+                  <span className="upgrade-note">Ersätter din nuvarande prenumeration</span>
                 </div>
                 <button 
                   className="upgrade-modal-btn primary"
@@ -80,10 +79,10 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
               </div>
             )}
             
-            {/* Stripe Checkout för Family Upgrade */}
+            {/* Stripe Checkout för Family */}
             {showStripeCheckout && premiumStatus.premiumType === 'individual' && (
               <StripeCheckout
-                premiumType="family_upgrade"
+                premiumType="family"
                 onClose={() => setShowStripeCheckout(false)}
               />
             )}
@@ -107,6 +106,9 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
                 Bjud in fler vänner för att förlänga din premium
               </p>
             )}
+            
+            {/* Visa hantera prenumeration om Stripe-kund */}
+            <ManageSubscription premiumData={premiumStatus} />
             
             <button className="upgrade-modal-btn secondary" onClick={onClose}>
               Stäng
@@ -162,25 +164,8 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
               <span className="plan-name">Family</span>
               <span className="plan-badge">BÄST VÄRDE</span>
             </div>
-            <div className="plan-price">
-              {familyPricing.isUpgrade && premiumStatus.premiumType === 'individual' ? (
-                <>
-                  <span className="upgrade-price">{familyPricing.price} kr/mån</span>
-                  <span className="upgrade-label">Upgrade</span>
-                </>
-              ) : (
-                '49 kr/mån'
-              )}
-            </div>
-            <div className="plan-desc">
-              {familyPricing.isUpgrade && premiumStatus.premiumType === 'individual' ? (
-                familyPricing.isLifetimeUpgrade ? 
-                  'Lägg till family-features (lifetime)' : 
-                  'Lägg till family-features (+20 kr)'
-              ) : (
-                'Upp till 5 familjemedlemmar'
-              )}
-            </div>
+            <div className="plan-price">49 kr/mån</div>
+            <div className="plan-desc">Upp till 5 familjemedlemmar</div>
           </button>
         </div>
         
@@ -264,7 +249,7 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             >
               Fortsätt till betalning
             </button>
-            <p className="payment-info">
+            <p className="payment-info" style={{ color: '#fff', textAlign: 'center', marginTop: '12px', fontSize: '14px' }}>
               Säker betalning via Stripe. Avsluta när som helst.
             </p>
           </div>

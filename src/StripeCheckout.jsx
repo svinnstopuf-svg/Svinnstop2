@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { auth } from './firebaseConfig'
-import { calculateFamilyUpgradePrice } from './familyPremiumService'
 import { Sparkles, X, Check, AlertCircle } from 'lucide-react'
 
 // Initialize Stripe (test mode)
@@ -10,8 +9,6 @@ const stripePromise = loadStripe('pk_test_51SeFaRD8sKgXsuDA0jAGuLhGTCo7DUpeFAVFM
 const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  
-  const familyPricing = calculateFamilyUpgradePrice()
 
   const handleCheckout = async () => {
     setLoading(true)
@@ -62,11 +59,7 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
 
   const prices = {
     individual: { price: 29, name: 'Individual Premium' },
-    family: { 
-      price: familyPricing.isUpgrade ? familyPricing.price : 49, 
-      name: familyPricing.isUpgrade ? 'Family Upgrade' : 'Family Premium' 
-    },
-    family_upgrade: { price: 20, name: 'Family Upgrade' }
+    family: { price: 49, name: 'Family Premium' }
   }
 
   const selectedPlan = prices[premiumType] || prices.individual
@@ -83,9 +76,9 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
           <div className="plan-summary">
             <h3>{selectedPlan.price} kr/mån</h3>
             <p className="plan-type">{selectedPlan.name}</p>
-            {familyPricing.isUpgrade && familyPricing.futurePrice && (
-              <p className="future-price-note">
-                När din referral premium tar slut: {familyPricing.futurePrice} kr/mån
+            {premiumType === 'family' && (
+              <p className="upgrade-note">
+                Upp till 5 familjemedlemmar
               </p>
             )}
           </div>
@@ -99,7 +92,7 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Leaderboard och achievements</li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Besparingsstatistik</li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Ingen reklam</li>
-              {(premiumType === 'family' || premiumType === 'family_upgrade') && (
+              {premiumType === 'family' && (
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Dela med upp till 5 familjemedlemmar</li>
               )}
             </ul>
@@ -212,10 +205,10 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
           opacity: 0.9;
         }
 
-        .future-price-note {
+        .upgrade-note {
           margin: 8px 0 0 0;
           font-size: 14px;
-          opacity: 0.8;
+          opacity: 0.9;
         }
 
         .features-list {
