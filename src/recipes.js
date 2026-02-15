@@ -210,18 +210,18 @@ export function suggestRecipes(items, internetRecipes = []) {
   // Använd internet-recept om tillgängliga, annars fall back på svenska recept
   const languageRecipes = internetRecipes.length > 0 ? internetRecipes : recipes.sv
   
-  // Skapa en karta över tillgängliga ingredienser med deras mängder och utgångsdatum
+  // Skapa en karta över tillgängliga ingredienser
+  // OBS: Mängder kontrolleras INTE längre - vi antar att användaren har tillräckligt om varan finns
   const availableIngredients = new Map()
   items.forEach(item => {
     const name = item.name.toLowerCase().trim()
     availableIngredients.set(name, {
-      quantity: item.quantity,
       expiresAt: item.expiresAt,
       daysLeft: daysUntil(item.expiresAt)
     })
   })
   
-  // Visa endast recept där vi har ALLA ingredienser
+  // Visa endast recept där vi har ALLA ingredienser (mängd kontrolleras inte)
   const viableRecipes = languageRecipes.filter(recipe => {
     let matchCount = 0
     let totalIngredients = recipe.ingredients.length
@@ -230,6 +230,7 @@ export function suggestRecipes(items, internetRecipes = []) {
       const ingredientName = ingredient.name.toLowerCase()
       
       // Kontrollera om vi har denna ingrediens (exakt matchning eller delvis matchning)
+      // Mängden spelar ingen roll - om varan finns antas det finnas tillräckligt
       for (const [availableName] of availableIngredients) {
         if (availableName.includes(ingredientName) || ingredientName.includes(availableName)) {
           matchCount++
@@ -289,6 +290,7 @@ export function suggestRecipes(items, internetRecipes = []) {
     .map(recipe => ({
       ...recipe,
       // Lägg till info om vilka av dina varor som kommer användas
+      // OBS: Mängd visas inte längre - receptet anger vad som behövs, användaren har varan
       usedIngredients: recipe.ingredients.map(ingredient => {
         const matchingItem = items.find(item => {
           const itemName = item.name.toLowerCase()
@@ -300,8 +302,8 @@ export function suggestRecipes(items, internetRecipes = []) {
         
         return {
           ...ingredient,
-          availableQuantity: matchingItem ? matchingItem.quantity : 0,
-          availableUnit: matchingItem ? matchingItem.unit : ingredient.unit,
+          // Förenklat: Vi antar att användaren har tillräckligt om varan finns
+          hasItem: !!matchingItem,
           itemName: matchingItem ? matchingItem.name : ingredient.name,
           daysLeft: daysLeft,
           isExpiring: daysLeft !== null && daysLeft <= 3,

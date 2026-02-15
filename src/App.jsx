@@ -437,6 +437,19 @@ export default function App() {
       }, 500)
     }
     
+    // Hantera email-länkar (från veckosammanfattningar och bekräftelsemejl)
+    const fromEmail = urlParams.get('from') === 'email'
+    const actionLogin = urlParams.get('action') === 'login'
+    
+    if (fromEmail) {
+      // Rensa URL-parametrar
+      window.history.replaceState({}, document.title, '/')
+      
+      // Om action=login, kontrollera om användaren är inloggad
+      // Firebase auth initieras längre ner - sätt flagga för att hantera detta
+      localStorage.setItem('svinnstop_from_email', 'true')
+    }
+    
     // FIX: Prioritera sparad tab för att behålla position vid refresh
     // Kolla först om användaren har en sparad tab (högsta prioritet vid refresh)
     const savedTab = localStorage.getItem('svinnstop_active_tab')
@@ -851,6 +864,31 @@ export default function App() {
     return () => window.removeEventListener('achievementUnlocked', handleAchievementUnlocked)
   }, [])
   
+  // Hantera email-länkar när auth är redo
+  useEffect(() => {
+    if (!isAuthReady) return
+    
+    const fromEmail = localStorage.getItem('svinnstop_from_email')
+    if (fromEmail) {
+      // Rensa flaggan
+      localStorage.removeItem('svinnstop_from_email')
+      
+      const user = auth.currentUser
+      
+      if (user && !user.isAnonymous) {
+        // Användaren är inloggad - navigera till kylskåpet
+        console.log('📧 Öppnad från email - användare inloggad, går till kylskåp')
+        setActiveTab('inventory')
+        toast.success('👋 Välkommen tillbaka!')
+      } else {
+        // Användaren är inte inloggad - öppna login-modalen
+        console.log('📧 Öppnad från email - visar inloggningsmodalent')
+        setShowAuthModal(true)
+        setAuthModalMode('login')
+      }
+    }
+  }, [isAuthReady])
+  
   // Synka family premium status till localStorage cache OCH starta listener
   useEffect(() => {
     const familyData = getFamilyData()
@@ -1261,18 +1299,18 @@ export default function App() {
   const onChange = e => {
     const { name, value } = e.target
     
-    // FIX: Använd functional update för att undvika stale state
+    // Förenklat - använd heltal för kvantitet
     if (name === 'quantity') {
       // Tillåt tomt fält så användaren kan ta bort alla siffror
       if (value === '' || value === null || value === undefined) {
         setForm(prevForm => ({ 
           ...prevForm, 
-          [name]: ''
+          [name]: 1 // Default till 1
         }))
       } else {
-        const numValue = parseFloat(value)
-        // Validera kvantitet: max 50 för att förhindra orealistiska värden
-        const validatedValue = isNaN(numValue) ? 0 : Math.min(Math.max(0, numValue), 50)
+        const numValue = parseInt(value, 10)
+        // Validera kvantitet: min 1, max 99 för att förhindra orealistiska värden
+        const validatedValue = isNaN(numValue) ? 1 : Math.min(Math.max(1, numValue), 99)
         setForm(prevForm => ({ 
           ...prevForm, 
           [name]: validatedValue
@@ -1371,9 +1409,9 @@ export default function App() {
     
     // Använd värden från formuläret
     const itemName = form.name.trim()
-    const itemQuantity = form.quantity
+    const itemQuantity = parseInt(form.quantity, 10) || 1
     const itemExpiresAt = form.expiresAt
-    const finalUnit = selectedInventoryUnit
+    const finalUnit = 'st' // Förenklat - alltid "st"
     const finalCategory = selectedInventoryCategory
     
     // TYST AUTO-LEARNING: Spara custom expiry rule om användaren har ändrat datum
@@ -2649,39 +2687,22 @@ export default function App() {
                 <div className="form-row">
                   <label className="form-label">
                     <span className="label-text">Antal</span>
-                    <div className="quantity-input-container">
+                    <div className="quantity-input-container" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                       <input 
                         type="number" 
                         name="quantity" 
-                        min="0" 
-                        step={suggestedUnitKey === 'pieces' ? '1' : '0.1'}
-                        inputMode={suggestedUnitKey === 'pieces' ? 'numeric' : 'decimal'}
+                        min="1" 
+                        step="1"
+                        inputMode="numeric"
                         value={form.quantity} 
                         onChange={onChange}
                         onFocus={(e) => e.target.select()}
                         placeholder="1"
                         className="form-input quantity-input"
+                        style={{maxWidth: '100px'}}
                         required
                       />
-                      <select 
-                        value={selectedInventoryUnit}
-                        onChange={(e) => {
-                          setSelectedInventoryUnit(e.target.value)
-                          setCurrentDisplayUnit(e.target.value)
-                          setUserSelectedUnit(true) // Markera att användaren har valt en enhet
-                        }}
-                        className="form-input"
-                        style={{width: 'auto', minWidth: '80px', marginLeft: '8px'}}
-                      >
-                        <option value="st">st</option>
-                        <option value="kg">kg</option>
-                        <option value="hg">hg</option>
-                        <option value="g">g</option>
-                        <option value="L">L</option>
-                        <option value="dl">dl</option>
-                        <option value="cl">cl</option>
-                        <option value="ml">ml</option>
-                      </select>
+                      <span style={{padding: '10px 16px', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--muted)', fontSize: '14px'}}>st</span>
                     </div>
                   </label>
                   
@@ -2729,13 +2750,13 @@ export default function App() {
                   <div className="form-preview" style={{color: form.name && form.expiresAt && form.quantity > 0 ? 'inherit' : 'var(--muted)'}}>
                     <small>
                       {form.name && form.expiresAt && form.quantity > 0 ? (
-                        `Lägger till: ${form.quantity} ${selectedInventoryUnit} ${form.name} som går ut ${form.expiresAt}`
+                        `Lägger till: ${form.quantity} st ${form.name} som går ut ${form.expiresAt}`
                       ) : (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <AlertTriangle size={14} />
                           {!form.name ? 'Namn saknas' :
                           !form.expiresAt ? 'Utgångsdatum saknas' :
-                          form.quantity <= 0 ? 'Antal måste vara större än 0' :
+                          form.quantity <= 0 ? 'Antal måste vara minst 1' :
                           ''}
                         </span>
                       )}
