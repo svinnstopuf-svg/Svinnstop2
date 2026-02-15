@@ -910,6 +910,74 @@ button:disabled {
   font-weight: 700;
 }
 
+/* === RECIPE TABS === */
+.recipe-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+  padding: 6px;
+  background: var(--glass, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.recipe-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.recipe-tab-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.recipe-tab-btn.active {
+  background: var(--primary, #667eea);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.recipe-tab-btn:hover:not(.active) {
+  background: var(--gray-100, rgba(0,0,0,0.05));
+  color: var(--text);
+}
+
+[data-theme="dark"] .recipe-tab-btn:hover:not(.active) {
+  background: var(--gray-800, rgba(255,255,255,0.1));
+}
+
+.recipe-tab-btn .tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.recipe-tab-btn:not(.active) .tab-count {
+  background: var(--primary-light, rgba(102, 126, 234, 0.2));
+  color: var(--primary, #667eea);
+}
+
 /* === AI RECIPE FEATURES === */
 .ai-recipe-card {
   border-left: 4px solid #667eea;

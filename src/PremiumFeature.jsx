@@ -1,5 +1,5 @@
 import React from 'react'
-import { isPremiumActive } from './premiumService'
+import { isPremiumActive, hasFamilyPremiumBenefitsSync } from './premiumService'
 import { Sparkles, Check, ChefHat, Bell, TrendingUp, Trophy, BarChart3, Package } from 'lucide-react'
 import './PremiumFeature.css'
 
@@ -17,7 +17,10 @@ export default function PremiumFeature({
   onUpgradeClick,
   customMessage 
 }) {
-  const isPremium = isPremiumActive()
+  // FIX: Kolla både egen premium OCH family premium
+  const ownPremium = isPremiumActive()
+  const familyBenefits = hasFamilyPremiumBenefitsSync()
+  const isPremium = ownPremium || familyBenefits.hasBenefits
   
   // Om premium är aktivt, visa innehållet direkt
   if (isPremium) {
@@ -44,16 +47,6 @@ export default function PremiumFeature({
         'Push-notiser om utgående varor',
         'Dagliga påminnelser',
         'Anpassningsbara varningar'
-      ]
-    },
-    leaderboard: {
-      icon: <TrendingUp size={48} />,
-      title: 'Leaderboard kräver Premium',
-      description: 'Tävla mot andra användare och se hur mycket du sparar',
-      features: [
-        'Tävla mot andra användare',
-        'Jämför med vänner',
-        'Veckoliga utmaningar'
       ]
     },
     achievements: {
@@ -106,7 +99,6 @@ export default function PremiumFeature({
               </li>
             ))}
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> Obegränsat antal varor</li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> Ingen reklam</li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} style={{ flexShrink: 0 }} /> Familjesynkronisering</li>
           </ul>
         </div>

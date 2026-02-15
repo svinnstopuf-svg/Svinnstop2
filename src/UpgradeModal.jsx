@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { isPremiumActive, getPremiumStatus, getDaysLeftOfPremium } from './premiumService'
+import { isPremiumActive, getPremiumStatus, getDaysLeftOfPremium, hasFamilyPremiumBenefitsSync } from './premiumService'
 import { calculateFamilyUpgradePrice, getPremiumDescription } from './familyPremiumService'
 import { Check, CreditCard, Gift, DollarSign, Globe } from 'lucide-react'
 import StripeCheckout from './StripeCheckout'
@@ -19,7 +19,10 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
   const [paymentMethod, setPaymentMethod] = useState('stripe') // 'stripe' or 'referral'
   const [selectedPlan, setSelectedPlan] = useState('family') // 'individual' or 'family'
   const [showStripeCheckout, setShowStripeCheckout] = useState(false)
-  const isPremium = isPremiumActive()
+  // FIX: Kolla både egen premium OCH family premium
+  const ownPremium = isPremiumActive()
+  const familyBenefits = hasFamilyPremiumBenefitsSync()
+  const isPremium = ownPremium || familyBenefits.hasBenefits
   const premiumStatus = getPremiumStatus()
   const daysLeft = getDaysLeftOfPremium()
   const familyPricing = calculateFamilyUpgradePrice()
@@ -90,14 +93,14 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             <div className="premium-features-active">
               <h3>Dina Premium-fördelar:</h3>
               <ul>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> AI-genererade recept från dina ingredienser</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Receptförslag & AI-genererade recept</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Obegränsat antal varor i kylskåpet</li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Familjesynkronisering (upp till 5 medlemmar)</li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Ingen reklam</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Avancerad statistik & miljöpåverkan</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> 25+ Achievements & badges</li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Topplista</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Push-notifikationer</li>
+                {premiumStatus.premiumType === 'family' && (
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Premium för hela familjen (upp till 5 medlemmar)</li>
+                )}
               </ul>
             </div>
             
@@ -174,26 +177,14 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
           <ul>
             <li>
               <div>
-                <strong>AI-genererade recept från dina ingredienser</strong>
-                <p>Få personliga receptförslag baserat på vad du har hemma - inget slöseri</p>
+                <strong>Receptförslag & AI-genererade recept</strong>
+                <p>Få smarta receptförslag baserat på vad du har hemma - inget slöseri</p>
               </div>
             </li>
             <li>
               <div>
                 <strong>Obegränsat antal varor i kylskåpet</strong>
-                <p>Perfekt för stora hushåll och familjer - inga begränsningar</p>
-              </div>
-            </li>
-            <li>
-              <div>
-                <strong>Familjesynkronisering i realtid</strong>
-                <p>Dela kylskåp och inköpslista med upp till 5 familjemedlemmar</p>
-              </div>
-            </li>
-            <li>
-              <div>
-                <strong>Ingen reklam</strong>
-                <p>100% reklamfri upplevelse</p>
+                <p>Gratis-versionen har max 10 varor - med Premium finns inga gränser</p>
               </div>
             </li>
             <li>
@@ -210,16 +201,18 @@ export default function UpgradeModal({ isOpen, onClose, onReferralClick }) {
             </li>
             <li>
               <div>
-                <strong>Topplista</strong>
-                <p>Tävla mot andra användare och jämför dina framsteg</p>
-              </div>
-            </li>
-            <li>
-              <div>
                 <strong>Push-notifikationer</strong>
                 <p>Smarta påminnelser innan mat går ut</p>
               </div>
             </li>
+            {selectedPlan === 'family' && (
+              <li>
+                <div>
+                  <strong>Premium för hela familjen</strong>
+                  <p>Alla i din familjegrupp får tillgång till premium-funktionerna</p>
+                </div>
+              </li>
+            )}
           </ul>
         </div>
         

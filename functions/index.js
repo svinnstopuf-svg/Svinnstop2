@@ -45,7 +45,7 @@ exports.subscribeToWeeklyEmail = functions.https.onCall(async (data, context) =>
 
     try {
       const emailResult = await resend.emails.send({
-        from: "Svinnstop <onboarding@resend.dev>",
+        from: "Svinnstop <noreply@svinnstop.com>",
         to: email,
         subject: "🎉 Välkommen till Svinnstops veckosammanfattningar!",
         html: `
@@ -61,7 +61,7 @@ exports.subscribeToWeeklyEmail = functions.https.onCall(async (data, context) =>
             <p>Vi ses nästa måndag!</p>
             <p style="color: #666; font-size: 12px;">
               Vill du avsluta? Klicka här: 
-              <a href="https://svinnstop.app/unsubscribe?email=${email}">Avsluta prenumeration</a>
+              <a href="https://svinnstop.com/unsubscribe?email=${email}">Avsluta prenumeration</a>
             </p>
           </div>
         `,
@@ -120,7 +120,7 @@ exports.sendWeeklyEmails = functions.pubsub
           // Detta kräver att användare är inloggade och har sin data i Firestore
           // För nu skickar vi ett generiskt email
           const emailPromise = resend.emails.send({
-            from: "Svinnstop <onboarding@resend.dev>",
+            from: "Svinnstop <noreply@svinnstop.com>",
             to: email,
             subject: "📅 Din veckosammanfattning från Svinnstop",
             html: `
@@ -143,7 +143,7 @@ exports.sendWeeklyEmails = functions.pubsub
                   <p>Se din statistik i appen!</p>
                 </div>
 
-                <a href="https://svinnstop.web.app/?from=email&action=login" 
+                <a href="https://svinnstop.com" 
                    style="display: inline-block; background: #10b981; color: white; 
                           padding: 12px 24px; text-decoration: none; border-radius: 6px; 
                           margin: 20px 0;">
@@ -152,7 +152,7 @@ exports.sendWeeklyEmails = functions.pubsub
 
                 <p style="color: #666; font-size: 12px; margin-top: 40px;">
                   Vill du avsluta? 
-                  <a href="https://svinnstop.app/unsubscribe?email=${email}">Avsluta prenumeration</a>
+                  <a href="https://svinnstop.com/unsubscribe?email=${email}">Avsluta prenumeration</a>
                 </p>
               </div>
             `,
@@ -225,7 +225,7 @@ exports.createCheckoutSession = functions.https.onRequest(async (req, res) => {
     let priceId;
     const mode = "subscription";
 
-    if (premiumType === "family_upgrade" || premiumType === "family") {
+    if (premiumType === "family") {
       // Gamla prenumerationen avbryts i webhook efter lyckat köp
       priceId = STRIPE_PRICES.family;
     } else if (premiumType === "individual") {
@@ -299,13 +299,15 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         const customerEmail = session.customer_email || (session.customer_details && session.customer_details.email);
 
         console.log("✅ Payment successful for user:", userId);
+        console.log("📝 Premium type from metadata:", premiumType);
+        console.log("📝 Session metadata:", JSON.stringify(session.metadata));
 
         // Aktivera premium i Firebase
         const premiumRef = admin.database().ref(`users/${userId}/premium`);
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30);
 
-        const finalPremiumType = premiumType === "family_upgrade" ? "family" : premiumType;
+        const finalPremiumType = premiumType;
 
         // Hämta gammal premium data för att kolla om vi behöver avbryta en gammal prenumeration
         const oldPremiumSnap = await premiumRef.once("value");
@@ -351,7 +353,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
             console.log("📧 Preparing to send email with payload...");
 
             const emailResult = await resend.emails.send({
-              from: "Svinnstop <onboarding@resend.dev>",
+              from: "Svinnstop <noreply@svinnstop.com>",
               to: customerEmail,
               subject: `🎉 Tack för ditt köp av ${planName}!`,
               html: `
@@ -372,7 +374,6 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                       <li>AI-genererade recept från dina ingredienser</li>
                       <li>Obegränsat antal varor i kylskåpet</li>
                       ${finalPremiumType === "family" ? "<li>Familjesynkronisering (upp till 5 medlemmar)</li>" : ""}
-                      <li>Ingen reklam</li>
                       <li>Avancerad statistik & miljöpåverkan</li>
                       <li>25+ Achievements & badges</li>
                       <li>Topplista</li>
@@ -380,7 +381,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                     </ul>
                   </div>
 
-                <a href="https://svinnstop.web.app/?from=email&action=login" 
+                  <a href="https://svinnstop.com" 
                      style="display: inline-block; background: #10b981; color: white; 
                             padding: 12px 24px; text-decoration: none; border-radius: 6px; 
                             margin: 20px 0;">
@@ -414,11 +415,14 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         }
 
         // If user bought Family Premium, set premium on their family
+        console.log("👨‍👩‍👧‍👦 Checking if should set family premium. finalPremiumType:", finalPremiumType);
         if (finalPremiumType === "family") {
+          console.log("👨‍👩‍👧‍👦 User bought Family Premium - searching for their family...");
           try {
             // Find user's family by searching all families for this userId
             const familiesRef = admin.database().ref("families");
             const familiesSnapshot = await familiesRef.once("value");
+            console.log("👨‍👩‍👧‍👦 Families snapshot exists:", familiesSnapshot.exists());
 
             if (familiesSnapshot.exists()) {
               const families = familiesSnapshot.val();
@@ -480,6 +484,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
         if (snapshot.exists()) {
           const userId = Object.keys(snapshot.val())[0];
           const premiumRef = admin.database().ref(`users/${userId}/premium`);
+          const currentPremium = (await premiumRef.once("value")).val() || {};
 
           // Hämta prenumerationens faktiska förfallodatum från Stripe
           let premiumUntil;
@@ -509,6 +514,49 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           });
 
           console.log("✅ Premium renewed for user:", userId, "until", premiumUntil);
+
+          // Om det är Family Premium, uppdatera även familjens premium
+          if (currentPremium.premiumType === "family") {
+            try {
+              const familiesRef = admin.database().ref("families");
+              const familiesSnapshot = await familiesRef.once("value");
+
+              if (familiesSnapshot.exists()) {
+                const families = familiesSnapshot.val();
+                let userFamilyId = null;
+
+                for (const familyId in families) {
+                  if (Object.prototype.hasOwnProperty.call(families, familyId)) {
+                    const family = families[familyId];
+                    if (family.members) {
+                      for (const memberId in family.members) {
+                        if (Object.prototype.hasOwnProperty.call(family.members, memberId)) {
+                          const member = family.members[memberId];
+                          if (member.userId === userId) {
+                            userFamilyId = familyId;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                    if (userFamilyId) break;
+                  }
+                }
+
+                if (userFamilyId) {
+                  const familyPremiumRef = admin.database().ref(`families/${userFamilyId}/premium`);
+                  await familyPremiumRef.update({
+                    active: true,
+                    premiumUntil: premiumUntil,
+                    lastUpdated: new Date().toISOString(),
+                  });
+                  console.log("✅ Family premium renewed for family:", userFamilyId);
+                }
+              }
+            } catch (familyError) {
+              console.error("❌ Failed to update family premium on renewal:", familyError);
+            }
+          }
         }
         break;
       }
@@ -525,6 +573,46 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           const userId = Object.keys(snapshot.val())[0];
           const premiumRef = admin.database().ref(`users/${userId}/premium`);
           const currentPremium = (await premiumRef.once("value")).val() || {};
+
+          // Om det var Family Premium, ta bort family premium också
+          if (currentPremium.premiumType === "family") {
+            try {
+              const familiesRef = admin.database().ref("families");
+              const familiesSnapshot = await familiesRef.once("value");
+
+              if (familiesSnapshot.exists()) {
+                const families = familiesSnapshot.val();
+                let userFamilyId = null;
+
+                for (const familyId in families) {
+                  if (Object.prototype.hasOwnProperty.call(families, familyId)) {
+                    const family = families[familyId];
+                    if (family.members) {
+                      for (const memberId in family.members) {
+                        if (Object.prototype.hasOwnProperty.call(family.members, memberId)) {
+                          const member = family.members[memberId];
+                          if (member.userId === userId) {
+                            userFamilyId = familyId;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                    if (userFamilyId) break;
+                  }
+                }
+
+                if (userFamilyId) {
+                  // Ta bort family premium helt
+                  const familyPremiumRef = admin.database().ref(`families/${userFamilyId}/premium`);
+                  await familyPremiumRef.remove();
+                  console.log("✅ Family premium removed for family:", userFamilyId);
+                }
+              }
+            } catch (familyError) {
+              console.error("❌ Failed to remove family premium:", familyError);
+            }
+          }
 
           // Avaktivera Stripe premium, men behåll referral premium om det finns
           if (currentPremium.source === "stripe") {

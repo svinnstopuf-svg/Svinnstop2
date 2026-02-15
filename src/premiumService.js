@@ -274,7 +274,7 @@ export function renewStripePremium() {
 }
 
 // Avaktivera premium (prenumeration avslutad)
-export function deactivatePremium() {
+export async function deactivatePremium() {
   const status = getPremiumStatus()
   
   // Behåll lifetime om det finns
@@ -283,10 +283,20 @@ export function deactivatePremium() {
     return status
   }
   
+  // Om detta var Family Premium, rensa även familjens premium
+  if (status.premiumType === 'family') {
+    try {
+      await removeFamilyPremium()
+    } catch (err) {
+      console.warn('⚠️ Could not remove family premium:', err)
+    }
+  }
+  
   const updatedStatus = {
     ...status,
     active: false,
     premiumUntil: null,
+    premiumType: null,
     lastUpdated: new Date().toISOString()
   }
   
@@ -294,6 +304,9 @@ export function deactivatePremium() {
   syncPremiumToFirebase(updatedStatus).catch(err => 
     console.warn('⚠️ Could not sync deactivation to Firebase:', err)
   )
+  
+  // Rensa family premium cache lokalt
+  localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
   
   // Uppdatera annonser (visa för free users)
   try {
@@ -307,6 +320,47 @@ export function deactivatePremium() {
   console.log('❌ Premium avaktiverat')
   
   return updatedStatus
+}
+
+// Ta bort Family Premium från familjen
+async function removeFamilyPremium() {
+  const user = auth.currentUser
+  if (!user) return
+  
+  try {
+    const { getFamilyData } = await import('./familyService')
+    const familyData = getFamilyData()
+    
+    if (!familyData.familyId) {
+      console.log('ℹ️ Not in a family - nothing to remove')
+      return
+    }
+    
+    // Kolla att vi är ägaren av family premium
+    const familyPremiumRef = ref(database, `families/${familyData.familyId}/premium`)
+    const snap = await get(familyPremiumRef)
+    
+    if (snap.exists()) {
+      const familyPremium = snap.val()
+      
+      // Bara ta bort om vi är ägaren
+      if (familyPremium.ownerId === user.uid) {
+        await set(familyPremiumRef, {
+          active: false,
+          premiumType: null,
+          premiumUntil: null,
+          source: null,
+          ownerId: null,
+          lastUpdated: new Date().toISOString()
+        })
+        console.log('👨‍👩‍👧‍👦 Family Premium removed from family')
+      } else {
+        console.log('ℹ️ Not the family premium owner - not removing')
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to remove family premium:', error)
+  }
 }
 
 // Spara premium-status
@@ -348,24 +402,90 @@ export function listenToPremiumChanges(callback) {
   if (!user) return null
   
   const premiumRef = ref(database, `users/${user.uid}/premium`)
-  return onValue(premiumRef, (snap) => {
+  return onValue(premiumRef, async (snap) => {
     const premiumData = snap.val()
-    if (premiumData) {
-      // Uppdatera localStorage
-      const currentStatus = getPremiumStatus()
-      const updatedStatus = {
-        ...currentStatus,
-        ...premiumData
-      }
-      savePremiumStatus(updatedStatus)
+    
+    // Skapa uppdaterad status - hantera både när premium finns och när det tas bort
+    const updatedStatus = {
+      active: premiumData?.active || false,
+      lifetimePremium: premiumData?.lifetimePremium || false,
+      premiumUntil: premiumData?.premiumUntil || null,
+      source: premiumData?.source || null,
+      stripeCustomerId: premiumData?.stripeCustomerId || null,
+      subscriptionId: premiumData?.subscriptionId || null,
+      premiumType: premiumData?.premiumType || null,
+      lastUpdated: premiumData?.lastUpdated || new Date().toISOString()
+    }
+    
+    savePremiumStatus(updatedStatus)
+    console.log('✅ Firebase: Premium status updated from server, active:', updatedStatus.active)
+    
+    // Om premium är avaktiverat, rensa även family premium
+    if (!updatedStatus.active) {
+      localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
+      console.log('ℹ️ Premium deactivated - cleared family premium cache')
       
-      console.log('✅ Firebase: Premium status updated from server')
-      
-      if (callback) {
-        callback(updatedStatus)
+      // Om det var family premium, ta bort från familjen också
+      try {
+        await removeFamilyPremium()
+      } catch (err) {
+        console.warn('⚠️ Could not remove family premium on deactivation:', err)
       }
     }
+    
+    // FIX: Om användaren har Family Premium, synka till familjen (backup om webhook misslyckades)
+    if (premiumData?.active && premiumData?.premiumType === 'family') {
+      try {
+        await propagateFamilyPremiumToFamily(user.uid, premiumData)
+      } catch (err) {
+        console.warn('⚠️ Could not propagate family premium:', err)
+      }
+    }
+    
+    if (callback) {
+      callback(updatedStatus)
+    }
   })
+}
+
+// FIX: Propagera Family Premium till familjen när användaren får det
+async function propagateFamilyPremiumToFamily(userId, premiumData) {
+  try {
+    const { getFamilyData } = await import('./familyService')
+    const familyData = getFamilyData()
+    
+    if (!familyData.familyId) {
+      console.log('ℹ️ User has Family Premium but is not in a family yet')
+      return
+    }
+    
+    // Kolla om familjen redan har premium
+    const familyPremiumRef = ref(database, `families/${familyData.familyId}/premium`)
+    const existingPremium = await get(familyPremiumRef)
+    
+    // Om familjen redan har aktiv premium med samma eller senare utgång, skippa
+    if (existingPremium.exists()) {
+      const existing = existingPremium.val()
+      if (existing.active && existing.premiumUntil >= premiumData.premiumUntil) {
+        console.log('ℹ️ Family already has equal or better premium')
+        return
+      }
+    }
+    
+    // Sätt family premium
+    await set(familyPremiumRef, {
+      active: true,
+      premiumType: 'family',
+      premiumUntil: premiumData.premiumUntil,
+      source: premiumData.source || 'stripe',
+      ownerId: userId,
+      lastUpdated: new Date().toISOString()
+    })
+    
+    console.log('✅ Family Premium propagated to family:', familyData.familyId)
+  } catch (error) {
+    console.error('❌ Failed to propagate family premium:', error)
+  }
 }
 
 // Lyssna på family premium-ändringar från Firebase (realtid)
@@ -433,23 +553,104 @@ export async function syncPremiumFromFirebase() {
     if (snap.exists()) {
       const firebaseData = snap.val()
       
-      // Merge med localStorage (Firebase tar företräde)
-      const localStatus = getPremiumStatus()
-      const mergedStatus = {
-        ...localStatus,
-        ...firebaseData
+      // Firebase tar ALLTID företräde - skriv över localStorage helt
+      const syncedStatus = {
+        active: firebaseData.active || false,
+        lifetimePremium: firebaseData.lifetimePremium || false,
+        premiumUntil: firebaseData.premiumUntil || null,
+        source: firebaseData.source || null,
+        stripeCustomerId: firebaseData.stripeCustomerId || null,
+        subscriptionId: firebaseData.subscriptionId || null,
+        premiumType: firebaseData.premiumType || null,
+        lastUpdated: firebaseData.lastUpdated || null
       }
       
-      savePremiumStatus(mergedStatus)
-      console.log('✅ Firebase: Premium synced from server')
+      savePremiumStatus(syncedStatus)
+      console.log('✅ Firebase: Premium synced from server, active:', syncedStatus.active)
       
-      return mergedStatus
+      // Om användaren inte har egen premium, kolla family premium
+      if (!syncedStatus.active) {
+        await syncFamilyPremiumFromFirebase()
+      }
+      
+      return syncedStatus
+    } else {
+      // Ingen premium-data i Firebase - kolla family premium istället
+      const emptyStatus = {
+        active: false,
+        lifetimePremium: false,
+        premiumUntil: null,
+        source: null,
+        stripeCustomerId: null,
+        subscriptionId: null,
+        premiumType: null
+      }
+      savePremiumStatus(emptyStatus)
+      
+      // Kolla om familjen har premium
+      await syncFamilyPremiumFromFirebase()
+      
+      console.log('ℹ️ No own premium data in Firebase - checked family premium')
+      return emptyStatus
     }
   } catch (error) {
     console.error('❌ Firebase: Failed to sync premium from server', error)
   }
   
   return getPremiumStatus()
+}
+
+// Synka family premium från Firebase vid app-start
+async function syncFamilyPremiumFromFirebase() {
+  try {
+    const { getFamilyData } = await import('./familyService')
+    const familyData = getFamilyData()
+    
+    if (!familyData.familyId) {
+      // Inte i en familj - rensa cache
+      localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
+      console.log('ℹ️ Not in a family - cleared family premium cache')
+      return
+    }
+    
+    // Hämta familjens premium-status från Firebase
+    const familyPremiumRef = ref(database, `families/${familyData.familyId}/premium`)
+    const familyPremiumSnap = await get(familyPremiumRef)
+    
+    if (familyPremiumSnap.exists()) {
+      const familyPremium = familyPremiumSnap.val()
+      
+      // Kolla om premium är aktiv och inte utgången
+      let isActive = familyPremium.active && familyPremium.premiumType === 'family'
+      
+      if (isActive && familyPremium.premiumUntil) {
+        const expiryTime = new Date(familyPremium.premiumUntil).getTime()
+        const now = Date.now()
+        if (now >= expiryTime) {
+          isActive = false
+        }
+      }
+      
+      localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ 
+        active: isActive, 
+        timestamp: Date.now() 
+      }))
+      
+      if (isActive) {
+        console.log('👨‍👩‍👧‍👦 Family Premium synced from Firebase - benefits granted!')
+      } else {
+        console.log('ℹ️ Family exists but no active family premium')
+      }
+    } else {
+      // Familjen har ingen premium
+      localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
+      console.log('ℹ️ Family has no premium data')
+    }
+  } catch (error) {
+    console.error('❌ Failed to sync family premium from Firebase:', error)
+    // Vid fel, sätt cache till false
+    localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
+  }
 }
 
 // Check premium expiry (körs vid app-start)

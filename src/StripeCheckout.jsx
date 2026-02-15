@@ -29,7 +29,7 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
         body: JSON.stringify({
           userId: user.uid,
           email: user.email,
-          premiumType: premiumType, // 'individual', 'family', or 'family_upgrade'
+          premiumType: premiumType, // 'individual' or 'family'
         }),
       })
 
@@ -89,9 +89,8 @@ const StripeCheckout = ({ onClose, premiumType = 'individual' }) => {
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Obegränsat antal varor</li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Receptförslag baserat på ditt kylskåp</li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Push-notifikationer om utgående varor</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Leaderboard och achievements</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Achievements</li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Besparingsstatistik</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Ingen reklam</li>
               {premiumType === 'family' && (
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={18} strokeWidth={2} /> Dela med upp till 5 familjemedlemmar</li>
               )}

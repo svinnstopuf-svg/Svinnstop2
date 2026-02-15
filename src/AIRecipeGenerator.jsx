@@ -17,7 +17,10 @@ export default function AIRecipeGenerator({ inventory, onClose, onRecipeGenerate
   const [error, setError] = useState(null)
   const [generatedRecipe, setGeneratedRecipe] = useState(null)
 
-  const isPremium = premiumService.isPremiumActive()
+  // FIX: Kolla både egen premium OCH family premium
+  const ownPremium = premiumService.isPremiumActive()
+  const familyBenefits = premiumService.hasFamilyPremiumBenefitsSync()
+  const isPremium = ownPremium || familyBenefits.hasBenefits
 
   const toggleIngredient = (item) => {
     setSelectedIngredients(prev => {

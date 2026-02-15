@@ -23,7 +23,7 @@ export default function GuideWelcome({ onStart, onSkip }) {
             <div className="pitch-benefits">
               <span>✅ Obegränsat antal varor</span>
               <span>✅ AI-receptförslag</span>
-              <span>✅ Ingen reklam</span>
+              <span>✅ Familjesynkronisering</span>
             </div>
           </div>
         </div>

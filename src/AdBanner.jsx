@@ -15,7 +15,9 @@ const AdBanner = ({
   className = ''
 }) => {
   const adRef = useRef(null)
-  const isPremium = premiumService.isPremiumActive()
+  // FIX: Kolla både egen premium OCH family premium
+  const familyBenefits = premiumService.hasFamilyPremiumBenefitsSync()
+  const isPremium = familyBenefits.hasBenefits
 
   useEffect(() => {
     // Don't show ads to premium users

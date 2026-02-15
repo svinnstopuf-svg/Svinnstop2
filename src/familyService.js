@@ -301,26 +301,76 @@ export async function leaveFamily() {
     return { success: false, error: 'Du är inte medlem i någon grupp' }
   }
 
-  // Om användaren är owner och det finns andra medlemmar
-  if (data.myRole === ROLES.OWNER && data.members.length > 1) {
-    return {
-      success: false,
-      error: 'Du måste antingen ta bort alla medlemmar eller överföra ägandet innan du lämnar'
-    }
-  }
-
-  // FIX: Ta bort medlem från Firebase först
   const familyId = data.familyId
   const myMemberId = data.myMemberId
+  const isOwner = data.myRole === ROLES.OWNER
+  
+  console.log('📝 leaveFamily called:', { familyId, myMemberId, isOwner, myRole: data.myRole })
   
   try {
+    // Hämta AKTUELL medlemslista från Firebase (inte från lokal cache)
+    const membersRef = ref(database, `families/${familyId}/members`)
+    const membersSnap = await get(membersRef)
+    const membersObj = membersSnap.val() || {}
+    const currentMembers = Object.values(membersObj)
+    const memberCount = currentMembers.length
+    
+    console.log('📝 Current members from Firebase:', currentMembers.map(m => ({ id: m.id, name: m.name, role: m.role })))
+    console.log('📝 Member count:', memberCount, 'My ID:', myMemberId)
+    
+    // Om användaren är owner och det finns andra medlemmar, överför ägandet först
+    if (isOwner && memberCount > 1) {
+      // Hitta nästa medlem att överföra till (första som inte är jag)
+      const nextOwner = currentMembers.find(m => m.id !== myMemberId)
+      
+      console.log('📝 Looking for next owner, found:', nextOwner)
+      
+      if (nextOwner) {
+        // Överför ägandet i Firebase
+        const nextOwnerRef = ref(database, `families/${familyId}/members/${nextOwner.id}/role`)
+        await set(nextOwnerRef, ROLES.OWNER)
+        console.log('✅ Firebase: Ownership transferred to', nextOwner.name, 'id:', nextOwner.id)
+      } else {
+        console.warn('⚠️ No next owner found despite having', memberCount, 'members')
+      }
+    }
+    
     // Ta bort medlemmen från Firebase
+    console.log('📝 Removing member from Firebase:', myMemberId)
     const memberRef = ref(database, `families/${familyId}/members/${myMemberId}`)
     await set(memberRef, null) // Sätt till null för att ta bort
     console.log('✅ Firebase: Member removed successfully')
     
-    // Om detta var sista medlemmen OCH owner, ta bort hela familjen
-    if (data.myRole === ROLES.OWNER && data.members.length <= 1) {
+    // FIX: Kolla om jag är premium-ägaren - i så fall ta bort Family Premium
+    const userId = auth.currentUser?.uid
+    if (userId) {
+      try {
+        const familyPremiumRef = ref(database, `families/${familyId}/premium`)
+        const familyPremiumSnap = await get(familyPremiumRef)
+        
+        if (familyPremiumSnap.exists()) {
+          const familyPremium = familyPremiumSnap.val()
+          
+          // Om jag är den som äger premium, ta bort det från familjen
+          if (familyPremium.ownerId === userId) {
+            console.log('👑 Premium owner is leaving - removing Family Premium from family')
+            await set(familyPremiumRef, null)
+            console.log('✅ Firebase: Family Premium removed')
+          }
+        }
+      } catch (error) {
+        console.error('❌ Failed to check/remove Family Premium:', error)
+        // Don't fail the leave operation
+      }
+    }
+    
+    // VIKTIGT: Uppdatera lastMemberChange så andra medlemmar kan reagera
+    const lastChangeRef = ref(database, `families/${familyId}/lastMemberChange`)
+    await set(lastChangeRef, Date.now())
+    console.log('✅ Firebase: lastMemberChange updated')
+    
+    // Om detta var sista medlemmen, ta bort hela familjen OCH koden
+    if (memberCount <= 1) {
       // Ta bort familj och kod
       const familyRef = ref(database, `families/${familyId}`)
       const codeRef = ref(database, `codes/${data.familyCode}`)
@@ -329,7 +379,7 @@ export async function leaveFamily() {
       console.log('✅ Firebase: Family deleted (last member left)')
     }
   } catch (error) {
-    console.error('❌ Firebase: Failed to remove member', error)
+    console.error('❌ Firebase: Failed to leave family', error)
     return { success: false, error: 'Kunde inte lämna familjegrupp. Försök igen.' }
   }
 
@@ -348,6 +398,7 @@ export async function leaveFamily() {
   }
 
   saveFamilyData(resetData)
+  console.log('✅ localStorage: Family data reset')
 
   return {
     success: true,
@@ -363,12 +414,19 @@ export function startMemberSync(callback) {
     return null
   }
 
+  // Spara initialt antal medlemmar för att detecta ändringar
+  let previousMemberCount = data.members.length
+  let previousMemberIds = data.members.map(m => m.id).sort().join(',')
+  let isFirstLoad = true
+
   const familyRef = ref(database, `families/${data.familyId}/members`)
   return onValue(familyRef, (snap) => {
     const membersObj = snap.val() || {}
     const members = Object.values(membersObj)
     const d = getFamilyData()
     const myMemberId = d.myMemberId
+    
+    console.log('🔥 Firebase members update:', members.length, 'members')
     
     // FIX: Kolla om jag har blivit borttagen från familjen
     const iAmStillMember = members.some(m => m.id === myMemberId)
@@ -406,12 +464,80 @@ export function startMemberSync(callback) {
     }
     
     // Normal uppdatering av medlemslista
-    d.members = members.map(m => ({ ...m, isMe: m.id === myMemberId }))
+    const updatedMembers = members.map(m => ({ ...m, isMe: m.id === myMemberId }))
+    d.members = updatedMembers
     d.lastSyncAt = new Date().toISOString()
+    
+    // FIX: Uppdatera också min roll baserat på Firebase-datan
+    const myMemberData = members.find(m => m.id === myMemberId)
+    if (myMemberData && myMemberData.role) {
+      const oldRole = d.myRole
+      d.myRole = myMemberData.role
+      if (oldRole !== d.myRole) {
+        console.log('👑 Role changed from', oldRole, 'to', d.myRole)
+      }
+    }
+    
     saveFamilyData(d)
     
+    // FIX: Kolla om medlemmar har ändrats (någon lämnade eller gick med)
+    const currentMemberIds = members.map(m => m.id).sort().join(',')
+    const membersChanged = currentMemberIds !== previousMemberIds
+    
+    if (membersChanged && !isFirstLoad) {
+      console.log('🔄 Members changed! Reloading page to update UI...')
+      console.log('Previous:', previousMemberIds)
+      console.log('Current:', currentMemberIds)
+      
+      // Ladda om sidan för att få rätt UI-state
+      window.location.reload()
+      return
+    }
+    
+    // Uppdatera för nästa jämförelse
+    previousMemberCount = members.length
+    previousMemberIds = currentMemberIds
+    isFirstLoad = false
+    
     if (callback) {
-      callback(d.members)
+      callback(updatedMembers)
+    }
+  })
+}
+
+// ENKEL lyssnare för familjeändringar - laddar om sidan när någon lämnar/går med
+export function listenToFamilyChanges() {
+  const data = getFamilyData()
+  
+  if (!data.familyId) {
+    console.log('ℹ️ listenToFamilyChanges: Not in a family')
+    return null
+  }
+  
+  console.log('👂 Starting family change listener for:', data.familyId)
+  
+  // Spara initial timestamp
+  let lastKnownChange = null
+  let isFirstLoad = true
+  
+  const changeRef = ref(database, `families/${data.familyId}/lastMemberChange`)
+  return onValue(changeRef, (snap) => {
+    const currentChange = snap.val()
+    
+    console.log('🔥 Family change detected:', { lastKnownChange, currentChange, isFirstLoad })
+    
+    // Första laddningen - spara bara värdet
+    if (isFirstLoad) {
+      lastKnownChange = currentChange
+      isFirstLoad = false
+      console.log('🔥 Initial lastMemberChange:', currentChange)
+      return
+    }
+    
+    // Om värdet ändrades, ladda om sidan
+    if (currentChange && currentChange !== lastKnownChange) {
+      console.log('🔄 Family membership changed! Reloading...')
+      window.location.reload()
     }
   })
 }
@@ -552,6 +678,11 @@ export async function removeMember(memberId) {
     }
   }
 
+  // FIX: Kontrollera ALLTID mot myMemberId, inte bara isMe
+  if (memberId === data.myMemberId) {
+    return { success: false, error: 'Du kan inte ta bort dig själv. Använd "Lämna familjegrupp" istället.' }
+  }
+
   const memberIndex = data.members.findIndex(m => m.id === memberId)
   
   if (memberIndex === -1) {
@@ -559,10 +690,6 @@ export async function removeMember(memberId) {
   }
 
   const member = data.members[memberIndex]
-  
-  if (member.isMe) {
-    return { success: false, error: 'Du kan inte ta bort dig själv' }
-  }
 
   // FIX: Ta bort medlem från Firebase
   try {
@@ -635,6 +762,7 @@ export const familyService = {
   transferOwnership,
   toggleSync,
   startMemberSync,
+  listenToFamilyChanges,
   isInFamily,
   getShareableCode,
   syncItems,

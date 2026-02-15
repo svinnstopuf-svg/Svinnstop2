@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { familyService, ROLES } from './familyService'
+import React, { useState, useEffect, useRef } from 'react'
+import { familyService, ROLES, getFamilyData } from './familyService'
 import { refreshFamilyPremiumCache } from './familyPremiumSync'
+import { database } from './firebaseConfig'
+import { ref, onValue } from 'firebase/database'
 import { Users, Home, UserPlus, CheckCircle, AlertCircle, XCircle, RefreshCw, Copy, Crown, Shield, User, Trash2, Info, Package } from 'lucide-react'
 import { useToast } from './components/ToastContainer'
 import './familySharing.css'
@@ -16,29 +18,113 @@ export default function FamilySharing({ items, onFamilyChange }) {
     memberName: ''
   })
   const [message, setMessage] = useState(null)
+  const [membersKey, setMembersKey] = useState(0) // FIX: Key för att tvinga clean re-render
+  const isLeavingRef = useRef(false) // FIX: Flagga för att förhindra uppdateringar efter att man lämnat
 
+  // Initial load
   useEffect(() => {
     loadFamilyData()
     
-    // Starta realtime synk om i familj
-    const data = familyService.getFamilyData()
-    if (data.familyId && data.syncEnabled) {
-      let previousMemberCount = data.members.length
-      
-      const unsubscribe = familyService.startMemberSync((members) => {
-        setFamilyData(prev => ({ ...prev, members }))
-        
-        // Visa notifikation om någon lämnade
-        if (members.length < previousMemberCount) {
-          toast.info(`👋 En medlem har lämnat familjegruppen`)
-        } else if (members.length > previousMemberCount) {
-          toast.success(`🎉 En ny medlem har gått med i familjegruppen!`)
-        }
-        previousMemberCount = members.length
-      })
-      return unsubscribe
+    // Kolla om vi just lämnade familjegruppen (efter reload)
+    const leftFamily = sessionStorage.getItem('svinnstop_left_family')
+    if (leftFamily) {
+      sessionStorage.removeItem('svinnstop_left_family')
+      toast.success('✅ Du har lämnat familjegruppen')
     }
   }, [])
+  
+  // ENKEL realtids-lyssnare på familjemedlemmar (precis som inköpslistan)
+  useEffect(() => {
+    // Vänta tills familyData är laddad och har ett familyId
+    if (!familyData?.familyId || !familyData?.syncEnabled) {
+      console.log('👂 FamilySharing: Skipping listener - no familyId or sync disabled')
+      return
+    }
+    
+    console.log('👂 FamilySharing: Starting DIRECT Firebase listener for members on', familyData.familyId)
+    const myMemberId = familyData.myMemberId
+    let previousMemberCount = familyData.members?.length || 0
+    let previousMemberIds = (familyData.members || []).map(m => m.id).sort().join(',')
+    let isFirstLoad = true
+    
+    const membersRef = ref(database, `families/${familyData.familyId}/members`)
+    const unsubscribe = onValue(membersRef, (snap) => {
+      // FIX: Ignorera uppdateringar om vi håller på att lämna
+      if (isLeavingRef.current) {
+        console.log('🚫 FamilySharing: Ignoring update - user is leaving')
+        return
+      }
+      
+      const membersObj = snap.val() || {}
+      const members = Object.values(membersObj)
+      
+      console.log('🔥 FamilySharing: Firebase members update:', members.length, 'members')
+      
+      // Kolla om JAG har blivit borttagen
+      const iAmStillMember = members.some(m => m.id === myMemberId)
+      if (!iAmStillMember && myMemberId) {
+        console.log('⚠️ You have been removed from the family - reloading')
+        // Rensa localStorage och ladda om
+        localStorage.removeItem('svinnstop_family_data')
+        localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
+        alert('⚠️ Du har tagits bort från familjegruppen')
+        window.location.reload()
+        return
+      }
+      
+      // Uppdatera medlemslistan med isMe-flagga
+      const updatedMembers = members.map(m => ({ ...m, isMe: m.id === myMemberId }))
+      
+      // Hitta min nya roll (kan ha ändrats om jag blev ägare)
+      const myMemberData = members.find(m => m.id === myMemberId)
+      const myNewRole = myMemberData?.role || familyData.myRole
+      
+      // LOGG: Visa om rollen ändrades
+      if (myNewRole !== familyData.myRole) {
+        console.log('👑 FamilySharing: Role changed from', familyData.myRole, 'to', myNewRole)
+      }
+      console.log('👤 FamilySharing: My data:', { myMemberId, myNewRole, members: members.map(m => ({ id: m.id, name: m.name, role: m.role })) })
+      
+      // Uppdatera localStorage
+      const updatedLocalData = {
+        ...familyData,
+        members: updatedMembers,
+        myRole: myNewRole,
+        lastSyncAt: new Date().toISOString()
+      }
+      localStorage.setItem('svinnstop_family_data', JSON.stringify(updatedLocalData))
+      
+      // Uppdatera state DIREKT (som inköpslistan gör)
+      setFamilyData(prev => ({
+        ...prev,
+        members: updatedMembers,
+        myRole: myNewRole
+      }))
+      
+      // FIX: Öka key för att tvinga React att göra clean re-render (undviker Google Translate-konflikt)
+      setMembersKey(prev => prev + 1)
+      
+      // Visa toast om någon lämnade/gick med (inte första laddningen)
+      if (!isFirstLoad) {
+        const currentMemberIds = members.map(m => m.id).sort().join(',')
+        if (currentMemberIds !== previousMemberIds) {
+          if (members.length < previousMemberCount) {
+            toast.info('👋 En medlem har lämnat familjegruppen')
+          } else if (members.length > previousMemberCount) {
+            toast.success('🎉 En ny medlem har gått med i familjegruppen!')
+          }
+          previousMemberIds = currentMemberIds
+        }
+        previousMemberCount = members.length
+      }
+      isFirstLoad = false
+    })
+    
+    return () => {
+      console.log('👋 FamilySharing: Stopping Firebase listener')
+      unsubscribe()
+    }
+  }, [familyData?.familyId, familyData?.syncEnabled]) // Kör om när familyId eller sync ändras
 
   function loadFamilyData() {
     const data = familyService.getFamilyData()
@@ -126,19 +212,20 @@ export default function FamilySharing({ items, onFamilyChange }) {
     const confirmed = confirm('Är du säker på att du vill lämna familjegruppen?')
     
     if (confirmed) {
+      // FIX: Sätt flagga INNAN vi lämnar för att förhindra Firebase-uppdateringar
+      isLeavingRef.current = true
+      
       const result = await familyService.leaveFamily()
       
       if (result.success) {
-        setMessage({
-          type: 'success',
-          text: '✅ Du har lämnat familjegruppen'
-        })
-        loadFamilyData()
+        // Rensa family premium cache
+        localStorage.setItem('svinnstop_family_premium_cache', JSON.stringify({ active: false, timestamp: Date.now() }))
         
-        // FIX: Trigga Firebase sync cleanup
-        if (onFamilyChange) {
-          onFamilyChange()
-        }
+        // Spara flagga för att visa meddelande efter reload
+        sessionStorage.setItem('svinnstop_left_family', 'true')
+        
+        // Ladda om sidan DIREKT för att rensa alla states och listeners
+        window.location.reload()
       } else {
         setMessage({
           type: 'error',
@@ -254,7 +341,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
   const stats = familyData ? familyService.getFamilyStats(items) : null
 
   return (
-    <div className="family-sharing">
+    <div className="family-sharing notranslate" translate="no" suppressHydrationWarning>
       {message && (
         <div className={`family-message ${message.type}`}>
           {message.text}
@@ -480,7 +567,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
           )}
 
           {/* Members List */}
-          <div className="members-section">
+          <div className="members-section" key={`members-section-${membersKey}`}>
             <div className="section-header">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={22} /> Medlemmar ({familyData.members.length}/5)</h3>
               {isOwner && (
@@ -502,10 +589,10 @@ export default function FamilySharing({ items, onFamilyChange }) {
               </div>
             )}
 
-            <div className="members-list">
+            <div className="members-list notranslate" translate="no">
               {familyData.members.map(member => (
                 <div 
-                  key={member.id} 
+                  key={`member-${member.id}`} 
                   className={`member-card ${!member.isMe && isOwner ? 'clickable' : ''}`}
                   onClick={() => {
                     if (!member.isMe && isOwner) {
@@ -529,7 +616,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
                       {member.role === ROLES.MEMBER && <User size={20} />}
                     </div>
                     <div className="member-details">
-                      <div className="member-name">
+                      <div className="member-name notranslate" translate="no">
                         {member.name}
                         {member.isMe && <span className="me-badge">Du</span>}
                       </div>
@@ -542,12 +629,26 @@ export default function FamilySharing({ items, onFamilyChange }) {
                     </div>
                   </div>
 
-                  {!member.isMe && (isOwner || familyData.myRole === ROLES.ADMIN) && (
+                  {/* Papperskorg - för dig själv = lämna, för andra = ta bort (endast ägare) */}
+                  {(member.id === familyData.myMemberId || member.isMe) ? (
+                    <button
+                      className="remove-member-btn leave-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleLeaveFamily()
+                      }}
+                      title="Lämna familjegrupp"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  ) : isOwner && (
                     <button
                       className="remove-member-btn"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleRemoveMember(member.id)
+                        if (confirm(`Är du säker på att du vill ta bort ${member.name} från familjegruppen?`)) {
+                          handleRemoveMember(member.id)
+                        }
                       }}
                       title="Ta bort medlem"
                     >
@@ -569,7 +670,7 @@ export default function FamilySharing({ items, onFamilyChange }) {
               Lämna familjegrupp
             </button>
             {isOwner && familyData.members.length > 1 && (
-              <small>Du måste ta bort alla medlemmar först</small>
+              <small>Ägandet överförs automatiskt till nästa medlem</small>
             )}
           </div>
         </div>

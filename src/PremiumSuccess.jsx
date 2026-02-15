@@ -72,8 +72,7 @@ const PremiumSuccess = () => {
                 <li>✅ Obegränsat antal varor i kylskåpet</li>
                 <li>✅ Receptförslag baserat på ditt kylskåp</li>
                 <li>✅ Push-notifikationer om utgående varor</li>
-                <li>✅ Leaderboard och achievements</li>
-                <li>✅ Ingen reklam</li>
+                <li>✅ Achievements</li>
                 <li>✅ Besparingsstatistik</li>
               </ul>
             </div>

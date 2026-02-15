@@ -3,26 +3,32 @@
 
 // Kategoriordning (högre prioritet först)
 const CATEGORY_ORDER = {
-  // Matvaror
-  'frukt': 1,
+  // Nya huvudkategorier
+  'färskvaror': 1,
+  'frukt_gront': 2,
+  'skafferi': 3,
+  'fryst': 4,
+  'brod_bageri': 5,
+  'dryck': 6,
+  
+  // Gamla kategorier (för bakåtkompatibilitet)
+  'frukt': 2,
   'grönsak': 2,
-  'kött': 3,
-  'fisk': 4,
-  'mejeri': 5,
-  'ägg': 6,
-  'bröd': 7,
-  'spannmål': 8,
-  'pasta': 9,
-  'ris': 10,
-  'konserv': 11,
-  'fryst': 12,
-  'krydda': 13,
-  'sås': 14,
-  'olja': 15,
-  'dryck': 16,
-  'snacks': 17,
-  'godis': 18,
-  'mat': 19, // Generisk mat-kategori
+  'kött': 1,
+  'fisk': 1,
+  'mejeri': 1,
+  'ägg': 1,
+  'bröd': 5,
+  'spannmål': 3,
+  'pasta': 3,
+  'ris': 3,
+  'konserv': 3,
+  'krydda': 3,
+  'sås': 3,
+  'olja': 3,
+  'snacks': 3,
+  'godis': 3,
+  'mat': 3, // Generisk mat-kategori
   
   // Icke-matvaror (lägre prioritet)
   'hem': 50,

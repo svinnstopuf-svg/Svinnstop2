@@ -12,7 +12,7 @@ import { getFamilyData } from './familyService'
 import { auth } from './firebaseConfig'
 import { userItemsService, searchUserItems } from './userItemsService'
 import { sortShoppingItems } from './sortingUtils'
-import { ShoppingBag, RefreshCw, CheckCircle, Save, FolderOpen, X, ShoppingCart, Package, AlertCircle, Lightbulb } from 'lucide-react'
+import { ShoppingBag, RefreshCw, CheckCircle, Save, FolderOpen, X, ShoppingCart, Package, AlertCircle, Lightbulb, LayoutGrid, ArrowDownAZ } from 'lucide-react'
 import { useToast } from './components/ToastContainer'
 
 export default function ShoppingList({ onDirectAddToInventory, isPremium, currentInventoryCount, onShowUpgradeModal, guideActive, guideStep, onGuideAdvance }) {
@@ -35,6 +35,7 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
   const [itemMode, setItemMode] = useState('food') // 'food' eller 'other'
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [shoppingFromFirebase, setShoppingFromFirebase] = useState(false)
+  const [sortOrder, setSortOrder] = useState('category') // 'category' eller 'alphabetical'
   
   // Ladda inköpslista från localStorage
   useEffect(() => {
@@ -193,26 +194,34 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
   // Normalisera kategori till en av de 7 huvudkategorierna
   const normalizeCategory = (category) => {
     const categoryMap = {
-      'frukt': 'frukt',
-      'grönsak': 'grönsak',
-      'kött': 'kött',
-      'fisk': 'fisk',
-      'mejeri': 'mejeri',
+      // Nya kategorier
+      'färskvaror': 'färskvaror',
+      'frukt': 'frukt_gront',
+      'grönsak': 'frukt_gront',
+      'frukt_gront': 'frukt_gront',
+      'skafferi': 'skafferi',
+      'fryst': 'fryst',
+      'bröd': 'brod_bageri',
+      'brod_bageri': 'brod_bageri',
       'dryck': 'dryck',
-      // Mappa andra kategorier till huvudkategorier
-      'ägg': 'mejeri',
-      'ost': 'mejeri',
-      'bröd': 'övrigt',
-      'spannmål': 'övrigt',
-      'krydda': 'övrigt',
-      'sås': 'övrigt',
-      'olja': 'övrigt',
-      'buljong': 'övrigt',
-      'baljväxt': 'övrigt',
-      'nötter': 'övrigt',
-      'bakning': 'övrigt',
+      // Mappa gamla kategorier till nya
+      'kött': 'färskvaror',
+      'fisk': 'färskvaror',
+      'mejeri': 'färskvaror',
+      'ägg': 'färskvaror',
+      'ost': 'färskvaror',
+      'spannmål': 'skafferi',
+      'krydda': 'skafferi',
+      'sås': 'skafferi',
+      'olja': 'skafferi',
+      'buljong': 'skafferi',
+      'baljäxt': 'skafferi',
+      'nötter': 'skafferi',
+      'bakning': 'skafferi',
+      'konserv': 'skafferi',
+      'pasta': 'skafferi',
+      'ris': 'skafferi',
       'sötsak': 'övrigt',
-      'konserv': 'övrigt',
       'övrigt': 'övrigt'
     }
     
@@ -224,20 +233,11 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
   const addFromSuggestion = (item) => {
     const normalizedCategory = normalizeCategory(item.category)
     
-    // Emoji baserat på kategori
+    // Ingen emoji för kategorier
     const getCategoryEmoji = (cat) => {
-      const emojiMap = {
-        'frukt': '🍎',
-        'grönsak': '🤬',
-        'kött': '🥩',
-        'fisk': '🐟',
-        'mejeri': '🧀',
-        'dryck': '🥤',
-        'övrigt': '📦'
-      }
-      return emojiMap[cat] || '🍽️'
+      return ''
     }
-    
+
     const newShoppingItem = {
       id: Date.now() + Math.random(), // Mer unik ID
       name: item.name,
@@ -266,18 +266,9 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
     const finalCategory = itemMode === 'other' ? 'övrigt' : selectedCategory
     const isFood = itemMode === 'food'
     
-    // Emoji baserat på kategori
+    // Ingen emoji för kategorier
     const getCategoryEmoji = (cat) => {
-      const emojiMap = {
-        'frukt': '🍎',
-        'grönsak': '🥬',
-        'kött': '🥩',
-        'fisk': '🐟',
-        'mejeri': '🧀',
-        'dryck': '🥤',
-        'övrigt': '📦'
-      }
-      return emojiMap[cat] || '🍽️'
+      return ''
     }
 
     const newShoppingItem = {
@@ -318,7 +309,7 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
     
     // Återställ till defaults
     setSelectedUnit('st')
-    setSelectedCategory('frukt')
+    setSelectedCategory('färskvaror')
     setSelectedIsFood(true)
     setQuantity(1)
     setItemMode('food')
@@ -506,6 +497,16 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
     setTempQuantity('')
   }
 
+  // Sortera alfabetiskt
+  const sortAlphabetically = (items) => {
+    const active = items.filter(item => !item.completed)
+    const completed = items.filter(item => item.completed)
+    
+    const sortByName = (a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase(), 'sv')
+    
+    return [...active.sort(sortByName), ...completed.sort(sortByName)]
+  }
+
   const completedCount = shoppingItems.filter(item => item.completed).length
   const totalCount = shoppingItems.length
   
@@ -660,34 +661,58 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
           </div>
         </div>
         
-        {/* Antal - förenklat utan enheter */}
-        <div style={{marginTop: '12px'}}>
-          <div className="form-row" style={{marginBottom: '12px'}}>
-            <label className="form-label">
-              <span className="label-text">Antal</span>
-              <div className="quantity-input-container" style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                <input 
-                  type="number" 
-                  min="1" 
-                  step="1"
-                  value={quantity} 
-                  onChange={(e) => {
-                    const val = e.target.value
-                    if (val === '' || val === '-') {
-                      setQuantity(1)
-                    } else {
-                      setQuantity(Math.max(1, parseInt(val) || 1))
-                    }
-                  }}
-                  onFocus={(e) => e.target.select()}
-                  placeholder="1"
-                  className="form-input quantity-input"
-                  style={{flex: 1, maxWidth: '100px'}}
-                />
-                <span style={{padding: '10px 16px', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--muted)', fontSize: '14px'}}>st</span>
-              </div>
-            </label>
-          </div>
+        {/* Antal och sortering - samma rad */}
+        <div style={{marginTop: '12px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px'}}>
+          <label className="form-label" style={{margin: 0}}>
+            <span className="label-text">Antal</span>
+            <input 
+              type="number" 
+              min="1" 
+              step="1"
+              value={quantity === 0 ? '' : quantity} 
+              onChange={(e) => {
+                const val = e.target.value
+                if (val === '') {
+                  setQuantity(0)
+                } else {
+                  const num = parseInt(val)
+                  setQuantity(isNaN(num) ? 0 : Math.max(0, num))
+                }
+              }}
+              onBlur={(e) => {
+                if (quantity === 0 || quantity === '') {
+                  setQuantity(1)
+                }
+              }}
+              onFocus={(e) => e.target.select()}
+              placeholder="1"
+              className="form-input quantity-input"
+              style={{maxWidth: '80px', fontSize: '18px', fontWeight: 600}}
+            />
+          </label>
+          {/* Sorteringsknappar */}
+          {shoppingItems.length > 1 && (
+            <div style={{display: 'flex', gap: '8px'}}>
+              <button
+                type="button"
+                onClick={() => setSortOrder('category')}
+                className={`${sortOrder === 'category' ? 'btn-primary' : 'btn-glass'} notranslate`}
+                translate="no"
+                style={{padding: '6px 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px'}}
+              >
+                <LayoutGrid size={14} /> Kategori
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortOrder('alphabetical')}
+                className={`${sortOrder === 'alphabetical' ? 'btn-primary' : 'btn-glass'} notranslate`}
+                translate="no"
+                style={{padding: '6px 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px'}}
+              >
+                <ArrowDownAZ size={14} /> A-Ö
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Kategori och submit - endast för matvaror */}
@@ -701,13 +726,13 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="form-input"
                 >
-                  <option value="frukt">Frukt</option>
-                  <option value="grönsak">Grönsak</option>
-                  <option value="kött">Kött</option>
-                  <option value="fisk">Fisk & skaldjur</option>
-                  <option value="mejeri">Mejeri</option>
-                  <option value="dryck">Dryck</option>
-                  <option value="övrigt">Övrigt</option>
+                  <option value="färskvaror" translate="no">Färskvaror</option>
+                  <option value="frukt_gront" translate="no">Frukt & Grönt</option>
+                  <option value="skafferi" translate="no">Skafferi</option>
+                  <option value="fryst" translate="no">Fryst</option>
+                  <option value="brod_bageri" translate="no">Bröd & Bageri</option>
+                  <option value="dryck" translate="no">Dryck</option>
+                  <option value="övrigt" translate="no">Övrigt</option>
                 </select>
               </label>
             </div>
@@ -798,7 +823,7 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
             <p>Din inköpslista är tom</p>
           </div>
         ) : (
-          sortShoppingItems(shoppingItems).map(item => (
+          (sortOrder === 'category' ? sortShoppingItems(shoppingItems) : sortAlphabetically(shoppingItems)).map(item => (
             <div key={item.id} className={`shopping-item ${item.completed ? 'completed' : ''} ${item.isFood ? 'food-item' : 'non-food-item'}`}>
               <div className="item-main" style={{alignItems: 'center'}}>
                 <input
@@ -816,35 +841,34 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
                   </div>
                 </label>
                 {editingQuantity === item.id ? (
-                  <div style={{display: 'flex', gap: '4px', alignItems: 'center', alignSelf: 'center'}}>
-                    <input
-                      type="number"
-                      value={tempQuantity}
-                      onChange={(e) => setTempQuantity(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          saveQuantityEdit(item.id, item)
-                        } else if (e.key === 'Escape') {
-                          cancelQuantityEdit()
-                        }
-                      }}
-                      onBlur={() => saveQuantityEdit(item.id, item)}
-                      autoFocus
-                      min="1"
-                      step="1"
-                      style={{
-                        width: '50px',
-                        padding: '4px 8px',
-                        fontSize: '13px',
-                        border: '2px solid var(--accent)',
-                        borderRadius: '6px',
-                        background: 'var(--input-bg)',
-                        color: 'var(--text)',
-                        textAlign: 'center'
-                      }}
-                    />
-                    <span style={{fontSize: '12px', color: 'var(--muted)'}}>st</span>
-                  </div>
+                  <input
+                    type="number"
+                    value={tempQuantity}
+                    onChange={(e) => setTempQuantity(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        saveQuantityEdit(item.id, item)
+                      } else if (e.key === 'Escape') {
+                        cancelQuantityEdit()
+                      }
+                    }}
+                    onBlur={() => saveQuantityEdit(item.id, item)}
+                    autoFocus
+                    min="1"
+                    step="1"
+                    style={{
+                      width: '50px',
+                      padding: '6px 10px',
+                      fontSize: '18px',
+                      fontWeight: 600,
+                      border: '2px solid var(--accent)',
+                      borderRadius: '8px',
+                      background: 'var(--input-bg)',
+                      color: 'var(--text)',
+                      textAlign: 'center',
+                      alignSelf: 'center'
+                    }}
+                  />
                 ) : (
                   <button
                     onClick={(e) => {
@@ -858,22 +882,20 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
                     className="item-quantity-display notranslate"
                     translate="no"
                     style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
+                      fontSize: '18px',
+                      fontWeight: 700,
                       alignSelf: 'center',
-                      padding: '6px 12px',
+                      padding: '8px 14px',
                       borderRadius: '8px',
                       border: '1px solid var(--border)',
                       background: item.completed ? 'transparent' : 'var(--input-bg)',
                       cursor: item.completed ? 'default' : 'pointer',
                       transition: 'all 0.2s',
-                      ':hover': {
-                        background: 'var(--accent)'
-                      }
+                      minWidth: '44px'
                     }}
                     title={item.completed ? '' : 'Klicka för att ändra antal'}
                   >
-                    {item.quantity} st
+                    {item.quantity}
                   </button>
                 )}
                 <div className="item-actions">

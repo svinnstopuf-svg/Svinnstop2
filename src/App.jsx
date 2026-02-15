@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
-import { ShoppingCart, Home, ChefHat, User, Undo2, Sparkles, UserCircle2, Sun, Moon, Bell, BellOff, TrendingUp, Trophy, Users, Gift, HelpCircle, Bot, X, AlertTriangle, Clock, Flame, UtensilsCrossed, BarChart3, Search, Zap, Package, ShoppingBag, Lock, CreditCard } from 'lucide-react';
+import { ShoppingCart, Home, ChefHat, User, Undo2, Sparkles, UserCircle2, Sun, Moon, Bell, BellOff, TrendingUp, Trophy, Users, Gift, HelpCircle, Bot, X, AlertTriangle, Clock, Flame, UtensilsCrossed, BarChart3, Search, Zap, Package, ShoppingBag, Lock, CreditCard, Lightbulb, LayoutGrid, ArrowDownAZ } from 'lucide-react';
 import { suggestRecipes, recipes } from './recipes'
 import { fetchPopularRecipes } from './recipeAPI'
 import ExpirySettings from './ExpirySettings'
@@ -12,7 +12,6 @@ import WeeklyEmailSignup from './WeeklyEmailSignup'
 import ReferralProgram from './ReferralProgram'
 import AchievementsPage from './AchievementsPage'
 import FamilySharing from './FamilySharing'
-import Leaderboard from './Leaderboard'
 import ManageSubscriptionPage from './ManageSubscriptionPage'
 import FAQ from './FAQ'
 import ConfirmDialog from './ConfirmDialog'
@@ -34,11 +33,10 @@ import { notificationService } from './notificationService'
 import { savingsTracker } from './savingsTracker'
 import { achievementService } from './achievementService'
 import { syncInventoryToFirebase, listenToInventoryChanges } from './inventorySync'
-import { getFamilyData } from './familyService'
+import { getFamilyData, familyService } from './familyService'
 import { initAuth, auth, signOut } from './firebaseConfig'
 import { referralService } from './referralService'
 import { premiumService } from './premiumService'
-import { leaderboardService } from './leaderboardService'
 import { sortInventoryItems } from './sortingUtils'
 import { userItemsService } from './userItemsService'
 import { syncUserItemsToFirebase, syncCustomExpiryRulesToFirebase, listenToCustomExpiryRulesChanges } from './shoppingListSync'
@@ -272,6 +270,7 @@ export default function App() {
   const [showAIRecipeGenerator, setShowAIRecipeGenerator] = useState(false) // AI Recipe Generator modal
   const [savedAIRecipes, setSavedAIRecipes] = useState([]) // Sparade AI-recept
   const [selectedSavedRecipe, setSelectedSavedRecipe] = useState(null) // Valt sparat recept att visa
+  const [inventorySortOrder, setInventorySortOrder] = useState('category') // 'category' eller 'alphabetical'
   const [showAuthModal, setShowAuthModal] = useState(false) // Email/password authentication modal
   const [authModalMode, setAuthModalMode] = useState('login') // 'login' eller 'signup'
   const [pendingFAQSection, setPendingFAQSection] = useState(null)
@@ -464,7 +463,7 @@ export default function App() {
       console.log('🎁 First time referral code detected, navigating to referral tab')
       setActiveTab('referral')
       localStorage.setItem('svinnstop_referral_visited', 'true')
-    } else if (savedTab && ['shopping', 'inventory', 'recipes', 'profile', 'family', 'achievements', 'savings', 'referral', 'leaderboard', 'faq'].includes(savedTab)) {
+    } else if (savedTab && ['shopping', 'inventory', 'recipes', 'profile', 'family', 'achievements', 'savings', 'referral', 'faq'].includes(savedTab)) {
       // Ladda senaste aktiva tab (fungerar även vid refresh)
       console.log('✅ Restoring saved tab:', savedTab)
       setActiveTab(savedTab)
@@ -668,43 +667,6 @@ export default function App() {
                     localStorage.setItem('svinnstop_referral_data', JSON.stringify(referralCodeToUse))
                   }
                   
-                  // Merge profile/leaderboard data
-                  if (cloudData.profile && cloudData.profile.displayName) {
-                    console.log('🏆 Using cloud profile/leaderboard data')
-                    const user = auth.currentUser
-                    if (user) {
-                      const leaderboardKey = `svinnstop_leaderboard_${user.uid}`
-                      const localLeaderboard = localStorage.getItem(leaderboardKey)
-                      let leaderboardData = null
-                      
-                      if (localLeaderboard) {
-                        try {
-                          leaderboardData = JSON.parse(localLeaderboard)
-                        } catch (e) {
-                          leaderboardData = null
-                        }
-                      }
-                      
-                      // Skapa eller uppdatera leaderboard data med cloud profile
-                      const updatedLeaderboard = {
-                        myStats: {
-                          username: cloudData.profile.displayName,
-                          handle: cloudData.profile.handle,
-                          userId: cloudData.profile.userId || user.uid,
-                          itemsSaved: leaderboardData?.myStats?.itemsSaved || 0,
-                          moneySaved: leaderboardData?.myStats?.moneySaved || 0,
-                          streak: leaderboardData?.myStats?.streak || 0,
-                          joinedAt: cloudData.profile.createdAt || new Date().toISOString()
-                        },
-                        competitions: leaderboardData?.competitions || [],
-                        friends: leaderboardData?.friends || [],
-                        lastUpdated: new Date().toISOString()
-                      }
-                      
-                      localStorage.setItem(leaderboardKey, JSON.stringify(updatedLeaderboard))
-                    }
-                  }
-                  
                   // SECURITY: Merge premium data from Firebase (källan till sanning)
                   if (cloudData.premium) {
                     console.log('🔒 Using cloud premium data (source of truth)')
@@ -756,11 +718,6 @@ export default function App() {
           referralService.syncReferralCodeToFirebase()
             .then(() => console.log('✅ Svinnstop referral code synced'))
             .catch(err => console.warn('⚠️ Svinnstop could not sync referral code:', err))
-          
-          // Migrera användarnamn till index
-          leaderboardService.migrateUsernameToIndex()
-            .then(() => console.log('✅ Svinnstop username index migrated'))
-            .catch(err => console.warn('⚠️ Svinnstop could not migrate username:', err))
         } else {
           console.warn('⚠️ Svinnstop auth not initialized - app will work in local mode')
         }
@@ -774,6 +731,81 @@ export default function App() {
         setIsAuthReady(true)
       })
   }, [])
+  
+  // FIX: Lyssna på användarens premium-ändringar (propagerar Family Premium till familjen)
+  useEffect(() => {
+    const user = auth.currentUser
+    if (!user || user.isAnonymous) {
+      return
+    }
+    
+    console.log('👑 Starting user premium listener (for family propagation)')
+    const unsubscribe = premiumService.listenToPremiumChanges((premiumStatus) => {
+      console.log('🔥 User premium realtime update:', premiumStatus.active, premiumStatus.premiumType)
+      
+      // Om premium just aktiverades, visa toast
+      if (premiumStatus.active) {
+        console.log('✅ Premium is active, type:', premiumStatus.premiumType)
+      }
+    })
+    
+    return () => {
+      if (unsubscribe) {
+        console.log('👋 Stopping user premium listener')
+        unsubscribe()
+      }
+    }
+  }, [isAuthReady])
+  
+  // FIX: Lyssna på familjens premium-ändringar (så befintliga medlemmar får förmåner när någon köper)
+  useEffect(() => {
+    const user = auth.currentUser
+    if (!user || user.isAnonymous) {
+      return
+    }
+    
+    // Kolla om användaren är i en familj
+    const familyData = getFamilyData()
+    if (!familyData.familyId) {
+      console.log('ℹ️ User not in family - skipping family premium listener')
+      return
+    }
+    
+    console.log('👨‍👩‍👧‍👦 Starting family premium listener for family:', familyData.familyId)
+    let unsubscribe = null
+    let isSubscribed = true
+    
+    premiumService.listenToFamilyPremiumChanges((familyPremiumStatus) => {
+      console.log('🔥 Family premium realtime update:', familyPremiumStatus.hasBenefits)
+      
+      // Uppdatera UI oavsett om det är aktiverat eller avaktiverat
+      // Force re-render by triggering a state update
+      setFamilySyncTrigger(prev => prev + 1)
+      
+      if (familyPremiumStatus.hasBenefits) {
+        console.log('✅ Family Premium activated - user now has benefits!')
+      } else {
+        console.log('ℹ️ Family Premium deactivated - benefits removed')
+      }
+    }).then(unsub => {
+      if (isSubscribed) {
+        unsubscribe = unsub
+      } else if (unsub) {
+        // Component unmounted before we got the unsubscribe function
+        unsub()
+      }
+    }).catch(err => {
+      console.warn('⚠️ Could not start family premium listener:', err)
+    })
+    
+    return () => {
+      isSubscribed = false
+      if (unsubscribe) {
+        console.log('👋 Stopping family premium listener')
+        unsubscribe()
+      }
+    }
+  }, [isAuthReady]) // Bara starta om när auth är redo, INTE när familySyncTrigger ändras
   
   // Lyssna på user inventory-ändringar från Firebase (realtid)
   useEffect(() => {
@@ -1299,18 +1331,18 @@ export default function App() {
   const onChange = e => {
     const { name, value } = e.target
     
-    // Förenklat - använd heltal för kvantitet
+  // Förenklat - använd heltal för kvantitet
     if (name === 'quantity') {
-      // Tillåt tomt fält så användaren kan ta bort alla siffror
+      // Tillåt tomt fält så användaren kan ta bort siffror och skriva nytt
       if (value === '' || value === null || value === undefined) {
         setForm(prevForm => ({ 
           ...prevForm, 
-          [name]: 1 // Default till 1
+          [name]: '' // Tillåt tomt temporärt
         }))
       } else {
         const numValue = parseInt(value, 10)
-        // Validera kvantitet: min 1, max 99 för att förhindra orealistiska värden
-        const validatedValue = isNaN(numValue) ? 1 : Math.min(Math.max(1, numValue), 99)
+        // Validera kvantitet: max 99 för att förhindra orealistiska värden
+        const validatedValue = isNaN(numValue) ? '' : Math.min(Math.max(0, numValue), 99)
         setForm(prevForm => ({ 
           ...prevForm, 
           [name]: validatedValue
@@ -1429,18 +1461,9 @@ export default function App() {
       console.log(`🧠 onAdd: Lärde mig custom regel för \"${itemName}\": ${daysFromToday} dagar (användare valde ${itemExpiresAt} istället för ${defaultSuggestion.date})`)
     }
     
-    // Emoji baserat på kategori
+    // Ingen emoji för kategorier
     const getCategoryEmoji = (cat) => {
-      const emojiMap = {
-        'frukt': '🍎',
-        'grönsak': '🥬',
-        'kött': '🥩',
-        'fisk': '🐟',
-        'mejeri': '🧀',
-        'dryck': '🥤',
-        'övrigt': '📦'
-      }
-      return emojiMap[cat] || '🍽️'
+      return ''
     }
     
     // Kolla om varan redan finns
@@ -2064,52 +2087,67 @@ export default function App() {
   // Lägg till matvaror från recept i inköpslistan
   const addMatvarorToShoppingList = (ingredients) => {
     const currentShoppingList = JSON.parse(localStorage.getItem('svinnstop_shopping_list') || '[]')
+    let addedCount = 0
     
     ingredients.forEach(ingredient => {
+      // Extrahera bara varunamnet (utan mängd)
+      const itemName = ingredient.name
+      
       // Kolla om varan redan finns i inköpslistan
       const existingItem = currentShoppingList.find(item => 
-        item.name.toLowerCase() === ingredient.name.toLowerCase()
+        item.name.toLowerCase() === itemName.toLowerCase()
       )
-      
-      // Normalisera enhet - fixa Google Translate-fel
-      let normalizedUnit = ingredient.unit
-      if (normalizedUnit === 'miljoner' || normalizedUnit === 'militär' || normalizedUnit === 'million') {
-        normalizedUnit = 'ml'
-      }
       
       if (!existingItem) {
         // Använd getExpiryDateSuggestion som redan finns i SWEDISH_FOODS eller AI
-        const foodSuggestion = getExpiryDateSuggestion(ingredient.name)
+        const foodSuggestion = getExpiryDateSuggestion(itemName)
         const emoji = foodSuggestion.emoji || '📋'
         
         const newShoppingItem = {
           id: Date.now() + Math.random(),
-          name: ingredient.name,
-          category: 'recept',
+          name: itemName,
+          category: foodSuggestion.category || 'recept',
           emoji: emoji,
-          unit: normalizedUnit,
-          quantity: ingredient.quantity,
+          quantity: 1, // Förenklat - alltid 1
           completed: false,
           isFood: true,
           addedAt: Date.now()
         }
         
         currentShoppingList.unshift(newShoppingItem)
-      } else {
-        // Uppdatera kvantiteten om varan redan finns
-        existingItem.quantity = Math.max(existingItem.quantity, ingredient.quantity)
-        existingItem.unit = normalizedUnit
+        addedCount++
       }
+      // Om varan redan finns, gör inget (den finns redan i listan)
     })
     
     // Lär appen om nya ingredienser från receptet EFTER att vi lagt till dem
     learnIngredientsFromRecipe(ingredients)
     
-    // Spara uppdaterad lista
+    // Spara uppdaterad lista till localStorage
     localStorage.setItem('svinnstop_shopping_list', JSON.stringify(currentShoppingList))
     
+    // Synka till Firebase och user cloud
+    const family = getFamilyData()
+    if (family.familyId && family.syncEnabled) {
+      import('./shoppingListSync').then(module => {
+        module.syncShoppingListToFirebase(currentShoppingList)
+      })
+    }
+    
+    // Synka till user cloud
+    const user = auth.currentUser
+    if (user && !user.isAnonymous) {
+      import('./userDataSync').then(module => {
+        module.syncShoppingListToUser(currentShoppingList)
+      })
+    }
+    
     // Visa bekräftelse
-    toast.success(`Lade till ${ingredients.length} matvaror i inköpslistan!`)
+    if (addedCount > 0) {
+      toast.success(`Lade till ${addedCount} matvaror i inköpslistan!`)
+    } else {
+      toast.info('Alla varor finns redan i inköpslistan.')
+    }
   }
   
 
@@ -2140,9 +2178,13 @@ export default function App() {
       )
     }
     
-    // Sortera efter kategori och alfabetisk ordning
+    // Sortera baserat på inventorySortOrder
+    if (inventorySortOrder === 'alphabetical') {
+      return [...result].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase(), 'sv'))
+    }
+    // Default: sortera efter kategori
     return sortInventoryItems(result)
-  }, [items, filter, searchQuery])
+  }, [items, filter, searchQuery, inventorySortOrder])
 
   // Mina recept - använd endast recept från rekommenderade (internet-recept)
   const suggestions = useMemo(() => {
@@ -2672,13 +2714,13 @@ export default function App() {
                         onChange={(e) => setSelectedInventoryCategory(e.target.value)}
                         className="form-input"
                       >
-                        <option value="frukt">Frukt</option>
-                        <option value="grönsak">Grönsak</option>
-                        <option value="kött">Kött</option>
-                        <option value="fisk">Fisk & skaldjur</option>
-                        <option value="mejeri">Mejeri</option>
-                        <option value="dryck">Dryck</option>
-                        <option value="övrigt">Övrigt</option>
+                        <option value="färskvaror" translate="no">Färskvaror</option>
+                        <option value="frukt_gront" translate="no">Frukt & Grönt</option>
+                        <option value="skafferi" translate="no">Skafferi</option>
+                        <option value="fryst" translate="no">Fryst</option>
+                        <option value="brod_bageri" translate="no">Bröd & Bageri</option>
+                        <option value="dryck" translate="no">Dryck</option>
+                        <option value="övrigt" translate="no">Övrigt</option>
                       </select>
                     </label>
                   </div>
@@ -2687,23 +2729,26 @@ export default function App() {
                 <div className="form-row">
                   <label className="form-label">
                     <span className="label-text">Antal</span>
-                    <div className="quantity-input-container" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <input 
-                        type="number" 
-                        name="quantity" 
-                        min="1" 
-                        step="1"
-                        inputMode="numeric"
-                        value={form.quantity} 
-                        onChange={onChange}
-                        onFocus={(e) => e.target.select()}
-                        placeholder="1"
-                        className="form-input quantity-input"
-                        style={{maxWidth: '100px'}}
-                        required
-                      />
-                      <span style={{padding: '10px 16px', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--muted)', fontSize: '14px'}}>st</span>
-                    </div>
+                    <input 
+                      type="number" 
+                      name="quantity" 
+                      min="1" 
+                      step="1"
+                      inputMode="numeric"
+                      value={form.quantity === '' ? '' : form.quantity} 
+                      onChange={onChange}
+                      onBlur={(e) => {
+                        // Sätt till 1 om tomt när man lämnar fältet
+                        if (form.quantity === '' || form.quantity === 0) {
+                          setForm(prev => ({ ...prev, quantity: 1 }))
+                        }
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="1"
+                      className="form-input quantity-input"
+                      style={{maxWidth: '100px', fontSize: '18px', fontWeight: 600}}
+                      required
+                    />
                   </label>
                   
                   <label className="form-label">
@@ -2750,7 +2795,7 @@ export default function App() {
                   <div className="form-preview" style={{color: form.name && form.expiresAt && form.quantity > 0 ? 'inherit' : 'var(--muted)'}}>
                     <small>
                       {form.name && form.expiresAt && form.quantity > 0 ? (
-                        `Lägger till: ${form.quantity} st ${form.name} som går ut ${form.expiresAt}`
+                        `Lägger till: ${form.quantity} ${form.name} som går ut ${form.expiresAt}`
                       ) : (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <AlertTriangle size={14} />
@@ -2766,6 +2811,25 @@ export default function App() {
               </form>
             </section>
             
+            {/* Hjälpruta för smart utgångsdatum */}
+            <div className="inventory-help" style={{
+              padding: '16px',
+              marginBottom: '16px',
+              background: 'var(--card-bg)',
+              borderRadius: '12px',
+              border: '1px solid var(--border)',
+              fontSize: '14px',
+              color: 'var(--muted)'
+            }}>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px 0', color: 'var(--text)' }}>
+                <Lightbulb size={18} /> <strong>Visste du?</strong>
+              </p>
+              <p style={{ margin: 0 }}>
+                Appen lär sig dina utgångsdatum! När du ändrar ett utgångsdatum kommer appen automatiskt 
+                att föreslå samma tidsperiod nästa gång du lägger till samma vara.
+              </p>
+            </div>
+            
             {/* Mina varor section */}
             <section className="card inventory-card">
               <div className="card-header">
@@ -2778,16 +2842,37 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <div className="header-actions">
+                <div className="header-actions" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px'}}>
                   {items.length > 0 && (
                     <button 
                       onClick={toggleBulkEditMode}
                       className={`bulk-edit-toggle ${bulkEditMode ? 'active' : ''}`}
                       title={bulkEditMode ? 'Avsluta redigering' : 'Ändra utgångsdatum för flera varor'}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '14px' }}
                     >
-                      {bulkEditMode ? <><X size={16} /> Avsluta</> : 'Redigera varor'}
+                      {bulkEditMode ? <><X size={18} /> Avsluta</> : 'Redigera varor'}
                     </button>
+                  )}
+                  {/* Sorteringsknappar */}
+                  {items.length > 1 && (
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      <button
+                        onClick={() => setInventorySortOrder('category')}
+                        className={`${inventorySortOrder === 'category' ? 'btn-primary' : 'btn-glass'} notranslate`}
+                        translate="no"
+                        style={{padding: '6px 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px'}}
+                      >
+                        <LayoutGrid size={14} /> Kategori
+                      </button>
+                      <button
+                        onClick={() => setInventorySortOrder('alphabetical')}
+                        className={`${inventorySortOrder === 'alphabetical' ? 'btn-primary' : 'btn-glass'} notranslate`}
+                        translate="no"
+                        style={{padding: '6px 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px'}}
+                      >
+                        <ArrowDownAZ size={14} /> A-Ö
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2923,7 +3008,7 @@ export default function App() {
                         <div className="item-content">
                           <div className="item-main">
                             <strong className="notranslate" translate="no">{i.name}</strong>
-                            <span className="item-quantity notranslate" translate="no">{i.quantity} {i.quantity === 1 && i.unit === 'stycken' ? 'stycke' : i.unit}</span>
+                            <span className="item-quantity notranslate" translate="no" style={{fontSize: '18px', fontWeight: 700, minWidth: '32px', textAlign: 'center'}}>{i.quantity}</span>
                           </div>
                           <div className="item-sub">
                             <span className="status">{status}</span>
@@ -3066,7 +3151,7 @@ export default function App() {
                                   </span>
                                   <span className="ingredient-name notranslate">{ingredient.name}</span>
                                   <span className="ingredient-available">
-                                    <span>(Du har: {ingredient.availableQuantity} {abbreviateUnit(ingredient.availableUnit || ingredient.unit)} {ingredient.itemName})</span>
+                                    <span>(Du har: {ingredient.itemName})</span>
                                     {ingredient.isExpiring && (
                                       <span className="expiry-warning" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={12} /> Går ut om {ingredient.daysLeft} dag{ingredient.daysLeft !== 1 ? 'ar' : ''}</span>
                                     )}
@@ -3365,7 +3450,16 @@ export default function App() {
                             try {
                               await signOut(auth)
                               console.log('✅ Logged out')
-                              toast.success('Du har loggats ut. Dina lokala data finns kvar och du kan logga in igen när som helst.')
+                              
+                              // Rensa all premium-relaterad localStorage för att undvika cache-problem
+                              localStorage.removeItem('svinnstop_premium_data')
+                              localStorage.removeItem('svinnstop_premium')
+                              localStorage.removeItem('svinnstop_premium_expiry')
+                              localStorage.removeItem('svinnstop_family_premium_cache')
+                              localStorage.removeItem('svinnstop_family_data')
+                              console.log('🧹 Cleared premium and family cache on logout')
+                              
+                              toast.success('Du har loggats ut.')
                               window.location.reload()
                             } catch (error) {
                               console.error('❌ Logout error:', error)
@@ -3500,25 +3594,6 @@ export default function App() {
                   <div className="menu-content">
                     <span className="menu-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Utmärkelser {!hasAnyPremium() && <Lock size={14} />}</span>
                     <span className="menu-description">Dina prestationer</span>
-                  </div>
-                  <span className="menu-arrow">›</span>
-                </button>
-                
-                <button 
-                  className="profile-menu-item"
-                  onClick={() => {
-                    const isPremium = hasAnyPremium()
-                    if (!isPremium) {
-                      setShowUpgradeModal(true)
-                      return
-                    }
-                    setActiveTab('leaderboard')
-                  }}
-                >
-                  <span className="menu-icon"><Trophy size={20} /></span>
-                  <div className="menu-content">
-                    <span className="menu-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Topplista {!hasAnyPremium() && <Lock size={14} />}</span>
-                    <span className="menu-description">Tävla med vänner</span>
                   </div>
                   <span className="menu-arrow">›</span>
                 </button>
@@ -3709,26 +3784,6 @@ export default function App() {
                 items={items} 
                 onFamilyChange={() => setFamilySyncTrigger(prev => prev + 1)}
               />
-            </section>
-          </div>
-        )}
-        
-        {activeTab === 'leaderboard' && (
-          <div className="tab-panel">
-            <section className="card">
-              <div className="card-header">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => setActiveTab('profile')}
-                  style={{marginBottom: '16px'}}
-                >
-                  ← Tillbaka till Profil
-                </button>
-                <h2>Topplista</h2>
-                <p className="card-subtitle">Tävla med dina vänner!</p>
-              </div>
-              
-              <Leaderboard />
             </section>
           </div>
         )}
