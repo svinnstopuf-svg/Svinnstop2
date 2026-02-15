@@ -143,7 +143,7 @@ exports.sendWeeklyEmails = functions.pubsub
                   <p>Se din statistik i appen!</p>
                 </div>
 
-                <a href="https://svinnstop.app" 
+                <a href="https://svinnstop.web.app/?from=email&action=login" 
                    style="display: inline-block; background: #10b981; color: white; 
                           padding: 12px 24px; text-decoration: none; border-radius: 6px; 
                           margin: 20px 0;">
@@ -380,7 +380,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                     </ul>
                   </div>
 
-                  <a href="https://svinnstop.web.app" 
+                <a href="https://svinnstop.web.app/?from=email&action=login" 
                      style="display: inline-block; background: #10b981; color: white; 
                             padding: 12px 24px; text-decoration: none; border-radius: 6px; 
                             margin: 20px 0;">
@@ -393,7 +393,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
                   </p>
                   
                   <p style="color: #666; font-size: 12px;">
-                    Frågor? Kontakta oss på support@svinnstop.app
+                    Frågor? Kontakta oss på svinnstopuf@gmail.com
                   </p>
                 </div>
               `,

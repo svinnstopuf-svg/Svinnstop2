@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { searchShoppingItems } from './shoppingDatabase'
 import { getExpiryDateSuggestion } from './foodDatabase'
-import { SV_UNITS, getSuggestedUnitKey } from './App'
-import { increaseQuantity, decreaseQuantity, smartConvertUnit } from './unitConverter'
+// Förenklat - enheter används inte längre
+// import { SV_UNITS, getSuggestedUnitKey } from './App'
+// Förenklat - enhetkonvertering används inte längre
+// import { increaseQuantity, decreaseQuantity, smartConvertUnit } from './unitConverter'
 import { shoppingListService } from './shoppingListService'
 import { syncShoppingListToFirebase, listenToShoppingListChanges, syncSavedListsToFirebase, listenToSavedListsChanges, syncUserItemsToFirebase, listenToUserItemsChanges } from './shoppingListSync'
 import { syncShoppingListToUser } from './userDataSync'
@@ -220,15 +222,13 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
   
   // Lägg till vara från förslag
   const addFromSuggestion = (item) => {
-    const unitKey = getSuggestedUnitKey(item.name)
-    const unit = SV_UNITS[unitKey] || SV_UNITS.defaultUnit
     const normalizedCategory = normalizeCategory(item.category)
     
     // Emoji baserat på kategori
     const getCategoryEmoji = (cat) => {
       const emojiMap = {
         'frukt': '🍎',
-        'grönsak': '🥬',
+        'grönsak': '🤬',
         'kött': '🥩',
         'fisk': '🐟',
         'mejeri': '🧀',
@@ -243,7 +243,7 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
       name: item.name,
       category: normalizedCategory,
       emoji: getCategoryEmoji(normalizedCategory),
-      unit: unit,
+      unit: 'st', // Förenklat - alltid "st"
       quantity: 1,
       completed: false,
       isFood: item.isFood !== false,
@@ -261,8 +261,8 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
     e.preventDefault()
     if (!newItem.trim()) return
 
-    // Bestäm värden baserat på läge
-    const finalUnit = itemMode === 'other' ? 'st' : selectedUnit
+    // Förenklat - alltid "st" som enhet
+    const finalUnit = 'st'
     const finalCategory = itemMode === 'other' ? 'övrigt' : selectedCategory
     const isFood = itemMode === 'food'
     
@@ -468,51 +468,32 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
     setTempQuantity(String(currentQuantity))
   }
 
-  // Spara redigerad kvantitet
+  // Spara redigerad kvantitet - förenklat utan enhetskonvertering
   const saveQuantityEdit = (itemId, item) => {
-    const parsed = parseFloat(tempQuantity)
+    const parsed = parseInt(tempQuantity)
     
-    if (isNaN(parsed) || parsed <= 0) {
-      // Ogiltig input - återställ
+    if (isNaN(parsed) || parsed < 1) {
+      // Ogiltig input - återställ till 1
+      setShoppingItems(prev => prev.map(i => 
+        i.id === itemId ? {...i, quantity: 1} : i
+      ))
       setEditingQuantity(null)
       setTempQuantity('')
       return
     }
     
-    // Max-gräns baserat på enhet (rimliga värden)
-    const unitLower = item.unit.toLowerCase()
-    let maxValue = 999 // Default max
-    
-    if (unitLower === 'kg') {
-      maxValue = 100 // Max 100 kg
-    } else if (unitLower === 'g' || unitLower === 'gram') {
-      maxValue = 10000 // Max 10 kg i gram
-    } else if (unitLower === 'hg') {
-      maxValue = 100 // Max 10 kg i hg
-    } else if (unitLower === 'l' || unitLower === 'liter') {
-      maxValue = 50 // Max 50 liter
-    } else if (unitLower === 'ml' || unitLower === 'milliliter') {
-      maxValue = 10000 // Max 10 liter i ml
-    } else if (unitLower === 'dl' || unitLower === 'deciliter') {
-      maxValue = 100 // Max 10 liter i dl
-    } else if (unitLower === 'cl' || unitLower === 'centiliter') {
-      maxValue = 500 // Max 5 liter i cl
-    } else if (unitLower === 'stycken' || unitLower === 'st' || unitLower === 'styck') {
-      maxValue = 100 // Max 100 stycken
-    }
+    // Max 99 stycken
+    const maxValue = 99
     
     if (parsed > maxValue) {
-      toast.warning(`Max ${maxValue} ${item.unit} tillåtet. Försök med ett lägre värde.`)
+      toast.warning(`Max ${maxValue} st tillåtet.`)
       setEditingQuantity(null)
       setTempQuantity('')
       return
     }
     
-    // Använd smart konvertering för det nya värdet
-    const { quantity: newQuantity, unit: newUnit } = smartConvertUnit(parsed, item.unit)
-    
     setShoppingItems(prev => prev.map(i => 
-      i.id === itemId ? {...i, quantity: newQuantity, unit: newUnit} : i
+      i.id === itemId ? {...i, quantity: parsed, unit: 'st'} : i
     ))
     
     setEditingQuantity(null)
@@ -679,51 +660,31 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
           </div>
         </div>
         
-        {/* Antal och enhet */}
+        {/* Antal - förenklat utan enheter */}
         <div style={{marginTop: '12px'}}>
           <div className="form-row" style={{marginBottom: '12px'}}>
             <label className="form-label">
               <span className="label-text">Antal</span>
-              <div className="quantity-input-container" style={{display: 'flex', gap: '8px'}}>
+              <div className="quantity-input-container" style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                 <input 
                   type="number" 
-                  min="0" 
-                  step="0.1"
+                  min="1" 
+                  step="1"
                   value={quantity} 
                   onChange={(e) => {
                     const val = e.target.value
                     if (val === '' || val === '-') {
-                      setQuantity('')
+                      setQuantity(1)
                     } else {
-                      setQuantity(parseFloat(val) || 0)
+                      setQuantity(Math.max(1, parseInt(val) || 1))
                     }
                   }}
                   onFocus={(e) => e.target.select()}
                   placeholder="1"
                   className="form-input quantity-input"
-                  style={{flex: 1}}
+                  style={{flex: 1, maxWidth: '100px'}}
                 />
-                {/* Enhet - endast för matvaror */}
-                {itemMode === 'food' && (
-                  <select 
-                    value={selectedUnit}
-                    onChange={(e) => setSelectedUnit(e.target.value)}
-                    className="form-input"
-                    style={{width: 'auto', minWidth: '80px'}}
-                  >
-                    <option value="st">st</option>
-                    <option value="kg">kg</option>
-                    <option value="hg">hg</option>
-                    <option value="g">g</option>
-                    <option value="L">L</option>
-                    <option value="dl">dl</option>
-                    <option value="cl">cl</option>
-                    <option value="ml">ml</option>
-                  </select>
-                )}
-                {itemMode === 'other' && (
-                  <span style={{padding: '10px 16px', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--muted)', fontSize: '14px'}}>st</span>
-                )}
+                <span style={{padding: '10px 16px', background: 'var(--input-bg)', borderRadius: '8px', color: 'var(--muted)', fontSize: '14px'}}>st</span>
               </div>
             </label>
           </div>
@@ -869,10 +830,10 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
                       }}
                       onBlur={() => saveQuantityEdit(item.id, item)}
                       autoFocus
-                      min="0.1"
-                      step="0.1"
+                      min="1"
+                      step="1"
                       style={{
-                        width: '60px',
+                        width: '50px',
                         padding: '4px 8px',
                         fontSize: '13px',
                         border: '2px solid var(--accent)',
@@ -882,9 +843,7 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
                         textAlign: 'center'
                       }}
                     />
-                    <span style={{fontSize: '12px', color: 'var(--muted)'}}>
-                      {item.unit}
-                    </span>
+                    <span style={{fontSize: '12px', color: 'var(--muted)'}}>st</span>
                   </div>
                 ) : (
                   <button
@@ -912,9 +871,9 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
                         background: 'var(--accent)'
                       }
                     }}
-                    title={item.completed ? '' : 'Klicka för att ändra mängd'}
+                    title={item.completed ? '' : 'Klicka för att ändra antal'}
                   >
-                    {item.quantity} {item.quantity === 1 && item.unit === 'stycken' ? 'stycke' : item.unit}
+                    {item.quantity} st
                   </button>
                 )}
                 <div className="item-actions">
@@ -943,9 +902,8 @@ export default function ShoppingList({ onDirectAddToInventory, isPremium, curren
           <li><strong>Matvaror:</strong> När du bockar av → Markeras som klara. <em>Först när du klickar på "Rensa klara"</em> läggs de i "Mina varor" med smart utgångsdatum.</li>
           <li><strong>Andra varor:</strong> När du bockar av → Stannar i listan tills du klickar på "Rensa klara"</li>
           <li><strong>Söktips:</strong> Börja skriva för att få förslag på varor från databasen</li>
-          <li><strong>Ändra mängd:</strong> Klicka på kvantiteten (t.ex. "5 kg") för att redigera den direkt!</li>
+          <li><strong>Ändra antal:</strong> Klicka på antalet för att redigera det direkt!</li>
           <li><strong>Spara listor:</strong> Skapar du samma inköpslista varje vecka? Spara den som mall och ladda nästa gång!</li>
-          <li><strong>Smart mått:</strong> Siffror konverteras automatiskt (t.ex. 1000g → 1kg) för bättre användarbarhet</li>
           <li><strong>Synkronisering:</strong> Är du med i en familjegrupp? Inköpslistor synkas automatiskt mellan alla medlemmar!</li>
         </ul>
       </div>
